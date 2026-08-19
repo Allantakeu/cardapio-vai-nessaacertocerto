@@ -379,7 +379,7 @@ a:hover{color:var(--color-accent-300)}
       <div style="background:#fff;border-radius:12px;padding:14px 14px 4px;margin-top:12px;box-shadow:0 0 0 1px rgba(23,23,27,.06)">
         <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Seus dados</div>
         <div class="field" style="padding-top:10px"><label>Seu nome</label><input class="input" type="text" placeholder="Como te chamamos" value="{{ nome }}" onChange="{{ onNome }}"></div>
-        <div class="field" style="padding-top:10px"><label>Seu WhatsApp</label><input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}"></div>
+        <div class="field" style="padding-top:10px"><label>{{ waLabel }}</label><input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}"></div>
       </div>
 
       <sc-if value="{{ isEntrega }}" hint-placeholder-val="{{ true }}">
@@ -410,7 +410,7 @@ a:hover{color:var(--color-accent-300)}
 
       <div style="display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:11px 13px;border-radius:10px;background:rgba(245,197,23,.1);box-shadow:inset 0 0 0 1px rgba(156,116,0,.22)">
         <span style="flex:none;font-size:12px;line-height:1.4;color:#6f5200">◆</span>
-        <span style="font-size:12px;line-height:1.45;color:var(--color-text)">Verifique os itens, o nome e o endereço antes de enviar o pedido.</span>
+        <span style="font-size:12px;line-height:1.45;color:var(--color-text)">{{ confirmHint }}</span>
       </div>
       <button class="btn btn-primary btn-block" onClick="{{ send }}" style="height:48px;font-size:15px;margin-top:12px;background:rgba(216,27,132,.08)">Enviar pedido no WhatsApp</button>
       <button class="btn btn-secondary btn-block" onClick="{{ closeSheet }}" style="height:42px;font-size:13.5px;margin-top:8px">Continuar escolhendo</button>
@@ -924,6 +924,10 @@ class Component extends DCLogic {
       onSearch: e => this.setState({ q: e.target.value }),
       onObs: e => this.setState({ obs: e.target.value }),
       onNome: e => this.setState({ nome: e.target.value }),
+      waLabel: 'Seu WhatsApp' + (isEntrega ? '' : ' (opcional)'),
+      confirmHint: isEntrega
+        ? 'Verifique os itens, o nome e o endereço antes de enviar o pedido.'
+        : 'Verifique os itens e o nome antes de enviar o pedido.',
       telefone: s.telefone,
       onTelefone: e => {
         const d = e.target.value.replace(/\D/g, '').slice(0, 11);
@@ -1003,7 +1007,7 @@ class Component extends DCLogic {
       send: () => {
         const missing = [];
         if (!s.nome.trim()) missing.push('seu nome');
-        if (s.telefone.replace(/\D/g, '').length < 10) missing.push('seu WhatsApp');
+        if (isEntrega && s.telefone.replace(/\D/g, '').length < 10) missing.push('seu WhatsApp');
         if (isEntrega) {
           if (!s.rua.trim()) missing.push('a rua');
           if (!s.numero.trim()) missing.push('o número');
