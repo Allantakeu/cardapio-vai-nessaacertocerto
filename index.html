@@ -239,7 +239,16 @@ a:hover{color:var(--color-accent-300)}
               <div class="clamp2 desc" style="margin-top:4px">{{ item.desc }}</div>
               <div class="money" style="display:inline-flex;align-items:center;margin-top:8px;font-family:var(--font-heading);font-weight:600;font-size:13px;padding:3px 9px;border-radius:6px;color:#6f5200;background:rgba(245,197,23,.2);box-shadow:inset 0 0 0 1px rgba(156,116,0,.28)">{{ item.priceLabel }}</div>
             </div>
-            <div style="{{ item.plusStyle }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+            <sc-if value="{{ !item.rowQty }}" hint-placeholder-val="{{ true }}">
+              <div style="{{ item.plusStyle }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+            </sc-if>
+            <sc-if value="{{ item.rowQty }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ stop }}" style="flex:none;margin-top:24px;display:flex;align-items:center;gap:1px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                <button class="btn btn-ghost" onClick="{{ item.onRowDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
+                <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ item.rowQty }}</span>
+                <button class="btn btn-ghost" onClick="{{ item.onRowInc }}" style="width:25px;height:25px;padding:0;font-size:14px">+</button>
+              </div>
+            </sc-if>
           </div>
         </sc-for>
       </div>
@@ -494,8 +503,17 @@ a:hover{color:var(--color-accent-300)}
 </template>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900},&quot;itemStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Compacta&quot;,&quot;Foto grande&quot;,&quot;Rápida&quot;],&quot;default&quot;:&quot;Compacta&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Ficha do item&quot;},&quot;deliveryFee&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:8,&quot;min&quot;:0,&quot;max&quot;:30,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Pedido&quot;},&quot;whatsapp&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;5511999347715&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Pedido&quot;}}">
+/* Se a página recarregar no meio de uma compra, o carrinho não pode sumir —
+   por isso ele começa lendo o que sobrou salvo no aparelho do cliente. */
+function loadCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('vn.cart'));
+    return Array.isArray(saved) ? saved : [];
+  } catch (e) { return []; }
+}
+
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: [], cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '', toast: '', variant: null, added: '', deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '', toast: '', variant: null, added: '', deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
 
   get data() {
     const d = this.state.doc;
@@ -640,6 +658,11 @@ class Component extends DCLogic {
       window.scrollTo(0, this._scrollY || 0);
       this._scrollLocked = false;
     }
+
+    if (s.cart !== this._prevCart) {
+      this._prevCart = s.cart;
+      try { localStorage.setItem('vn.cart', JSON.stringify(s.cart)); } catch (e) {}
+    }
   }
 
   componentWillUnmount() {
@@ -688,6 +711,25 @@ class Component extends DCLogic {
 
   bump(i, d) {
     this.setState(st => ({ cart: st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: Math.max(1, l.qty + d) }) : l) }));
+  }
+
+  /* Stepper direto na lista: só mexe na linha "unidade" simples (sem fardo,
+     adicional ou observação) — pra qualquer outra variação, o cliente ainda
+     precisa abrir a ficha, que é onde essas escolhas fazem sentido. */
+  simpleLineIndex(cart, it) {
+    return cart.findIndex(l => l.pid === it.id && l.unit === it.price && !l.extras.length && !l.obs);
+  }
+
+  bumpSimple(it, delta) {
+    this.setState(st => {
+      const i = this.simpleLineIndex(st.cart, it);
+      if (i < 0) {
+        if (delta <= 0) return null;
+        return { cart: st.cart.concat([{ name: it.name + ' · unidade', unit: it.price, qty: 1, obs: '', extras: [], photo: it.photo || '', pid: it.id }]) };
+      }
+      const qty = st.cart[i].qty + delta;
+      return { cart: qty <= 0 ? st.cart.filter((_, j) => j !== i) : st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: qty }) : l) };
+    });
   }
 
   buildMsg(subtotal, feeVal) {
@@ -895,13 +937,19 @@ class Component extends DCLogic {
     const groups = this.data
       .filter(g => s.cat === 'Todos' || g.name === s.cat)
       .map(g => {
-        const items = g.items.filter(match).map(it => ({
-          name: it.name, tag: it.tag,
-          desc: [it.vol].concat((it.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
-          priceLabel: fmt(it.price) + ' un',
-          slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
-          onOpen: () => this.openItem(it, g.name)
-        }));
+        const items = g.items.filter(match).map(it => {
+          const li = this.simpleLineIndex(s.cart, it);
+          return {
+            name: it.name, tag: it.tag,
+            desc: [it.vol].concat((it.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
+            priceLabel: fmt(it.price) + ' un',
+            slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
+            onOpen: () => this.openItem(it, g.name),
+            rowQty: li >= 0 ? s.cart[li].qty : 0,
+            onRowInc: e => { e.stopPropagation(); this.bumpSimple(it, 1); },
+            onRowDec: e => { e.stopPropagation(); this.bumpSimple(it, -1); }
+          };
+        });
         return { name: g.name, count: items.length + (items.length === 1 ? ' item' : ' itens'), items: items };
       })
       .filter(g => g.items.length);
