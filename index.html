@@ -208,6 +208,7 @@ a:hover{color:var(--color-accent-300)}
           </div>
         </div>
       </sc-for>
+      <div ref="{{ promoSpacer }}" style="flex:none;width:0px"></div>
     </div>
     <div style="display:flex;justify-content:center;align-items:center;gap:5px;padding:0 18px 4px">
       <sc-for list="{{ promoDots }}" as="d" hint-placeholder-count="3">
@@ -543,7 +544,33 @@ class Component extends DCLogic {
   promoTrack = (el) => {
     this._promoTrack = el;
     if (el) this._startAuto();
+    this._sizePromoSpacer();
   };
+
+  promoSpacer = (el) => {
+    this._promoSpacer = el;
+    this._sizePromoSpacer();
+  };
+
+  /* Com poucos cards (2-4), a largura total do carrossel quase cabe na tela
+     inteira — sobra pouquíssimo espaço de rolagem (scrollWidth-clientWidth),
+     então o scroll-snap trava perto do início: as setas "‹›" e o arrasto com
+     o dedo param de se mover bem antes de conseguir isolar os últimos cards.
+     Este espaçador invisível no fim do trilho garante scroll de sobra pra
+     qualquer card conseguir chegar alinhado ao início da tela, não importa
+     quantos cards existam ou a largura da tela. */
+  _sizePromoSpacer() {
+    /* Os refs de track/spacer disparam durante a criação dos nós, antes de o
+       elemento estar de fato inserido no documento — clientWidth ainda daria
+       0 aqui. requestAnimationFrame adia pro próximo frame, já com o layout
+       real aplicado. */
+    requestAnimationFrame(() => {
+      const track = this._promoTrack, spacer = this._promoSpacer;
+      if (!track || !spacer) return;
+      const CARD_W = 132;
+      spacer.style.width = Math.max(0, track.clientWidth - CARD_W) + 'px';
+    });
+  }
 
   _startAuto() {
     clearInterval(this._autoTimer);
@@ -585,8 +612,30 @@ class Component extends DCLogic {
   _scrollPromoTo(i) {
     const el = this._promoTrack;
     if (!el || !el.children[i]) return;
-    el.scrollTo({ left: el.children[i].offsetLeft - 18, behavior: 'smooth' });
+    this._animatePromoScroll(el.children[i].offsetLeft - 18);
     this.setState({ promoIdx: i });
+  }
+
+  /* Anima o scroll do carrossel de promoções na mão, em vez de
+     scrollTo({behavior:'smooth'}) — chamado de novo antes da animação
+     anterior terminar (o avanço automático a cada 4.5s cedo ou tarde cai
+     perto de um toque manual nas setas/dots), o smooth nativo simplesmente
+     descarta a chamada nova e o carrossel para de responder a clique ou
+     arrasto. Só atribuição direta de scrollLeft, que sempre atualiza. */
+  _animatePromoScroll(target) {
+    const el = this._promoTrack;
+    if (!el) return;
+    cancelAnimationFrame(this._promoAnimId);
+    const start = el.scrollLeft, dist = target - start;
+    if (Math.abs(dist) < 1) return;
+    const duration = 260, t0 = performance.now();
+    const ease = t => 1 - Math.pow(1 - t, 3);
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / duration);
+      el.scrollLeft = start + dist * ease(t);
+      if (t < 1) this._promoAnimId = requestAnimationFrame(step);
+    };
+    this._promoAnimId = requestAnimationFrame(step);
   }
 
   onPromoScroll = (e) => {
@@ -667,6 +716,8 @@ class Component extends DCLogic {
       window.addEventListener('storage', this._storage);
     };
     boot();
+    this._onResize = () => this._sizePromoSpacer();
+    window.addEventListener('resize', this._onResize);
   }
 
 
@@ -706,6 +757,8 @@ class Component extends DCLogic {
     clearInterval(this._autoTimer);
     if (this._vis) document.removeEventListener('visibilitychange', this._vis);
     if (this._storage) window.removeEventListener('storage', this._storage);
+    if (this._onResize) window.removeEventListener('resize', this._onResize);
+    cancelAnimationFrame(this._promoAnimId);
   }
 
   fmt(v) { return 'R$ ' + v.toFixed(2).replace('.', ','); }
@@ -1094,7 +1147,7 @@ class Component extends DCLogic {
       },
       tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle,
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
-      promos: promos, promoDots: promoDots, promoTrack: this.promoTrack,
+      promos: promos, promoDots: promoDots, promoTrack: this.promoTrack, promoSpacer: this.promoSpacer,
       promoPrev: this.promoPrev, promoNext: this.promoNext, onPromoScroll: this.onPromoScroll, stopAuto: this.stopAuto,
       opts: opts,
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, photoUrl: open.photo || '' } : null,
