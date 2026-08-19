@@ -140,7 +140,7 @@ a:hover{color:var(--color-accent-300)}
     </div>
   </div>
   <div style="position:relative;padding:8px 20px 18px;margin-top:-24px;background:radial-gradient(120% 100% at 18% 40%, rgba(245,197,23,.10), transparent 60%)">
-    <div style="position:relative;display:flex;align-items:center;gap:2px">
+    <div style="position:relative;display:flex;align-items:center;gap:10px">
       <div style="width:92px;height:92px;flex:none;border-radius:50%;padding:4px;background:linear-gradient(160deg, rgba(245,197,23,.65), rgba(230,32,140,.45));box-shadow:0 10px 24px rgba(23,23,27,.16)">
         <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:#fff;box-shadow:0 0 0 3px #fff">
           <image-slot id="vn-logo" shape="circle" style="width:100%;height:100%" placeholder="Logo" src="{{ logoUrl }}"></image-slot>
@@ -424,6 +424,7 @@ a:hover{color:var(--color-accent-300)}
       <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 8px">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:-.025em">Seu pedido</div>
         <span style="font-size:12px;color:var(--color-neutral-500)">{{ cartCountLabel }}</span>
+        <button onClick="{{ closeSheet }}" aria-label="Fechar" style="margin-left:auto;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(23,23,27,.05);border:0;cursor:pointer;color:var(--color-text);font-size:15px;line-height:1">✕</button>
       </div>
 
       <div>
