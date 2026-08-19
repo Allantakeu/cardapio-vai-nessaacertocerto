@@ -1138,7 +1138,14 @@ class Component extends DCLogic {
     const isToday = s.days === 'hoje';
     const days = isToday ? 1 : s.days;
     const now = new Date();
-    const dayKey = d => d.toISOString().slice(0, 10);
+    /* Chave por dia no fuso LOCAL do navegador — não toISOString() (que é sempre
+       UTC). O rótulo do eixo (x.date.getDate()/getMonth(), logo abaixo) e o
+       cutoff de "Hoje" (now.getFullYear()/getMonth()/getDate()) já usam
+       componentes locais; toISOString() aqui deixava as duas metades do
+       gráfico em fusos diferentes — pedidos feitos à noite (Brasil = UTC-3)
+       caíam num "dia" do bucket que nenhum slot representava e simplesmente
+       sumiam da barra, mesmo contando certo nos totais do topo. */
+    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
     const buckets = {};
     const slots = [];
     for (let i = days - 1; i >= 0; i--) {

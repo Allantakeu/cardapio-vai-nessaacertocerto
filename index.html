@@ -725,8 +725,14 @@ class Component extends DCLogic {
   }
 
   quickAdd(it) {
+    /* Comparava l.name === it.name, mas a linha nova é salva como
+       it.name + ' · unidade' — nunca batia, então cada toque no "+" rápido
+       (variante "Rápida" e cards de promoção) criava uma linha duplicada em
+       vez de somar 1 na já existente. simpleLineIndex já resolve isso certo
+       (compara pid, preço e ausência de extras/obs) e é o mesmo critério
+       usado pelo stepper da lista. */
     this.setState(st => {
-      const i = st.cart.findIndex(l => l.name === it.name && !l.extras.length && !l.obs);
+      const i = this.simpleLineIndex(st.cart, it);
       const cart = i >= 0
         ? st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: l.qty + 1 }) : l)
         : st.cart.concat([{ name: it.name + ' · unidade', unit: it.price, qty: 1, obs: '', extras: [], photo: it.photo || '', pid: it.id }]);
