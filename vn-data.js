@@ -125,27 +125,6 @@
     });
   }
 
-  /* Cadastro direto pelo painel, sem depender do Dashboard do Supabase —
-     serve pra criar o usuário do dono quando o Dashboard estiver fora do ar
-     (como no incidente deles hoje) ou só por conveniência. Se a confirmação
-     por e-mail estiver ligada no projeto, a Auth não devolve sessão aqui —
-     devolve só o "user" e quem chamou precisa avisar pra checar o e-mail. */
-  function signUp(email, password) {
-    var c = cfg();
-    if (!connected()) return Promise.reject(new Error('Conecte o Supabase antes de criar a conta.'));
-    return fetch(authBase() + '/auth/v1/signup', {
-      method: 'POST',
-      headers: { apikey: c.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, password: password })
-    }).then(function (r) {
-      return r.json().catch(function () { return {}; }).then(function (b) {
-        if (!r.ok) throw new Error(b.error_description || b.msg || b.error || 'Não foi possível criar a conta.');
-        if (b.access_token) setSession(toSession(b));
-        return { user: b.user, needsConfirmation: !b.access_token };
-      });
-    });
-  }
-
   function signOut() {
     var s = getSession();
     setSession(null);
@@ -176,23 +155,6 @@
         return ns;
       });
     }).catch(function () { return null; });
-  }
-
-  /* Dispara o e-mail de redefinição de senha do Supabase Auth. Único admin,
-     sem tela de cadastro público — então "esqueci minha senha" é o único
-     jeito de recuperar acesso sem precisar abrir o painel do Supabase. */
-  function recoverPassword(email) {
-    var c = cfg();
-    if (!connected()) return Promise.reject(new Error('Conecte o Supabase antes.'));
-    return fetch(authBase() + '/auth/v1/recover', {
-      method: 'POST',
-      headers: { apikey: c.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    }).then(function (r) {
-      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (b) {
-        throw new Error(b.error_description || b.msg || 'Não foi possível enviar o e-mail.');
-      });
-    });
   }
 
   /* Devolve um access_token pronto pra usar, renovando sozinho se estiver
@@ -399,7 +361,7 @@
     cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save,
     seed: seed, uid: uid, fmt: fmt, normalize: normalize, track: track, events: events,
     uploadPhoto: uploadPhoto,
-    signIn: signIn, signUp: signUp, signOut: signOut, authed: authed, getSession: getSession, recoverPassword: recoverPassword,
+    signIn: signIn, signOut: signOut, authed: authed, getSession: getSession,
     sql: [
       '-- Cardápio: leitura pública (só a linha \'main\'), escrita só autenticada.',
       '-- Depois de rodar isto, crie o usuário do dono em Authentication > Users',

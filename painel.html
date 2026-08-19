@@ -97,28 +97,7 @@
         <input class="fld" type="password" autocomplete="current-password" placeholder="Senha" value="{{ loginPass }}" onChange="{{ onLoginPass }}" onKeyDown="{{ onLoginKey }}" style="height:44px">
       </div>
       <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ loginError }}</div>
-      <sc-if value="{{ !showSignup }}" hint-placeholder-val="{{ true }}">
-        <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
-      </sc-if>
-      <sc-if value="{{ showSignup }}" hint-placeholder-val="{{ false }}">
-        <button class="btnp" onClick="{{ onSignup }}" style="width:100%;height:46px;margin-top:4px">{{ signupBtnLabel }}</button>
-        <p style="font-size:11px;line-height:1.5;color:var(--mut);margin:8px 0 0;text-align:center">A senha deve ter pelo menos 6 caracteres.</p>
-      </sc-if>
-      <button onClick="{{ onToggleSignup }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:10px;font-size:12px;color:var(--acc)">{{ signupToggleLabel }}</button>
-      <button onClick="{{ onForgotPass }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:6px;font-size:12px;color:var(--mut)">Esqueci minha senha</button>
-      <button onClick="{{ onGoLocal }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:4px;font-size:12px;color:var(--mut)" title="Sem sincronizar com o Supabase — só neste aparelho, até você reconectar">Continuar sem Supabase (modo local)</button>
-
-      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
-        <button onClick="{{ onToggleCfgForm }}" style="width:100%;background:transparent;border:0;cursor:pointer;font-size:11.5px;color:var(--mut)">{{ cfgToggleLabel }}</button>
-        <sc-if value="{{ showCfgForm }}" hint-placeholder-val="{{ false }}">
-          <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0">É a primeira vez que este cardápio conecta num Supabase? Cole os dados do <em>seu</em> projeto (veja o <a href="guia-supabase.html" target="_blank">guia</a>) — isto só troca pra onde o painel aponta, não faz login.</p>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <input class="fld" placeholder="https://xxxx.supabase.co" value="{{ cfgUrl }}" onChange="{{ onCfgUrl }}" style="height:40px;font-size:12.5px">
-            <input class="fld" placeholder="sb_publishable_… ou eyJ…" value="{{ cfgKey }}" onChange="{{ onCfgKey }}" style="height:40px;font-size:12.5px">
-            <button class="btns" onClick="{{ onLoginCfgSave }}">Salvar e recarregar</button>
-          </div>
-        </sc-if>
-      </div>
+      <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
     </div>
   </div>
 </sc-if>
@@ -939,7 +918,7 @@ const THEMES = {
 
 class Component extends DCLogic {
   state = {
-    locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, showSignup: false, signingUp: false, showCfgForm: false, doc: null, events: [], theme: 'claro',
+    locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, doc: null, events: [], theme: 'claro',
     view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
     cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}
@@ -1096,39 +1075,10 @@ class Component extends DCLogic {
       loginBtnLabel: s.loggingIn ? 'Entrando…' : 'Entrar',
       onLoginEmail: e => this.setState({ loginEmail: e.target.value, loginError: '' }),
       onLoginPass: e => this.setState({ loginPass: e.target.value, loginError: '' }),
-      onLoginKey: e => { if (e.key !== 'Enter') return; if (s.showSignup) this.trySignUp(); else this.trySignIn(); },
+      onLoginKey: e => { if (e.key === 'Enter') this.trySignIn(); },
       onLogin: () => this.trySignIn(),
       onLogout: () => this.doLogout(),
-      showLogout: VN.connected(),
-      /* Cadastro fica escondido atrás de um toggle, não é a tela padrão —
-         é só uma saída pra criar o primeiro (e único) usuário quando o
-         Dashboard do Supabase não está acessível. Depois de usado uma vez,
-         o pedido é remover esse caminho do código de novo. */
-      showSignup: s.showSignup,
-      signupBtnLabel: s.signingUp ? 'Criando…' : 'Criar conta',
-      signupToggleLabel: s.showSignup ? 'Já tenho conta — entrar' : 'Ainda não tenho conta — criar agora',
-      onToggleSignup: () => this.setState({ showSignup: !s.showSignup, loginError: '' }),
-      onSignup: () => this.trySignUp(),
-      onForgotPass: () => this.forgotPassword(),
-      /* Sem isto, um problema no lado do Supabase (o serviço de Auth caiu,
-         por exemplo) prende o dono pra sempre na tela de login — sem
-         conseguir nem entrar no painel pra desligar a sincronização. Isto dá
-         uma saída sempre disponível: continuar só neste aparelho até
-         reconectar, sem depender de nada externo estar de pé. */
-      onGoLocal: () => { VN.setCfg({ disconnected: true }); location.reload(); },
-      /* Sem isto, quem clona o projeto pra uma loja nova fica preso na tela de
-         login pra sempre: o painel só sabe pedir login DEPOIS de já estar
-         apontando pra um projeto Supabase (mesmo que seja o projeto errado,
-         de outra loja) — e a aba "Conexão" normal fica escondida atrás do
-         próprio login. Isto dá um jeito de trocar a URL/chave ANTES de logar,
-         sem nunca precisar de sessão pra isso (só grava no localStorage). */
-      showCfgForm: s.showCfgForm,
-      cfgToggleLabel: s.showCfgForm ? 'Cancelar' : 'Conectar em outro Supabase',
-      onToggleCfgForm: () => this.setState({ showCfgForm: !s.showCfgForm }),
-      onLoginCfgSave: () => {
-        VN.setCfg({ url: s.cfgUrl.trim(), key: s.cfgKey.trim() });
-        location.reload();
-      }
+      showLogout: VN.connected()
     };
     if (!doc) return base;
 
@@ -1738,34 +1688,8 @@ class Component extends DCLogic {
     });
   }
 
-  trySignUp() {
-    const email = this.state.loginEmail.trim(), pass = this.state.loginPass;
-    if (!email || !pass) return this.setState({ loginError: 'Preencha e-mail e senha.' });
-    if (pass.length < 6) return this.setState({ loginError: 'A senha precisa ter pelo menos 6 caracteres.' });
-    this.setState({ signingUp: true, loginError: '' });
-    VN.signUp(email, pass).then(r => {
-      if (r.needsConfirmation) {
-        this.setState({ signingUp: false, showSignup: false, loginPass: '', loginError: '' });
-        this.flash('Conta criada! Confira seu e-mail pra confirmar antes de entrar.');
-      } else {
-        this.setState({ signingUp: false, showSignup: false, locked: false, loginPass: '', loginError: '' });
-        if (this.state.doc) this.queueSave();
-      }
-    }).catch(err => {
-      this.setState({ signingUp: false, loginError: (err && err.message) || 'Não foi possível criar a conta.' });
-    });
-  }
-
   doLogout() {
     VN.signOut().then(() => this.setState({ locked: true, loginEmail: '', loginPass: '', loginError: '' }));
-  }
-
-  forgotPassword() {
-    const email = this.state.loginEmail.trim();
-    if (!email) return this.setState({ loginError: 'Digite seu e-mail acima primeiro.' });
-    VN.recoverPassword(email)
-      .then(() => this.flash('Enviamos um link de redefinição para ' + email))
-      .catch(err => this.setState({ loginError: (err && err.message) || 'Não foi possível enviar o e-mail.' }));
   }
 }
 
