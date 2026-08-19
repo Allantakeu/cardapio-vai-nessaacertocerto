@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./dc-runtime.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap">
+  <script src="./vn-data.js"></script>
+  <style>
+    :root{ --font-heading:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;--font-body:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;--bg:#f7f5f1;--card:#ffffff;--topbar:rgba(255,255,255,.86);--ink:#17171b;--mut:#63636c;--line:rgba(23,23,27,.10);--linestrong:rgba(23,23,27,.22);--acc:#d81b84;--hover:rgba(23,23,27,.04); }
+    body { margin:0; font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+    button, input, select, textarea { font-family:inherit; font-size:14px; color:inherit; }
+    .num { font-variant-numeric:tabular-nums; font-feature-settings:"tnum" }
+    .card { display:block; background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:0 1px 3px rgba(16,16,24,.06); padding:16px 18px; }
+    .lbl { display:block; font-size:12px; font-weight:500; color:var(--mut); margin:0 0 6px }
+    .h1 { font-family:var(--font-heading); font-weight:600; font-size:22px; letter-spacing:-.015em; margin:0; color:var(--ink) }
+    .h2 { font-family:var(--font-heading); font-weight:600; font-size:13.5px; letter-spacing:-.005em; margin:0; color:var(--ink) }
+    .fld { width:100%; box-sizing:border-box; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:9px 11px; }
+    .fld::placeholder { color:var(--mut) }
+    .fld:hover { border-color:var(--linestrong) }
+    .fld:focus-visible { outline:2px solid var(--acc); outline-offset:-1px; border-color:var(--acc) }
+    .nav { display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; background:transparent; border:1px solid transparent; border-radius:8px; padding:8px 10px; color:var(--ink); font-size:13.5px; font-weight:500; }
+    .nav:hover { background:var(--hover) }
+    .sub { display:flex; align-items:center; gap:8px; width:100%; text-align:left; cursor:pointer; background:transparent; border:0; border-radius:8px; padding:6px 10px 6px 34px; color:var(--mut); font-size:13px; }
+    .sub:hover { background:var(--hover); color:var(--ink) }
+    .th { text-align:left; font-size:11.5px; font-weight:500; color:var(--mut); padding:0 10px 9px; border-bottom:1px solid var(--line); white-space:nowrap }
+    .cell { padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:middle }
+    tr:hover .cell { background:var(--hover) }
+    .inline { width:100%; box-sizing:border-box; background:transparent; color:var(--ink); border:1px solid transparent; border-radius:7px; padding:7px 8px; }
+    .inline:hover { border-color:var(--line); background:var(--card) }
+    .inline:focus-visible { outline:2px solid var(--acc); outline-offset:-1px; background:var(--card) }
+    .btnp { display:inline-flex; align-items:center; justify-content:center; gap:7px; cursor:pointer; height:38px; padding:0 15px; border-radius:8px; border:1px solid var(--acc); background:var(--acc); color:#fff; font-family:var(--font-heading); font-weight:500; font-size:13.5px; white-space:nowrap; text-decoration:none }
+    .btnp:hover { filter:brightness(1.08) }
+    .btns { display:inline-flex; align-items:center; justify-content:center; gap:7px; cursor:pointer; height:38px; padding:0 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-family:var(--font-heading); font-weight:500; font-size:13.5px; white-space:nowrap; text-decoration:none }
+    .btns:hover { background:var(--hover); border-color:var(--linestrong) }
+    .mini { display:inline-grid; place-items:center; background:var(--card); border:1px solid var(--line); border-radius:8px; width:27px; height:25px; cursor:pointer; color:var(--mut); padding:0; font-size:11px }
+    .mini:hover { border-color:var(--acc); color:var(--acc) }
+    .pill { display:inline-flex; align-items:center; gap:6px; cursor:pointer; border-radius:99px; padding:5px 11px; font-size:12px; font-weight:500; border:1px solid var(--line); background:var(--hover); color:var(--ink) }
+    .pill:hover { border-color:var(--linestrong) }
+    .ico { width:17px; height:17px; flex:none; stroke:currentColor; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; opacity:.85 }
+    .bar:hover > .barfill { filter:brightness(1.12) }
+    a { color:var(--acc); text-decoration:none }
+    .hamburger { display:none; flex:none; width:34px; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.10); color:#f2f2f5; cursor:pointer; align-items:center; justify-content:center; padding:0 }
+    .navBackdrop { display:none; backdrop-filter:blur(2px) }
+    .kpiGrid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px }
+    .tblwrap { position:relative; margin-top:16px; border-radius:14px; background:var(--card); border:1px solid var(--line); box-shadow:0 1px 3px rgba(16,16,24,.06); padding:14px 8px 4px; overflow-x:auto; -webkit-overflow-scrolling:touch }
+    .tblwrap::-webkit-scrollbar{height:0}
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px }
+    .vitrineLayout { display:grid; grid-template-columns:1fr 360px; gap:20px }
+    @media (max-width:860px) {
+      .hamburger { display:inline-flex !important }
+      .topbarSearch, .topbarStatus { display:none !important }
+      a[href="./"] { padding:0 12px !important; font-size:12.5px !important }
+      .sidebar { position:fixed !important; left:0 !important; top:0 !important; bottom:0 !important; height:100vh !important; max-height:100vh !important; width:260px !important; z-index:100 !important; background:var(--bg) !important; box-shadow:0 0 30px rgba(0,0,0,.3); transform:translateX(-100%); transition:transform .22s ease !important }
+      .mainContent { padding:16px 14px 90px !important }
+      .kpiGrid { grid-template-columns:repeat(2, minmax(0,1fr)) !important; gap:10px !important }
+      .grid2 { grid-template-columns:1fr !important }
+      .vitrineLayout { grid-template-columns:1fr !important }
+      .vitrinePreview { position:static !important }
+      .orderName { flex-basis:100% !important; order:-1 }
+      .sidebar { border-radius:0 20px 20px 0 !important }
+      .card { border-radius:14px !important; padding:14px !important }
+      .tblwrap { border-radius:14px !important; padding:12px 10px 6px !important }
+      .btnp, .btns { height:44px !important; font-size:14.5px !important }
+      .mini { width:34px !important; height:34px !important; border-radius:9px !important; font-size:13px !important }
+      .pill { padding:8px 13px !important; font-size:12.5px !important }
+      .cell { padding:11px 9px !important }
+      .th { padding:0 9px 11px !important }
+      .fld, .inline { padding:11px 12px !important; font-size:14.5px !important }
+      .h1 { font-size:20px !important }
+    }
+  </style>
+</helmet>
+<template data-dc-template>
+
+<div style="{{ themeVars }}">
+<div style="min-height:100vh;background:var(--bg);color:var(--ink)">
+
+<sc-if value="{{ locked }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 90% at 50% -10%, color-mix(in oklch, var(--acc) 14%, var(--bg)), var(--bg) 60%)">
+    <div class="card" style="width:100%;max-width:360px;padding:30px 26px;box-shadow:0 20px 50px rgba(16,16,24,.10)">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+        <div style="width:52px;height:52px;border-radius:16px;background:var(--acc);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:17px;box-shadow:0 10px 22px color-mix(in oklch, var(--acc) 45%, transparent)">VN</div>
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin-top:4px">Vai Nessa</div>
+      </div>
+      <h1 class="h1" style="margin-top:22px;font-size:19px;text-align:center">Entrar no painel</h1>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--mut);margin:7px 0 18px;text-align:center">Digite o PIN para editar o cardápio.</p>
+      <input class="fld" type="password" inputmode="numeric" placeholder="PIN" value="{{ pinTry }}" onChange="{{ onPinTry }}" onKeyDown="{{ onPinKey }}" style="height:46px;text-align:center;font-size:16px;letter-spacing:.1em">
+      <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ pinError }}</div>
+      <button class="btnp" onClick="{{ onUnlock }}" style="width:100%;height:46px;margin-top:4px">Entrar</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ unlocked }}" hint-placeholder-val="{{ true }}">
+<div>
+
+  <div style="display:flex;align-items:center;gap:14px;padding:9px 14px;background:var(--topbar);position:sticky;top:0;z-index:30">
+    <button class="hamburger" onClick="{{ onToggleNav }}" title="Menu">
+      <svg class="ico" viewBox="0 0 24 24" style="width:19px;height:19px"><path d="M3 6h18"></path><path d="M3 12h18"></path><path d="M3 18h18"></path></svg>
+    </button>
+    <div style="flex:none;display:flex;align-items:center;gap:9px;min-width:0">
+      <div style="width:27px;height:27px;flex:none;border-radius:7px;background:var(--acc);color:#fff;display:grid;place-items:center;font-family:var(--font-heading);font-weight:600;font-size:11.5px">VN</div>
+      <span style="font-family:var(--font-heading);font-weight:600;font-size:14.5px;color:#f2f2f5;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Vai Nessa</span>
+    </div>
+    <div class="topbarSearch" style="flex:1;display:flex;justify-content:center">
+      <input value="{{ topQ }}" onChange="{{ onTopQ }}" placeholder="Buscar produto" style="width:100%;max-width:420px;box-sizing:border-box;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);border-radius:8px;padding:8px 12px;color:#f2f2f5;font-size:13.5px">
+    </div>
+    <div style="flex:1"></div>
+    <div style="flex:none;display:flex;align-items:center;gap:12px">
+      <div class="topbarStatus" style="text-align:right">
+        <div style="{{ statusStyle }}">{{ statusLabel }}</div>
+        <div class="num" style="font-size:10.5px;color:rgba(242,242,245,.55);margin-top:3px">{{ savedLabel }}</div>
+      </div>
+      <div style="display:flex;gap:3px;padding:3px;background:rgba(255,255,255,.10);border-radius:99px">
+        <sc-for list="{{ themes }}" as="th" hint-placeholder-count="2">
+          <button onClick="{{ th.onPick }}" style="{{ th.style }}">{{ th.label }}</button>
+        </sc-for>
+      </div>
+      <a href="./" target="_blank" class="btnp" style="height:34px">Ver vitrine ↗</a>
+    </div>
+  </div>
+
+  <div class="navBackdrop" style="{{ backdropStyle }}" onClick="{{ onCloseNav }}"></div>
+
+  <div style="display:flex;align-items:flex-start">
+
+    <div class="sidebar" onClick="{{ onSidebarNav }}" style="width:240px;flex:none;padding:14px 12px 40px;position:sticky;top:45px;max-height:calc(100vh - 45px);overflow-y:auto;border-right:1px solid var(--line);{{ navInlineStyle }}">
+      <button class="nav" onClick="{{ onDash }}" style="{{ dashStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 20V9"></path><path d="M10 20V4"></path><path d="M16 20v-7"></path><path d="M22 20H2"></path></svg>
+        <span>Dashboard</span>
+      </button>
+
+      <button class="nav" onClick="{{ onPedidos }}" style="{{ pedidosStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M5 7h14l-1 13H6z"></path><path d="M9 7V5.5a3 3 0 0 1 6 0V7"></path></svg>
+        <span style="flex:1">Pedidos</span>
+        <span class="num" style="{{ orderBadgeStyle }}">{{ orderBadge }}</span>
+      </button>
+      <button class="nav" onClick="{{ onDisparo }}" style="{{ disparoStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 12 21 4l-7 17-3-7z"></path><path d="M11 14 4 12"></path></svg>
+        <span style="flex:1">Disparo</span>
+        <span class="num" style="{{ contactBadgeStyle }}">{{ contactBadge }}</span>
+      </button>
+      <button class="nav" onClick="{{ onVitrine }}" style="{{ vitrineStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 9h18"></path><path d="M4 9V5.5h16V9"></path><path d="M5 9v10h14V9"></path><path d="M9.5 19v-5h5v5"></path></svg>
+        <span>Vitrine</span>
+      </button>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 10px 6px">
+        <button onClick="{{ onToggleCollections }}" style="display:flex;align-items:center;gap:5px;cursor:pointer;background:transparent;border:0;padding:0;font-size:11.5px;font-weight:500;color:var(--mut)">
+          <span>{{ collectionsCaret }}</span><span>Coleções</span>
+        </button>
+        <button class="mini" onClick="{{ onNewCatQuick }}" title="Nova coleção">+</button>
+      </div>
+
+      <sc-if value="{{ newCatOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:6px;padding:0 10px 10px">
+          <input class="fld" placeholder="Nome da coleção" value="{{ newCatName }}" onChange="{{ onNewCatName }}" onKeyDown="{{ onNewCatKey }}" style="padding:7px 9px;font-size:12.5px">
+          <button class="mini" onClick="{{ onNewCatCreate }}" title="Criar" style="flex:none;color:var(--acc);border-color:var(--acc)">✓</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ collectionsOpen }}" hint-placeholder-val="{{ false }}">
+      <sc-for list="{{ nav }}" as="c" hint-placeholder-count="1">
+        <div>
+          <div style="display:flex;align-items:center;gap:2px">
+            <button class="nav" onClick="{{ c.onPick }}" style="{{ c.style }}">
+              <svg class="ico" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22l-9-9V4h9z"></path><circle cx="8" cy="8" r="1.4"></circle></svg>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+              <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ c.count }}</span>
+            </button>
+            <button class="mini" onClick="{{ c.onToggle }}" style="flex:none;border-color:transparent;background:transparent;width:22px">{{ c.caret }}</button>
+          </div>
+          <sc-if value="{{ c.expanded }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:1px;padding:2px 0 8px">
+              <sc-for list="{{ c.items }}" as="p" hint-placeholder-count="4">
+                <button class="sub" onClick="{{ p.onPick }}" style="{{ p.style }}">
+                  <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</span>
+                  <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ p.priceLabel }}</span>
+                </button>
+              </sc-for>
+              <button class="sub" onClick="{{ c.onAdd }}" style="color:var(--acc)">+ produto</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      </sc-if>
+
+      <div style="height:1px;background:var(--line);margin:12px 8px"></div>
+
+      <button class="nav" onClick="{{ onLucro }}" style="{{ lucroStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 17.5 9 11l4 3.5L21 6"></path><path d="M21 11V6h-5"></path></svg>
+        <span>Lucro</span>
+      </button>
+      <button class="nav" onClick="{{ onAjustes }}" style="{{ ajustesStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"></circle><path d="M12 2.8v3M12 18.2v3M4.5 12h-3M22.5 12h-3M6.7 6.7 4.6 4.6M19.4 19.4l-2.1-2.1M17.3 6.7l2.1-2.1M4.6 19.4l2.1-2.1"></path></svg>
+        <span>Ajustes</span>
+      </button>
+      <button class="nav" onClick="{{ onConexao }}" style="{{ conexaoStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7.5" ry="3"></ellipse><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"></path><path d="M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"></path></svg>
+        <span>Conexão</span>
+      </button>
+    </div>
+
+    <div class="mainContent" style="flex:1;min-width:0;padding:22px 26px 90px">
+
+      <sc-if value="{{ isSearch }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <p style="font-size:12px;color:var(--mut);margin:0">Busca</p>
+        <h1 class="h1" style="margin-top:6px">{{ searchTitle }}</h1>
+        <div class="card" style="margin-top:18px;padding:8px 10px">
+          <sc-for list="{{ searchRows }}" as="it" hint-placeholder-count="3">
+            <button onClick="{{ it.onEdit }}" style="display:flex;align-items:center;gap:12px;width:100%;cursor:pointer;background:transparent;border:0;border-bottom:1px solid var(--line);padding:11px 6px;text-align:left;color:inherit">
+              <span style="{{ it.thumbStyle }}">
+                <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ false }}">
+                  <img src="{{ it.photo }}" loading="lazy" decoding="async" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:7px">
+                </sc-if>
+              </span>
+              <span style="flex:1;min-width:0">
+                <span style="display:block;font-weight:500;font-size:13.5px">{{ it.name }}</span>
+                <span class="num" style="display:block;font-size:11.5px;color:var(--mut);margin-top:2px">{{ it.meta }}</span>
+              </span>
+              <span class="num" style="flex:none;font-family:var(--font-heading);font-weight:600;font-size:13.5px">{{ it.priceLabel }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+      <div>
+        <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <h1 class="h1">Dashboard</h1>
+            <p style="font-size:13.5px;color:var(--mut);margin:6px 0 0">{{ dashSub }}</p>
+          </div>
+          <div style="display:flex;gap:6px;flex:none">
+            <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
+              <button class="pill" onClick="{{ r.onPick }}" style="{{ r.style }}">{{ r.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div class="kpiGrid" style="margin-top:18px">
+          <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="4">
+            <div class="card">
+              <div style="display:flex;align-items:center;gap:7px">
+                <span style="{{ k.dotStyle }}"></span>
+                <span style="font-size:12px;color:var(--mut)">{{ k.label }}</span>
+              </div>
+              <div class="num" style="font-family:var(--font-heading);font-weight:600;font-size:26px;letter-spacing:-.02em;margin-top:8px">{{ k.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div style="display:flex;align-items:baseline;gap:14px">
+            <h2 class="h2" style="flex:1">Vendas e cliques por dia</h2>
+            <div style="display:flex;gap:14px;flex:none">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut)"><span style="width:9px;height:9px;border-radius:2px;background:var(--acc)"></span>Pedidos</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--mut)"><span style="width:9px;height:9px;border-radius:2px;background:var(--mut)"></span>Cliques</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:6px;height:190px;margin-top:18px">
+            <sc-for list="{{ series }}" as="d" hint-placeholder-count="14">
+              <div class="bar" title="{{ d.title }}" style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%">
+                <div style="display:flex;align-items:flex-end;gap:3px;width:100%;height:100%;justify-content:center">
+                  <div class="barfill" style="{{ d.clickStyle }}"></div>
+                  <div class="barfill" style="{{ d.orderStyle }}"></div>
+                </div>
+                <span class="num" style="font-size:9.5px;color:var(--mut);white-space:nowrap">{{ d.label }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-if value="{{ noData }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13px;line-height:1.6;color:var(--mut);margin:14px 0 0">Ainda não há registros. Cada abertura de produto na vitrine conta um clique, e cada pedido enviado no WhatsApp conta uma venda. Os números aparecem aqui a partir do primeiro acesso.</p>
+          </sc-if>
+        </div>
+
+        <div class="grid2" style="margin-top:16px;align-items:start">
+          <div class="card">
+            <h2 class="h2">Mais clicados</h2>
+            <p style="font-size:12px;color:var(--mut);margin:5px 0 8px">Quem abriu a ficha mas não necessariamente comprou.</p>
+            <sc-for list="{{ topClicks }}" as="t" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)">
+                <span class="num" style="flex:none;width:20px;font-size:11.5px;color:var(--mut)">{{ t.rank }}</span>
+                <span style="flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span>
+                <span style="flex:none;width:88px;height:6px;border-radius:3px;background:var(--hover);overflow:hidden"><span style="{{ t.barStyle }}"></span></span>
+                <span class="num" style="flex:none;width:38px;text-align:right;font-family:var(--font-heading);font-weight:600;font-size:13px">{{ t.value }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noClicks }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:13px;color:var(--mut);margin:8px 0 0">Sem cliques no período.</p>
+            </sc-if>
+          </div>
+
+          <div class="card">
+            <h2 class="h2">Mais vendidos</h2>
+            <p style="font-size:12px;color:var(--mut);margin:5px 0 8px">Unidades e fardos que entraram em pedidos enviados.</p>
+            <sc-for list="{{ topSales }}" as="t" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid var(--line)">
+                <span class="num" style="flex:none;width:20px;font-size:11.5px;color:var(--mut)">{{ t.rank }}</span>
+                <span style="flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span>
+                <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ t.revenue }}</span>
+                <span class="num" style="flex:none;width:38px;text-align:right;font-family:var(--font-heading);font-weight:600;font-size:13px">{{ t.value }}</span>
+              </div>
+            </sc-for>
+            <sc-if value="{{ noSales }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:13px;color:var(--mut);margin:8px 0 0">Nenhum pedido enviado no período.</p>
+            </sc-if>
+          </div>
+        </div>
+
+        <sc-if value="{{ outOfStock.length }}" hint-placeholder-val="{{ false }}">
+          <div class="card" style="margin-top:16px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:var(--acc);flex:none"></span>
+              <h2 class="h2">Esgotados agora</h2>
+            </div>
+            <p style="font-size:12px;color:var(--mut);margin:5px 0 8px">Marcados como esgotado na vitrine — considere repor.</p>
+            <sc-for list="{{ outOfStock }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onEdit }}" style="display:flex;align-items:center;gap:10px;width:100%;cursor:pointer;background:transparent;border:0;border-top:1px solid var(--line);padding:9px 0;text-align:left;color:inherit">
+                <span style="flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</span>
+                <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ o.catName }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <p style="font-size:11.5px;line-height:1.6;color:var(--mut);margin:14px 2px 0">{{ dataNote }}</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isPedidos }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <h1 class="h1">Pedidos</h1>
+            <p style="font-size:13.5px;color:var(--mut);margin:6px 0 0">{{ ordersSub }}</p>
+          </div>
+          <button class="btns" onClick="{{ onReloadOrders }}" style="flex:none">Atualizar</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px">
+          <sc-for list="{{ orders }}" as="o" hint-placeholder-count="3">
+            <div class="card" style="padding:0;overflow:hidden">
+              <button onClick="{{ o.onToggle }}" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%;cursor:pointer;background:transparent;border:0;padding:14px 18px;text-align:left;color:inherit">
+                <span class="num" style="flex:none;font-size:12px;color:var(--mut)">{{ o.when }}</span>
+                <span class="orderName" style="flex:1;min-width:0;font-family:var(--font-heading);font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</span>
+                <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ o.itemCount }}</span>
+                <span class="pill" style="{{ o.modeStyle }}">{{ o.mode }}</span>
+                <span class="pill" style="{{ o.statusStyle }}">{{ o.statusLabel }}</span>
+                <span class="num" style="flex:none;font-family:var(--font-heading);font-weight:600;font-size:16px">{{ o.total }}</span>
+                <span style="flex:none;width:16px;text-align:center;font-size:11px;color:var(--mut)">{{ o.caret }}</span>
+              </button>
+
+              <sc-if value="{{ o.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:0 18px 16px">
+                  <div style="padding-top:14px;border-top:1px solid var(--line)">
+                    <span class="lbl">Status do pedido</span>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+                      <sc-for list="{{ o.statusOptions }}" as="st" hint-placeholder-count="4">
+                        <button class="pill" onClick="{{ st.onPick }}" style="{{ st.style }}">{{ st.label }}</button>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div class="grid2" style="padding:14px 0;border-top:1px solid var(--line)">
+                    <div>
+                      <span class="lbl">Cliente</span>
+                      <div style="font-size:13.5px;font-weight:500">{{ o.name }}</div>
+                    </div>
+                    <div>
+                      <span class="lbl">Como receber</span>
+                      <div style="font-size:13.5px;font-weight:500">{{ o.mode }}</div>
+                    </div>
+                  </div>
+
+                  <sc-if value="{{ o.hasAddress }}" hint-placeholder-val="{{ false }}">
+                    <div style="border-top:1px solid var(--line);padding-top:14px">
+                      <span class="lbl">Endereço de entrega</span>
+                      <p style="font-size:13.5px;line-height:1.55;margin:0">{{ o.address }}</p>
+                      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+                        <a class="btnp" href="{{ o.mapHref }}" target="_blank" style="height:34px">Ver no mapa ↗</a>
+                        <a class="btns" href="{{ o.routeHref }}" target="_blank" style="height:34px">Traçar rota</a>
+                        <button class="btns" onClick="{{ o.onCopy }}" style="height:34px">Copiar endereço</button>
+                      </div>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ o.noAddress }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size:12.5px;line-height:1.55;color:var(--mut);margin:0;border-top:1px solid var(--line);padding-top:14px">Retirada na adega — sem endereço de entrega.</p>
+                  </sc-if>
+                  <sc-if value="{{ o.missingAddress }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size:12.5px;line-height:1.55;color:var(--acc);margin:0;border-top:1px solid var(--line);padding-top:14px">Pedido de entrega sem endereço — confirme com o cliente pelo WhatsApp.</p>
+                  </sc-if>
+
+                  <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:6px">
+                    <span class="lbl" style="margin-top:8px">Itens</span>
+                    <sc-for list="{{ o.items }}" as="l" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:baseline;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px">
+                        <span class="num" style="flex:none;width:30px;color:var(--mut)">{{ l.qty }}</span>
+                        <span style="flex:1;min-width:0">{{ l.name }}</span>
+                        <span class="num" style="flex:none;color:var(--mut)">{{ l.total }}</span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ noOrders }}" hint-placeholder-val="{{ false }}">
+          <div class="card" style="margin-top:18px">
+            <p style="font-size:13.5px;line-height:1.6;color:var(--mut);margin:0">Nenhum pedido registrado ainda. Cada vez que um cliente toca em Enviar no carrinho, o pedido entra aqui com nome, endereço e itens.</p>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isDisparo }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:760px">
+        <h1 class="h1">Disparo</h1>
+        <p style="font-size:13.5px;line-height:1.6;color:var(--mut);margin:6px 0 0">{{ disparoSub }}</p>
+
+        <div class="card" style="margin-top:18px">
+          <h2 class="h2">Mensagem</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin:12px 0">
+            <sc-for list="{{ presets }}" as="p" hint-placeholder-count="3">
+              <button class="pill" onClick="{{ p.onPick }}">{{ p.label }}</button>
+            </sc-for>
+          </div>
+          <textarea class="fld" value="{{ msg }}" onChange="{{ onMsg }}" rows="5" style="resize:vertical;line-height:1.55"></textarea>
+          <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:9px 0 0">Escreva <strong>{nome}</strong> onde quiser o nome do cliente. Prévia: {{ msgPreview }}</p>
+        </div>
+
+        <div class="card" style="margin-top:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btnp" onClick="{{ onNext }}" style="flex:none">{{ nextLabel }}</button>
+          <button class="btns" onClick="{{ onResetSent }}" style="flex:none">Zerar marcações</button>
+          <span style="flex:1;min-width:160px;font-size:12.5px;line-height:1.5;color:var(--mut)">{{ progressLabel }}</span>
+        </div>
+
+        <div class="tblwrap">
+          <table style="width:100%;border-collapse:collapse;min-width:660px">
+            <thead>
+              <tr>
+                <th class="th" style="min-width:170px">Cliente</th>
+                <th class="th" style="width:150px">WhatsApp</th>
+                <th class="th" style="width:88px">Pedidos</th>
+                <th class="th" style="width:110px;text-align:right">Total gasto</th>
+                <th class="th" style="width:104px">Último</th>
+                <th class="th" style="width:132px"></th>
+              </tr>
+            </thead>
+            <tbody>
+                              <tr dc-for="contacts" dc-as="c">
+                  <td class="cell" style="font-weight:500;font-size:13.5px">{{ c.name }}</td>
+                  <td class="cell num" style="font-size:13px;color:var(--mut)">{{ c.phone }}</td>
+                  <td class="cell num" style="font-size:13px">{{ c.orders }}</td>
+                  <td class="cell num" style="font-size:13px;text-align:right;font-family:var(--font-heading);font-weight:600">{{ c.spent }}</td>
+                  <td class="cell num" style="font-size:12px;color:var(--mut)">{{ c.last }}</td>
+                  <td class="cell">
+                    <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">
+                      <span style="{{ c.sentStyle }}">enviado</span>
+                      <a class="mini" href="{{ c.href }}" target="_blank" onClick="{{ c.onSent }}" style="width:auto;padding:0 9px;text-decoration:none">Enviar</a>
+                    </div>
+                  </td>
+                </tr>
+              
+            </tbody>
+          </table>
+          <sc-if value="{{ noContacts }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13.5px;line-height:1.6;color:var(--mut);padding:14px 8px">Nenhum contato ainda. Os números entram aqui automaticamente quando o cliente preenche o WhatsApp no pedido.</p>
+          </sc-if>
+        </div>
+
+        <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:14px 2px 0">O WhatsApp não permite envio automático em massa por um site: cada Enviar abre a conversa com o texto já escrito e você confirma. Disparar de mais ou para quem não pediu costuma render bloqueio do número — melhor mandar em lotes pequenos, para quem já comprou.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isVitrine }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:1040px">
+        <h1 class="h1">Vitrine</h1>
+        <p style="font-size:13.5px;color:var(--mut);margin:6px 0 0">O que o cliente vê ao abrir o link do Instagram.</p>
+
+        <div class="vitrineLayout" style="margin-top:18px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+
+            <div class="card" style="display:flex;flex-direction:column;gap:14px">
+              <h2 class="h2">Topo da página</h2>
+              <div><span class="lbl">Nome da loja</span><input class="fld" value="{{ st.storeName }}" onChange="{{ onStoreName }}" placeholder="Vai Nessa"></div>
+              <div>
+                <span class="lbl">Logo</span>
+                <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+                  <div style="flex:none;width:64px;height:64px;border-radius:50%;background:var(--hover);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden">
+                    <sc-if value="{{ st.logo }}" hint-placeholder-val="{{ false }}">
+                      <img src="{{ st.logo }}" style="width:100%;height:100%;object-fit:cover">
+                    </sc-if>
+                  </div>
+                  <div style="flex:1;min-width:180px">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <label class="btnp" style="cursor:pointer;height:34px;font-size:12.5px">
+                        Escolher do computador
+                        <input type="file" accept="image/*" onChange="{{ onLogoFile }}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+                      </label>
+                    </div>
+                    <input class="fld" value="{{ st.logo }}" onChange="{{ onLogo }}" placeholder="ou cole um link https://..." style="margin-top:8px">
+                  </div>
+                </div>
+              </div>
+              <div>
+                <span class="lbl">Foto de capa</span>
+                <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+                  <div style="flex:none;width:110px;height:64px;border-radius:10px;background:var(--hover);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden">
+                    <sc-if value="{{ st.cover }}" hint-placeholder-val="{{ false }}">
+                      <img src="{{ st.cover }}" style="width:100%;height:100%;object-fit:cover">
+                    </sc-if>
+                  </div>
+                  <div style="flex:1;min-width:180px">
+                    <div style="display:flex;gap:8px;flex-wrap:wrap">
+                      <label class="btnp" style="cursor:pointer;height:34px;font-size:12.5px">
+                        Escolher do computador
+                        <input type="file" accept="image/*" onChange="{{ onCoverFile }}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+                      </label>
+                    </div>
+                    <input class="fld" value="{{ st.cover }}" onChange="{{ onCover }}" placeholder="ou cole um link https://..." style="margin-top:8px">
+                  </div>
+                </div>
+              </div>
+              <div><span class="lbl">Frase abaixo do nome</span><input class="fld" value="{{ st.tagline }}" onChange="{{ onTagline }}" placeholder="Bebida gelada, combo montado e entrega no bairro."></div>
+              <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <div style="flex:1;min-width:150px"><span class="lbl">Horário</span><input class="fld" value="{{ st.hours }}" onChange="{{ onHours }}"></div>
+                <div style="flex:1;min-width:150px"><span class="lbl">Tempo de entrega</span><input class="fld" value="{{ st.minutes }}" onChange="{{ onMinutes }}"></div>
+              </div>
+              <div><span class="lbl">Formas de pagamento</span><input class="fld" value="{{ st.payments }}" onChange="{{ onPayments }}" placeholder="Pix · cartão · dinheiro"></div>
+              <div><span class="lbl">Endereço</span><input class="fld" value="{{ st.address }}" onChange="{{ onAddress }}"></div>
+            </div>
+
+            <div class="card" style="display:flex;flex-direction:column;gap:14px">
+              <h2 class="h2">Ficha do produto</h2>
+              <div>
+                <span class="lbl">Como o produto abre</span>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ layouts }}" as="l" hint-placeholder-count="3">
+                    <button class="pill" onClick="{{ l.onPick }}" style="{{ l.style }}">{{ l.label }}</button>
+                  </sc-for>
+                </div>
+                <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:9px 0 0">{{ layoutNote }}</p>
+              </div>
+              <div>
+                <span class="lbl">Seletor de layout visível para o cliente</span>
+                <button class="pill" onClick="{{ onToggleSwitcher }}" style="{{ switcherStyle }}">{{ switcherLabel }}</button>
+                <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:9px 0 0">Deixe desligado na vitrine publicada — serve só para você comparar os três formatos.</p>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Cor de destaque</h2>
+              <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:6px 0 12px">Usada nos preços, botões e no carrinho.</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+                <sc-for list="{{ accents }}" as="a" hint-placeholder-count="3">
+                  <button onClick="{{ a.onPick }}" title="{{ a.label }}" style="{{ a.style }}"></button>
+                </sc-for>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                  <input type="color" value="{{ st.customAccent }}" onChange="{{ onCustomAccent }}" style="width:38px;height:38px;padding:0;border:1px solid var(--line);border-radius:99px;cursor:pointer;background:transparent">
+                  <span style="font-size:12px;color:var(--mut)">Personalizada</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="card vitrinePreview" style="padding:14px;position:sticky;top:60px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <h2 class="h2">Prévia ao vivo</h2>
+              <a class="btns" href="./" target="_blank" style="height:30px;font-size:12px;padding:0 10px">Abrir ↗</a>
+            </div>
+            <div style="border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:12px;background:#fff">
+              <iframe src="./" title="Prévia da vitrine" style="width:100%;height:640px;border:0;display:block"></iframe>
+            </div>
+            <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 2px 0">Atualiza sozinha conforme você edita — sem precisar recarregar.</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isCatView }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="flex:1;min-width:0">
+            <p style="font-size:12px;color:var(--mut);margin:0">Coleção</p>
+            <input value="{{ catName }}" onChange="{{ onRenameCat }}" class="inline" style="margin-top:2px;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-.015em">
+          </div>
+          <button class="btnp" onClick="{{ onAddHere }}" style="flex:none">+ Produto</button>
+          <button class="btns" onClick="{{ onDeleteCat }}" style="flex:none">{{ deleteCatLabel }}</button>
+        </div>
+
+        <div class="card" style="margin-top:16px;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <span class="lbl">Buscar nesta coleção</span>
+            <input class="fld" placeholder="Nome ou volume" value="{{ q }}" onChange="{{ onQ }}">
+          </div>
+          <div style="flex:none">
+            <span class="lbl">Reajustar todos os preços</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input class="fld num" inputmode="decimal" value="{{ adjust }}" onChange="{{ onAdjust }}" style="width:96px" placeholder="ex: 5">
+              <span style="font-size:13px;color:var(--mut)">%</span>
+              <button class="btns" onClick="{{ onApplyAdjust }}">{{ adjustLabel }}</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tblwrap">
+          <table style="width:100%;border-collapse:collapse;min-width:720px">
+            <thead>
+              <tr>
+                <th class="th" style="width:78px">Ordem</th>
+                <th class="th" style="min-width:270px">Produto</th>
+                <th class="th" style="width:150px">Volume</th>
+                <th class="th" style="width:108px;text-align:right">Preço un.</th>
+                <th class="th" style="width:112px">Status</th>
+                <th class="th" style="width:58px"></th>
+              </tr>
+            </thead>
+            <tbody>
+                              <tr dc-for="rows" dc-as="it">
+                  <td class="cell">
+                    <div style="display:flex;gap:3px">
+                      <button class="mini" onClick="{{ it.onUp }}" title="Subir">↑</button>
+                      <button class="mini" onClick="{{ it.onDown }}" title="Descer">↓</button>
+                    </div>
+                  </td>
+                  <td class="cell">
+                    <div style="display:flex;align-items:center;gap:10px">
+                      <button onClick="{{ it.onEdit }}" title="Abrir ficha completa" style="{{ it.thumbStyle }}">
+                        <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ false }}">
+                          <img src="{{ it.photo }}" loading="lazy" decoding="async" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:7px">
+                        </sc-if>
+                        <sc-if value="{{ it.noPhoto }}" hint-placeholder-val="{{ true }}">
+                          <svg class="ico" viewBox="0 0 24 24" style="width:15px;height:15px;opacity:.5"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><circle cx="8.5" cy="10" r="1.4"></circle><path d="m4.5 17 4.6-4.4 3.2 3 3-2.6 5.2 4.6"></path></svg>
+                        </sc-if>
+                      </button>
+                      <div style="flex:1;min-width:0">
+                        <button class="inline" onClick="{{ it.onEdit }}" title="Abrir ficha completa" style="display:block;cursor:pointer;text-align:left;background:transparent;font-family:var(--font-heading);{{ it.nameStyle }}">{{ it.name }}</button>
+                        <div class="num" style="font-size:11px;color:var(--mut);padding:0 8px">{{ it.fardoLabel }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="cell"><input class="inline" value="{{ it.vol }}" onChange="{{ it.onVol }}" placeholder="ex: Lata 350ml" style="font-size:12.5px;color:var(--mut)"></td>
+                  <td class="cell"><input class="inline num" inputmode="decimal" value="{{ it.price }}" onChange="{{ it.onPrice }}" style="text-align:right;font-family:var(--font-heading);font-weight:600"></td>
+                  <td class="cell">
+                    <button class="pill" onClick="{{ it.onToggleOut }}" style="{{ it.statusStyle }}">
+                      <span style="{{ it.dotStyle }}"></span>{{ it.statusLabel }}
+                    </button>
+                  </td>
+                  <td class="cell">
+                    <button class="mini" onClick="{{ it.onDup }}" title="Duplicar">⧉</button>
+                  </td>
+                </tr>
+              
+            </tbody>
+          </table>
+          <sc-if value="{{ emptyCat }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13.5px;color:var(--mut);padding:16px 6px">Nenhum produto aqui ainda.</p>
+          </sc-if>
+        </div>
+        <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:12px 2px 0">Clique no nome do produto para abrir a ficha completa (foto, estoque, preço e variantes fardo/solta). Volume, preço e status você troca direto na linha.</p>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isProdView }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <button class="btns" onClick="{{ ed.onBack }}" style="flex:none;height:34px">← Voltar</button>
+          <p style="flex:1;min-width:0;font-size:12px;color:var(--mut);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ed.crumb }}</p>
+          <button class="btns" onClick="{{ ed.onDelete }}" style="flex:none;height:34px">{{ ed.deleteLabel }}</button>
+        </div>
+
+        <input value="{{ ed.name }}" onChange="{{ ed.onName }}" class="inline" style="margin-top:14px;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-.015em">
+
+        <div class="grid2" style="margin-top:16px;align-items:start">
+          <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+
+            <div class="card">
+              <h2 class="h2">Foto</h2>
+              <div style="display:flex;gap:14px;align-items:flex-start;margin-top:12px;flex-wrap:wrap">
+                <div style="{{ ed.photoBoxStyle }}">
+                  <sc-if value="{{ ed.photo }}" hint-placeholder-val="{{ false }}">
+                    <img src="{{ ed.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">
+                  </sc-if>
+                  <sc-if value="{{ !ed.photo }}" hint-placeholder-val="{{ true }}">
+                    <span class="num" style="font-size:11px;color:var(--mut)">Sem foto</span>
+                  </sc-if>
+                </div>
+                <div style="flex:1;min-width:180px">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <label class="btnp" style="cursor:pointer">
+                      Escolher do computador
+                      <input type="file" accept="image/*" onChange="{{ ed.onPhotoFile }}" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+                    </label>
+                    <sc-if value="{{ ed.photo }}" hint-placeholder-val="{{ false }}">
+                      <button class="btns" onClick="{{ ed.onPhotoClear }}">Remover foto</button>
+                    </sc-if>
+                  </div>
+                  <div style="margin-top:10px">
+                    <span class="lbl">ou cole um link</span>
+                    <input class="fld" value="{{ ed.photo }}" onChange="{{ ed.onPhoto }}" placeholder="https://...">
+                  </div>
+                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0 0">Escolha uma foto do seu computador — ela é reduzida automaticamente para carregar rápido na vitrine.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Identificação</h2>
+              <div style="margin-top:14px"><span class="lbl">Volume / descrição</span><input class="fld" value="{{ ed.vol }}" onChange="{{ ed.onVol }}" placeholder="ex: Garrafa 269ml"></div>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Preços</h2>
+              <div style="margin-top:14px">
+                <span class="lbl">Preço da unidade</span>
+                <input class="fld num" inputmode="decimal" value="{{ ed.price }}" onChange="{{ ed.onPrice }}" style="max-width:150px;font-family:var(--font-heading);font-weight:600;font-size:16px">
+              </div>
+              <div style="margin-top:16px">
+                <span class="lbl">Fardos</span>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ ed.fardos }}" as="f" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <input class="fld num" inputmode="numeric" value="{{ f.qty }}" onChange="{{ f.onQty }}" style="width:72px;flex:none" placeholder="un">
+                      <input class="fld num" inputmode="decimal" value="{{ f.price }}" onChange="{{ f.onPrice }}" style="flex:1" placeholder="preço">
+                      <span class="num" style="flex:none;width:94px;font-size:11.5px;text-align:right;color:var(--mut)">{{ f.each }}</span>
+                      <button class="mini" onClick="{{ f.onRemove }}" title="Remover">✕</button>
+                    </div>
+                  </sc-for>
+                </div>
+                <button class="btns" onClick="{{ ed.onAddFardo }}" style="margin-top:10px;height:34px">+ Fardo</button>
+                <p class="num" style="font-size:12px;line-height:1.6;color:var(--mut);margin:12px 0 0">{{ ed.marginNote }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <h2 class="h2">Status</h2>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                <button class="pill" onClick="{{ ed.onToggleOut }}" style="{{ ed.outStyle }}">Esgotado</button>
+                <button class="pill" onClick="{{ ed.onToggleFeatured }}" style="{{ ed.featStyle }}">Destaque</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Organização</h2>
+              <div style="margin-top:12px">
+                <span class="lbl">Coleção</span>
+                <select class="fld" value="{{ ed.catId }}" onChange="{{ ed.onCat }}">
+                                      <option dc-for="catOptions" dc-as="o" value="{{ o.id }}">{{ o.name }}</option>
+                  
+                </select>
+              </div>
+              <div style="margin-top:14px"><span class="lbl">Selo na vitrine</span><input class="fld" value="{{ ed.tag }}" onChange="{{ ed.onTag }}" placeholder="ex: Promo"></div>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Sugestões junto</h2>
+              <p style="font-size:12px;color:var(--mut);margin:5px 0 10px">Aparecem na ficha deste produto na vitrine.</p>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ ed.upsellOpts }}" as="u" hint-placeholder-count="4">
+                  <button class="pill" onClick="{{ u.onToggle }}" style="{{ u.style }}">{{ u.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isLucro }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:660px">
+        <h1 class="h1">Lucro</h1>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:18px">
+          <div class="card">
+            <span class="lbl">Frete por distância (km)</span>
+            <button class="pill" onClick="{{ onToggleKm }}" style="{{ kmStyle }}">{{ kmLabel }}</button>
+            <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:9px 0 0">Calcula a distância de carro até o endereço do cliente (OpenStreetMap, sem custo) e cobra por km. Se não achar o endereço, usa a taxa fixa dos Ajustes.</p>
+            <sc-if value="{{ st.kmDelivery }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:12px">
+                <span class="lbl">Valor por km</span>
+                <input class="fld num" inputmode="decimal" value="{{ st.pricePerKm }}" onChange="{{ onPricePerKm }}" style="max-width:170px">
+              </div>
+            </sc-if>
+          </div>
+          <div class="card">
+            <span class="lbl">Frete grátis acima de</span>
+            <input class="fld num" inputmode="decimal" value="{{ st.freeAbove }}" onChange="{{ onFreeAbove }}" style="max-width:170px">
+            <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:8px 0 0">O carrinho mostra quanto falta pro frete sair de graça. 0 desliga. Sugestão: 1,5× seu ticket médio.</p>
+          </div>
+          <div class="card">
+            <span class="lbl">Título do bloco de sugestões</span>
+            <input class="fld" value="{{ st.upsellTitle }}" onChange="{{ onUpsellTitle }}" style="max-width:320px">
+            <div style="height:14px"></div>
+            <span class="lbl">Sugestões padrão (aparecem em todo produto)</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ globalUpsell }}" as="u" hint-placeholder-count="6">
+                <button class="pill" onClick="{{ u.onToggle }}" style="{{ u.style }}">{{ u.label }}</button>
+              </sc-for>
+            </div>
+            <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:10px 0 0">Gelo, copo, limão e energético são os que mais somam no ticket.</p>
+          </div>
+          <div class="card">
+            <h2 class="h2">Fardo x unidade</h2>
+            <p style="font-size:12.5px;line-height:1.55;color:var(--mut);margin:6px 0 2px">Quanto você deixa de ganhar vendendo o fardo em vez das unidades soltas.</p>
+            <sc-for list="{{ margins }}" as="m" hint-placeholder-count="4">
+              <div style="display:flex;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--line)">
+                <span style="flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.name }}</span>
+                <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ m.detail }}</span>
+                <span class="num" style="{{ m.deltaStyle }}">{{ m.delta }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isAjustes }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:580px">
+        <h1 class="h1">Ajustes</h1>
+        <div class="card" style="margin-top:18px;display:flex;flex-direction:column;gap:14px">
+          <div><span class="lbl">WhatsApp (com DDI e DDD)</span><input class="fld num" inputmode="numeric" value="{{ st.whatsapp }}" onChange="{{ onWhats }}"></div>
+          <div style="display:flex;gap:12px">
+            <div style="flex:1"><span class="lbl">Taxa de entrega</span><input class="fld num" inputmode="decimal" value="{{ st.deliveryFee }}" onChange="{{ onFee }}"></div>
+            <div style="flex:1"><span class="lbl">PIN do painel</span><input class="fld num" inputmode="numeric" value="{{ st.pin }}" onChange="{{ onPin }}"></div>
+          </div>
+          <div><span class="lbl">Instagram</span><input class="fld" value="{{ st.instagram }}" onChange="{{ onInsta }}"></div>
+          <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:2px 0 0">Endereço, horário, tempo de entrega e pagamento ficam na aba Vitrine.</p>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isConexao }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:620px">
+        <h1 class="h1">Conexão</h1>
+        <p style="font-size:13.5px;line-height:1.65;color:var(--mut);margin:8px 0 0">Sem conexão, o painel salva só neste aparelho e o dashboard conta apenas os acessos daqui. Com o Supabase ligado, tudo é somado de todos os clientes.</p>
+        <div class="card" style="margin-top:16px;display:flex;flex-direction:column;gap:14px">
+          <div><span class="lbl">Project URL</span><input class="fld" placeholder="https://xxxx.supabase.co" value="{{ cfgUrl }}" onChange="{{ onCfgUrl }}"></div>
+          <div><span class="lbl">Chave anon / publishable</span><input class="fld" placeholder="sb_publishable_… ou eyJ…" value="{{ cfgKey }}" onChange="{{ onCfgKey }}"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btnp" onClick="{{ onConnect }}">Conectar e testar</button>
+            <button class="btns" onClick="{{ onDisconnect }}">Desconectar</button>
+            <a class="btns" href="guia-supabase.html" target="_blank">Ver o guia</a>
+          </div>
+          <div style="min-height:20px;font-size:13px;line-height:1.5;color:var(--acc)">{{ connMsg }}</div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <span class="lbl">SQL das tabelas (rode uma vez no SQL Editor)</span>
+          <pre class="num" style="margin:0;padding:14px;background:var(--hover);border:1px solid var(--line);border-radius:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.65;overflow-x:auto">{{ sql }}</pre>
+          <button class="btns" onClick="{{ onCopySql }}" style="margin-top:10px;height:34px">Copiar SQL</button>
+          <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:10px 0 0">Se você já criou a tabela do cardápio antes, rode de novo: a segunda parte cria a tabela de eventos que alimenta o dashboard.</p>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <span class="lbl">Cópia de segurança</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btns" onClick="{{ onExport }}" style="height:34px">Baixar JSON</button>
+            <button class="btns" onClick="{{ onImport }}" style="height:34px">Colar JSON</button>
+            <button class="btns" onClick="{{ onReset }}" style="height:34px">{{ resetLabel }}</button>
+          </div>
+          <sc-if value="{{ importOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:12px">
+              <textarea class="fld" placeholder="Cole aqui o JSON do cardápio" value="{{ importText }}" onChange="{{ onImportText }}" style="min-height:110px;font-family:ui-monospace,Menlo,monospace;font-size:12px;resize:vertical"></textarea>
+              <div style="display:flex;gap:8px;margin-top:8px">
+                <button class="btnp" onClick="{{ onImportApply }}" style="height:34px">Importar</button>
+                <button class="btns" onClick="{{ onImportCancel }}" style="height:34px">Cancelar</button>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:0;right:0;bottom:20px;display:flex;justify-content:center;z-index:60;pointer-events:none">
+    <div style="background:#1a1a20;color:#f2f2f5;border-radius:8px;padding:10px 16px;font-size:13px;box-shadow:0 8px 24px rgba(16,16,24,.22)">{{ toast }}</div>
+  </div>
+</sc-if>
+
+</div>
+</div>
+
+</template>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:820}}">
+const THEMES = {
+  claro: {
+    '--bg': '#f6f6f7', '--card': '#ffffff', '--ink': '#1a1a20', '--mut': '#6b6b76',
+    '--line': '#e3e3e8', '--linestrong': '#c8c8d0', '--hover': '#f1f1f4',
+    '--topbar': '#1a1a20', '--acc': '#d81b84'
+  },
+  escuro: {
+    '--bg': '#121218', '--card': '#1b1b22', '--ink': '#eceaf0', '--mut': '#8d8d99',
+    '--line': '#2a2a33', '--linestrong': '#3d3d49', '--hover': '#22222b',
+    '--topbar': '#0c0c11', '--acc': '#e6208c'
+  }
+};
+
+class Component extends DCLogic {
+  state = {
+    locked: true, pinTry: '', pinError: '', doc: null, events: [], theme: 'claro',
+    view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
+    source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
+    cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}
+  };
+
+  componentDidMount() {
+    let theme = 'claro', sent = {};
+    try { theme = localStorage.getItem('vn.theme2') || 'claro'; } catch (e) {}
+    try { sent = JSON.parse(localStorage.getItem('vn.sent')) || {}; } catch (e) {}
+    this.setState({ sent: sent });
+    const boot = () => {
+      if (!window.VN) return setTimeout(boot, 60);
+      const c = VN.cfg();
+      VN.load().then(r => {
+        const first = r.doc.categories[0];
+        this.setState({
+          doc: r.doc, theme: theme, catId: first ? first.id : null,
+          expanded: {},
+          source: r.source, cfgUrl: c.url || '', cfgKey: c.key || '',
+          connMsg: r.error ? 'Sem conexão: ' + r.error : ''
+        });
+      });
+      VN.events().then(ev => this.setState({ events: ev || [] }));
+    };
+    boot();
+  }
+
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._toast); }
+
+  markSent(digits) {
+    this.setState(s => {
+      const sent = Object.assign({}, s.sent, { [digits]: Date.now() });
+      try { localStorage.setItem('vn.sent', JSON.stringify(sent)); } catch (e) {}
+      return { sent: sent };
+    });
+  }
+
+  flash(msg) {
+    clearTimeout(this._toast);
+    this.setState({ toast: msg });
+    this._toast = setTimeout(() => this.setState({ toast: '' }), 1900);
+  }
+
+  mutate(fn) {
+    this.setState(s => {
+      const doc = JSON.parse(JSON.stringify(s.doc));
+      fn(doc);
+      return { doc: doc };
+    }, () => this.queueSave());
+  }
+
+  queueSave() {
+    clearTimeout(this._t);
+    this.setState({ saving: 'salvando' });
+    this._t = setTimeout(() => {
+      VN.save(this.state.doc).then(r => {
+        this.setState({
+          saving: '', savedAt: r.error ? 0 : Date.now(), saveError: !!r.error, source: r.source,
+          connMsg: r.error ? 'Salvo local. Supabase: ' + r.error : this.state.connMsg
+        });
+        if (r.error) this.flash('Não foi possível salvar — ' + r.error);
+      });
+    }, 500);
+  }
+
+  num(v) { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+
+  rawSet(key, val, apply) {
+    this.setState(s => ({ raw: Object.assign({}, s.raw, { [key]: val }) }));
+    apply(this.num(val));
+  }
+
+  rawGet(key, val) {
+    const r = this.state.raw[key];
+    if (r !== undefined) return r;
+    return String(val === 0 || val ? String(val).replace('.', ',') : '');
+  }
+
+  prodsOf(doc, catId) { return doc.products.filter(p => p.catId === catId); }
+
+  moveProduct(id, dir) {
+    this.mutate(doc => {
+      const p = doc.products.find(x => x.id === id);
+      const sib = doc.products.filter(x => x.catId === p.catId);
+      const i = sib.findIndex(x => x.id === id), j = i + dir;
+      if (j < 0 || j >= sib.length) return;
+      const ia = doc.products.indexOf(sib[i]), ib = doc.products.indexOf(sib[j]);
+      const t = doc.products[ia]; doc.products[ia] = doc.products[ib]; doc.products[ib] = t;
+    });
+  }
+
+  chipStyle(on) {
+    return on
+      ? 'border-color:var(--acc);background:color-mix(in srgb, var(--acc) 12%, transparent);color:var(--acc)'
+      : '';
+  }
+
+  pickProduct(id, catId) { this.setState({ view: 'prod', prodId: id, catId: catId, confirmDel: false, raw: {}, topQ: '' }); }
+
+  addProduct(catId) {
+    const id = VN.uid();
+    this.mutate(d => {
+      const last = d.products.filter(p => p.catId === catId).slice(-1)[0];
+      const at = last ? d.products.indexOf(last) + 1 : d.products.length;
+      d.products.splice(at, 0, { id: id, catId: catId, name: 'Novo produto', vol: '', price: 0, fardos: [], photo: '', out: false, featured: false, tag: '', upsell: [] });
+    });
+    this.setState({ view: 'prod', prodId: id, catId: catId, raw: {}, confirmDel: false });
+  }
+
+  createNewCat() {
+    const name = (this.state.newCatName || '').trim();
+    if (!name) return;
+    const id = VN.uid('c');
+    this.mutate(d => { d.categories.push({ id: id, name: name }); });
+    this.setState({ catId: id, view: 'cat', topQ: '', newCatOpen: false, newCatName: '' });
+  }
+
+  navStyle(on) {
+    return on ? 'background:var(--card);border-color:var(--line);box-shadow:0 1px 2px rgba(16,16,24,.06)' : '';
+  }
+
+  renderVals() {
+    const s = this.state;
+    const fmt = v => 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ',');
+    const doc = s.doc;
+    const vars = THEMES[s.theme] || THEMES.claro;
+
+    const base = {
+      themeVars: Object.keys(vars).map(k => k + ':' + vars[k]).join(';'),
+      locked: !!doc && s.locked,
+      unlocked: !!doc && !s.locked,
+      pinTry: s.pinTry, pinError: s.pinError, toast: s.toast,
+      themes: ['claro', 'escuro'].map(t => ({
+        label: t === 'claro' ? 'Claro' : 'Escuro',
+        onPick: () => { try { localStorage.setItem('vn.theme2', t); } catch (e) {} this.setState({ theme: t }); },
+        style: 'cursor:pointer;font-size:11.5px;padding:5px 11px;border-radius:99px;border:0;background:'
+          + (s.theme === t ? 'rgba(255,255,255,.18)' : 'transparent')
+          + ';color:' + (s.theme === t ? '#f2f2f5' : 'rgba(242,242,245,.6)')
+      })),
+      onPinTry: e => this.setState({ pinTry: e.target.value, pinError: '' }),
+      onPinKey: e => { if (e.key === 'Enter') this.tryUnlock(); },
+      onUnlock: () => this.tryUnlock()
+    };
+    if (!doc) return base;
+
+    const st = doc.settings;
+    const cat = doc.categories.find(c => c.id === s.catId) || doc.categories[0];
+    const catId = cat ? cat.id : null;
+    const topQ = s.topQ.trim().toLowerCase();
+
+    const nav = doc.categories.map(c => {
+      const items = this.prodsOf(doc, c.id);
+      return {
+        name: c.name, count: items.length,
+        expanded: !!s.expanded[c.id],
+        caret: s.expanded[c.id] ? '▾' : '▸',
+        style: this.navStyle(c.id === catId && s.view === 'cat'),
+        onPick: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
+        onToggle: () => this.setState(x => ({ expanded: Object.assign({}, x.expanded, { [c.id]: !x.expanded[c.id] }) })),
+        onAdd: () => this.addProduct(c.id),
+        items: items.map(p => ({
+          name: p.name, priceLabel: fmt(p.price),
+          style: (s.view === 'prod' && s.prodId === p.id)
+            ? 'background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(16,16,24,.06)'
+            : (p.out ? 'text-decoration:line-through' : ''),
+          onPick: () => this.pickProduct(p.id, c.id)
+        }))
+      };
+    });
+
+    /* ——— dashboard ——— */
+    const isToday = s.days === 'hoje';
+    const days = isToday ? 1 : s.days;
+    const now = new Date();
+    const dayKey = d => d.toISOString().slice(0, 10);
+    const buckets = {};
+    const slots = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86400000);
+      const k = dayKey(d);
+      buckets[k] = { clicks: 0, orders: 0, revenue: 0 };
+      slots.push({ key: k, date: d });
+    }
+    const cutoff = isToday ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() : now.getTime() - days * 86400000;
+    const clickBy = {}, saleQty = {}, saleRev = {};
+    let totalClicks = 0, totalOrders = 0, totalRevenue = 0, totalUnits = 0;
+    (s.events || []).forEach(e => {
+      const t = new Date(e.ts).getTime();
+      if (!t || t < cutoff) return;
+      const k = dayKey(new Date(t));
+      const b = buckets[k];
+      if (e.type === 'click') {
+        totalClicks++;
+        if (b) b.clicks++;
+        const n = e.product || '—';
+        clickBy[n] = (clickBy[n] || 0) + 1;
+      } else if (e.type === 'order') {
+        totalOrders++;
+        totalRevenue += Number(e.total) || 0;
+        if (b) { b.orders++; b.revenue += Number(e.total) || 0; }
+      } else if (e.type === 'sale') {
+        const n = e.product || '—';
+        const q = Number(e.qty) || 1;
+        totalUnits += q;
+        saleQty[n] = (saleQty[n] || 0) + q;
+        saleRev[n] = (saleRev[n] || 0) + (Number(e.total) || 0);
+      }
+    });
+
+    const maxClicks = Math.max(1, ...slots.map(x => buckets[x.key].clicks));
+    const maxOrders = Math.max(1, ...slots.map(x => buckets[x.key].orders));
+    const maxAny = Math.max(maxClicks, maxOrders);
+    const barBase = 'width:100%;max-width:14px;border-radius:3px 3px 0 0;min-height:2px;';
+    const series = slots.map(x => {
+      const b = buckets[x.key];
+      const label = String(x.date.getDate()).padStart(2, '0') + '/' + String(x.date.getMonth() + 1).padStart(2, '0');
+      return {
+        label: label,
+        title: label + ' · ' + b.clicks + ' cliques · ' + b.orders + ' pedidos · ' + fmt(b.revenue),
+        clickStyle: barBase + 'height:' + Math.round((b.clicks / maxAny) * 100) + '%;background:var(--mut);opacity:.45',
+        orderStyle: barBase + 'height:' + Math.round((b.orders / maxAny) * 100) + '%;background:var(--acc)'
+      };
+    });
+
+    const rank = (obj, n) => Object.keys(obj)
+      .map(k => ({ name: k, value: obj[k] }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, n);
+
+    const clickTop = rank(clickBy, 5);
+    const clickMax = Math.max(1, ...clickTop.map(x => x.value));
+    const salesTop = rank(saleQty, 5);
+
+    const kpis = [
+      { label: 'Cliques em produtos', value: String(totalClicks), dotStyle: 'width:9px;height:9px;border-radius:2px;background:var(--mut);opacity:.5' },
+      { label: 'Pedidos enviados', value: String(totalOrders), dotStyle: 'width:9px;height:9px;border-radius:2px;background:var(--acc)' },
+      { label: 'Faturamento', value: fmt(totalRevenue), dotStyle: 'display:none' },
+      { label: 'Conversão', value: totalClicks ? Math.round((totalOrders / totalClicks) * 100) + '%' : '—', dotStyle: 'display:none' }
+    ];
+
+    const dt = v => {
+      const d = new Date(v);
+      const p = n => String(n).padStart(2, '0');
+      return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+    };
+    const STATUS_STEPS = [
+      { id: 'novo', label: 'Novo' },
+      { id: 'preparando', label: 'Preparando' },
+      { id: 'caminho', label: 'A caminho' },
+      { id: 'entregue', label: 'Entregue' }
+    ];
+    const orderStatusMap = doc.orderStatus || {};
+    const orders = (s.events || [])
+      .filter(e => e.type === 'order')
+      .sort((a, b) => new Date(b.ts) - new Date(a.ts))
+      .map((e, i) => {
+        let det = e.detail;
+        if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
+        det = det || {};
+        const isEnt = (det.mode || 'entrega') === 'entrega';
+        const addr = isEnt ? String(det.endereco || '').trim() : '';
+        const key = e.id != null ? String(e.id) : String(e.ts) + '-' + i;
+        const items = (det.itens || []);
+        const qEnc = encodeURIComponent(addr + (addr ? ' — São Miguel Paulista, São Paulo' : ''));
+        const statusId = orderStatusMap[key] || 'novo';
+        const statusIdx = STATUS_STEPS.findIndex(st => st.id === statusId);
+        return {
+          when: dt(e.ts),
+          name: det.nome || 'Sem nome',
+          address: addr || '—',
+          hasAddress: !!addr, noAddress: !isEnt, missingAddress: isEnt && !addr,
+          mapHref: 'https://maps.google.com/?q=' + qEnc,
+          routeHref: 'https://www.google.com/maps/dir/?api=1&destination=' + qEnc,
+          onCopy: () => { navigator.clipboard.writeText(addr).then(() => this.flash('Endereço copiado')); },
+          mode: isEnt ? 'Entrega' : 'Retirada',
+          modeStyle: isEnt ? 'border-color:var(--acc);color:var(--acc)' : '',
+          total: fmt(e.total), raw: Number(e.total) || 0,
+          itemCount: items.reduce((t, l) => t + (Number(l.qty) || 0), 0) + ' itens',
+          expanded: s.openOrder === key,
+          caret: s.openOrder === key ? '▾' : '▸',
+          onToggle: () => this.setState({ openOrder: s.openOrder === key ? null : key }),
+          items: items.map(l => ({ qty: l.qty + 'x', name: l.name, total: fmt(l.total) })),
+          statusLabel: STATUS_STEPS[statusIdx] ? STATUS_STEPS[statusIdx].label : 'Novo',
+          statusStyle: statusId === 'entregue'
+            ? 'border-color:#2fb673;color:#2fb673;background:rgba(47,182,115,.10)'
+            : statusId === 'novo' ? '' : 'border-color:var(--acc);color:var(--acc)',
+          statusOptions: STATUS_STEPS.map(st => ({
+            label: st.label,
+            style: this.chipStyle(st.id === statusId),
+            onPick: () => this.mutate(d => { d.orderStatus = Object.assign({}, d.orderStatus, { [key]: st.id }); })
+          }))
+        };
+      });
+    const openOrdersCount = orders.filter(o => o.statusLabel !== 'Entregue').length;
+
+    const byPhone = {};
+    (s.events || []).filter(e => e.type === 'order').forEach(e => {
+      let det = e.detail;
+      if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
+      det = det || {};
+      const digits = String(det.telefone || '').replace(/\D/g, '');
+      if (digits.length < 10) return;
+      const c = byPhone[digits] || { digits: digits, name: det.nome || 'Sem nome', orders: 0, spent: 0, last: 0 };
+      c.orders++;
+      c.spent += Number(e.total) || 0;
+      const t = new Date(e.ts).getTime();
+      if (t > c.last) { c.last = t; c.name = det.nome || c.name; }
+      byPhone[digits] = c;
+    });
+    const contactList = Object.keys(byPhone).map(k => byPhone[k]).sort((a, b) => b.last - a.last);
+    const msgText = s.msg || 'Oi {nome}, tudo bem? Acabou de chegar carga nova e já está no freezer aqui na Vai Nessa. Separo o seu fardo pra hoje?';
+    const fill = (txt, name) => txt.replace(/\{nome\}/g, (name || '').split(' ')[0] || 'tudo bem');
+    const sent = s.sent || {};
+    const pending = contactList.filter(c => !sent[c.digits]);
+    const waNum = d => (d.length > 11 ? d : '55' + d);
+    const contacts = contactList.map(c => ({
+      name: c.name,
+      phone: c.digits.length === 11
+        ? '(' + c.digits.slice(0, 2) + ') ' + c.digits.slice(2, 7) + '-' + c.digits.slice(7)
+        : c.digits,
+      orders: String(c.orders), spent: fmt(c.spent),
+      last: dt(c.last).split(' ')[0],
+      href: 'https://wa.me/' + waNum(c.digits) + '?text=' + encodeURIComponent(fill(msgText, c.name)),
+      sentStyle: sent[c.digits]
+        ? 'font-size:10.5px;padding:2px 7px;border-radius:99px;background:color-mix(in srgb, var(--acc) 12%, transparent);color:var(--acc)'
+        : 'display:none',
+      onSent: () => this.markSent(c.digits)
+    }));
+
+    /* ——— coleção ——— */
+    const q = s.q.trim().toLowerCase();
+    const rowOf = (p, cid) => ({
+      name: p.name, vol: p.vol || '',
+      price: this.rawGet('row' + p.id, p.price),
+      photo: p.photo || '', noPhoto: !p.photo,
+      thumbStyle: 'flex:none;width:38px;height:38px;padding:0;border-radius:8px;border:1px solid var(--line);background:var(--hover);cursor:pointer;display:grid;place-items:center;overflow:hidden;color:var(--mut)'
+        + (p.out ? ';opacity:.45' : ''),
+      nameStyle: p.out ? 'text-decoration:line-through;color:var(--mut)' : 'font-weight:500',
+      fardoLabel: (p.fardos || []).length
+        ? (p.fardos || []).map(f => f[0] + 'un ' + fmt(f[1])).join(' · ')
+        : 'sem fardo',
+      statusLabel: p.out ? 'Esgotado' : 'Ativo',
+      statusStyle: p.out ? 'border-color:var(--acc);color:var(--acc)' : '',
+      dotStyle: 'width:7px;height:7px;border-radius:50%;background:' + (p.out ? 'var(--acc)' : '#2fb673'),
+      onName: e => { const v = e.target.value; this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) t.name = v; }); },
+      onVol: e => { const v = e.target.value; this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) t.vol = v; }); },
+      onPrice: e => this.rawSet('row' + p.id, e.target.value, n => this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) t.price = n; })),
+      onToggleOut: () => this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) t.out = !t.out; }),
+      onEdit: () => this.pickProduct(p.id, cid || p.catId),
+      onUp: () => this.moveProduct(p.id, -1),
+      onDown: () => this.moveProduct(p.id, 1),
+      onDup: () => this.mutate(d => {
+        const i = d.products.findIndex(x => x.id === p.id);
+        d.products.splice(i + 1, 0, Object.assign(JSON.parse(JSON.stringify(p)), { id: VN.uid() }));
+      })
+    });
+
+    const rows = this.prodsOf(doc, catId)
+      .filter(p => !q || (p.name + ' ' + (p.vol || '')).toLowerCase().includes(q))
+      .map(p => rowOf(p, catId));
+
+    const searchRows = topQ
+      ? doc.products.filter(p => (p.name + ' ' + (p.vol || '')).toLowerCase().includes(topQ)).map(p => ({
+          name: p.name,
+          meta: [(doc.categories.find(c => c.id === p.catId) || {}).name, p.vol, p.out ? 'esgotado' : null].filter(Boolean).join(' · '),
+          priceLabel: fmt(p.price),
+          photo: p.photo || '',
+          thumbStyle: 'flex:none;width:38px;height:38px;border-radius:8px;border:1px solid var(--line);background:var(--hover);display:grid;place-items:center;overflow:hidden',
+          onEdit: () => this.pickProduct(p.id, p.catId)
+        }))
+      : [];
+
+    /* ——— ficha ——— */
+    const ed = (() => {
+      const p = s.view === 'prod' && doc.products.find(x => x.id === s.prodId);
+      if (!p) return null;
+      const set = fn => this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) fn(t); });
+      const pcat = doc.categories.find(c => c.id === p.catId);
+      const f = (p.fardos || [])[(p.fardos || []).length - 1];
+      const pct = f && f[1] ? Math.round(((p.price * f[0] - f[1]) / f[1]) * 100) : null;
+      return {
+        crumb: (pcat ? pcat.name : '') + ' › ' + p.name,
+        name: p.name, vol: p.vol || '', photo: p.photo || '', tag: p.tag || '', catId: p.catId,
+        photoBoxStyle: 'flex:none;width:96px;height:96px;border-radius:10px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
+        price: this.rawGet('price', p.price),
+        marginNote: pct === null
+          ? 'Sem fardo cadastrado: o cliente só consegue comprar unidade.'
+          : 'Vendendo ' + f[0] + ' unidades soltas você faz ' + fmt(p.price * f[0]) + ', contra ' + fmt(f[1]) + ' no fardo — diferença de ' + pct + '%.',
+        onBack: () => this.setState({ view: 'cat', catId: p.catId, confirmDel: false }),
+        onName: e => { const v = e.target.value; set(t => { t.name = v; }); },
+        onVol: e => { const v = e.target.value; set(t => { t.vol = v; }); },
+        onPhoto: e => { const v = e.target.value; set(t => { t.photo = v; }); },
+        onPhotoFile: e => {
+          const file = e.target.files && e.target.files[0];
+          e.target.value = '';
+          if (!file) return;
+          if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
+          this.flash('Enviando foto…');
+          VN.uploadPhoto(file).then(url => {
+            set(t => { t.photo = url; });
+            this.flash(VN.connected() ? 'Foto enviada' : 'Foto salva neste aparelho (conecte o Supabase para hospedar de verdade)');
+          }).catch(() => this.flash('Falha ao enviar a foto'));
+        },
+        onPhotoClear: () => set(t => { t.photo = ''; }),
+        onTag: e => { const v = e.target.value; set(t => { t.tag = v; }); },
+        onCat: e => { const v = e.target.value; set(t => { t.catId = v; }); this.setState({ catId: v }); },
+        onPrice: e => this.rawSet('price', e.target.value, n => set(t => { t.price = n; })),
+        fardos: (p.fardos || []).map((fd, i) => ({
+          qty: this.rawGet('fq' + i, fd[0]),
+          price: this.rawGet('fp' + i, fd[1]),
+          each: fd[0] ? fmt(fd[1] / fd[0]) + ' un' : '',
+          onQty: e => this.rawSet('fq' + i, e.target.value, n => set(t => { t.fardos[i][0] = Math.round(n); })),
+          onPrice: e => this.rawSet('fp' + i, e.target.value, n => set(t => { t.fardos[i][1] = n; })),
+          onRemove: () => { this.setState({ raw: {} }); set(t => { t.fardos.splice(i, 1); }); }
+        })),
+        onAddFardo: () => { this.setState({ raw: {} }); set(t => { t.fardos = (t.fardos || []).concat([[12, 0]]); }); },
+        upsellOpts: doc.products.filter(x => x.id !== p.id).slice(0, 40).map(x => {
+          const on = (p.upsell || []).indexOf(x.id) >= 0;
+          return {
+            label: x.name, style: this.chipStyle(on),
+            onToggle: () => set(t => {
+              const list = t.upsell || [];
+              t.upsell = on ? list.filter(id => id !== x.id) : list.concat([x.id]);
+            })
+          };
+        }),
+        outStyle: this.chipStyle(p.out), featStyle: this.chipStyle(p.featured),
+        onToggleOut: () => set(t => { t.out = !t.out; }),
+        onToggleFeatured: () => set(t => { t.featured = !t.featured; }),
+        deleteLabel: s.confirmDel ? 'Confirmar exclusão' : 'Apagar produto',
+        onDelete: () => {
+          if (!s.confirmDel) return this.setState({ confirmDel: true });
+          this.mutate(d => { d.products = d.products.filter(x => x.id !== p.id); });
+          this.setState({ view: 'cat', prodId: null, confirmDel: false });
+          this.flash('Produto apagado');
+        }
+      };
+    })();
+
+    const globalUpsell = doc.products.slice(0, 40).map(x => {
+      const on = (st.globalUpsell || []).indexOf(x.id) >= 0;
+      return {
+        label: x.name, style: this.chipStyle(on),
+        onToggle: () => this.mutate(d => {
+          const list = d.settings.globalUpsell || [];
+          d.settings.globalUpsell = on ? list.filter(id => id !== x.id) : list.concat([x.id]);
+        })
+      };
+    });
+
+    const margins = doc.products
+      .filter(p => (p.fardos || []).length)
+      .map(p => {
+        const f = p.fardos[p.fardos.length - 1];
+        const loose = p.price * f[0];
+        const pct = f[1] ? Math.round(((loose - f[1]) / f[1]) * 100) : 0;
+        return {
+          name: p.name, detail: f[0] + 'un: ' + fmt(f[1]) + ' vs ' + fmt(loose), pct: pct,
+          delta: (pct >= 0 ? '+' : '') + pct + '%',
+          deltaStyle: 'flex:none;width:56px;text-align:right;font-family:var(--font-heading);font-weight:600;font-size:13px;'
+            + (pct >= 25 ? 'color:var(--acc)' : 'color:var(--mut)')
+        };
+      })
+      .sort((a, b) => b.pct - a.pct);
+
+    const stF = key => e => { const v = e.target.value; this.mutate(d => { d.settings[key] = v; }); };
+    const stN = key => e => this.rawSet(key, e.target.value, n => this.mutate(d => { d.settings[key] = n; }));
+
+    return Object.assign(base, {
+      nav: nav, catOptions: doc.categories.map(c => ({ id: c.id, name: c.name })),
+      isSearch: !!topQ, searchTitle: searchRows.length + (searchRows.length === 1 ? ' produto' : ' produtos') + ' para “' + s.topQ.trim() + '”',
+      searchRows: searchRows,
+      topQ: s.topQ, onTopQ: e => this.setState({ topQ: e.target.value }),
+      isDash: !topQ && s.view === 'dash', isCatView: !topQ && s.view === 'cat',
+      isProdView: !topQ && s.view === 'prod', isLucro: !topQ && s.view === 'lucro',
+      isAjustes: !topQ && s.view === 'ajustes', isConexao: !topQ && s.view === 'conexao',
+      isPedidos: !topQ && s.view === 'pedidos', isVitrine: !topQ && s.view === 'vitrine',
+      isDisparo: !topQ && s.view === 'disparo',
+      onDisparo: () => { this.setState({ view: 'disparo', topQ: '' }); VN.events().then(ev => this.setState({ events: ev || [] })); },
+      disparoStyle: this.navStyle(s.view === 'disparo'),
+      contactBadge: contacts.length ? String(contacts.length) : '',
+      contactBadgeStyle: contacts.length
+        ? 'flex:none;font-size:11px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb, var(--acc) 14%, transparent);color:var(--acc)'
+        : 'display:none',
+      contacts: contacts, noContacts: contacts.length === 0,
+      disparoSub: contacts.length
+        ? contacts.length + (contacts.length === 1 ? ' contato de quem já pediu' : ' contatos de quem já pediu')
+        : 'Os contatos aparecem aqui conforme os pedidos chegam',
+      msg: msgText, onMsg: e => this.setState({ msg: e.target.value }),
+      msgPreview: fill(msgText, contactList[0] ? contactList[0].name : 'João'),
+      presets: [
+        ['Chegou gelada', 'Oi {nome}, tudo bem? Acabou de chegar carga nova e já está no freezer aqui na Vai Nessa. Separo o seu fardo pra hoje?'],
+        ['Preço do fardo', '{nome}, o fardo dessa semana saiu por um valor melhor. Quer que eu mande a lista com os preços atualizados?'],
+        ['Fim de semana', 'Fala {nome}! Fim de semana chegando: deixo a sua gelada separada e entrego na hora que você marcar. O que vai ser?'],
+        ['Dia de jogo', '{nome}, tem jogo hoje. Fecho o combo com fardo e gelo e mando pra sua casa antes de começar?'],
+        ['Sumido', 'Oi {nome}, faz um tempo que você não pede aqui. Tem novidade na adega — quer ver o cardápio?'],
+        ['Entrega rápida', '{nome}, estamos abertos e entregando no bairro agora. Faço a sua entrega em poucos minutos, é só me dizer o que quer.']
+      ].map(([label, text]) => ({ label: label, onPick: () => this.setState({ msg: text }) })),
+      nextLabel: pending.length ? 'Abrir próximo (' + pending.length + ')' : 'Todos enviados',
+      onNext: () => {
+        const c = pending[0];
+        if (!c) return this.flash('Nenhum contato pendente');
+        window.open('https://wa.me/' + waNum(c.digits) + '?text=' + encodeURIComponent(fill(msgText, c.name)), '_blank');
+        this.markSent(c.digits);
+      },
+      onResetSent: () => { try { localStorage.removeItem('vn.sent'); } catch (e) {} this.setState({ sent: {} }); this.flash('Marcações zeradas'); },
+      progressLabel: contacts.length
+        ? (contacts.length - pending.length) + ' de ' + contacts.length + ' marcados como enviados'
+        : '',
+      onPedidos: () => { this.setState({ view: 'pedidos', topQ: '' }); VN.events().then(ev => this.setState({ events: ev || [] })); },
+      onVitrine: () => this.setState({ view: 'vitrine', topQ: '' }),
+      pedidosStyle: this.navStyle(s.view === 'pedidos'),
+      vitrineStyle: this.navStyle(s.view === 'vitrine'),
+      orderBadge: openOrdersCount ? String(openOrdersCount) : '',
+      orderBadgeStyle: openOrdersCount
+        ? 'flex:none;font-size:11px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb, var(--acc) 14%, transparent);color:var(--acc)'
+        : 'display:none',
+      orders: orders.slice(0, 60),
+      noOrders: orders.length === 0,
+      ordersSub: orders.length
+        ? orders.length + (orders.length === 1 ? ' pedido registrado' : ' pedidos registrados') + ' · ' + fmt(orders.reduce((t, o) => t + o.raw, 0))
+        : 'Nenhum pedido ainda',
+      onReloadOrders: () => VN.events().then(ev => { this.setState({ events: ev || [] }); this.flash('Pedidos atualizados'); }),
+      layouts: ['Compacta', 'Foto grande', 'Rápida'].map(v => ({
+        label: v, style: this.chipStyle((st.itemStyle || 'Compacta') === v),
+        onPick: () => this.mutate(d => { d.settings.itemStyle = v; })
+      })),
+      layoutNote: (st.itemStyle || 'Compacta') === 'Rápida'
+        ? 'Rápida: um toque no + joga direto no carrinho, sem abrir a ficha. Some com as sugestões e a escolha de fardo.'
+        : ((st.itemStyle || 'Compacta') === 'Foto grande'
+          ? 'Foto grande: a ficha abre com a imagem do produto em destaque.'
+          : 'Compacta: a ficha abre com foto pequena, escolha de unidade ou fardo e as sugestões.'),
+      switcherLabel: st.showSwitcher ? 'Visível' : 'Escondido',
+      switcherStyle: this.chipStyle(!!st.showSwitcher),
+      onToggleSwitcher: () => this.mutate(d => { d.settings.showSwitcher = !d.settings.showSwitcher; }),
+      accents: [
+        ['#d81b84', 'Magenta'], ['#c9971a', 'Dourado'], ['#8f4ad8', 'Roxo'], ['#1f8a5b', 'Verde']
+      ].map(([hex, label]) => ({
+        label: label,
+        onPick: () => this.mutate(d => { d.settings.accent = hex; }),
+        style: 'width:38px;height:38px;border-radius:99px;cursor:pointer;background:' + hex + ';'
+          + ((st.accent || '#d81b84') === hex
+            ? 'border:2px solid var(--ink);box-shadow:0 0 0 3px var(--card) inset'
+            : 'border:1px solid var(--line)')
+      })),
+      onTagline: stF('tagline'), onPayments: stF('payments'),
+      onDash: () => this.setState({ view: 'dash', topQ: '' }),
+      onLucro: () => this.setState({ view: 'lucro', topQ: '' }),
+      onAjustes: () => this.setState({ view: 'ajustes', topQ: '' }),
+      onConexao: () => this.setState({ view: 'conexao', topQ: '', connMsg: '', confirmReset: false, importOpen: false }),
+      dashStyle: this.navStyle(s.view === 'dash'),
+      lucroStyle: this.navStyle(s.view === 'lucro'),
+      ajustesStyle: this.navStyle(s.view === 'ajustes'),
+      conexaoStyle: this.navStyle(s.view === 'conexao'),
+
+      dashSub: (isToday ? 'Hoje' : 'Últimos ' + days + ' dias') + ' · ' + totalUnits + (totalUnits === 1 ? ' unidade vendida' : ' unidades vendidas'),
+      ranges: ['hoje', 7, 14, 30].map(n => ({
+        label: n === 'hoje' ? 'Hoje' : n + ' dias',
+        style: this.chipStyle(s.days === n),
+        onPick: () => this.setState({ days: n })
+      })),
+      kpis: kpis, series: series, noData: totalClicks + totalOrders === 0,
+      topClicks: clickTop.map((t, i) => ({
+        rank: (i + 1) + '.', name: t.name, value: String(t.value),
+        barStyle: 'display:block;height:100%;border-radius:3px;background:var(--acc);width:' + Math.round((t.value / clickMax) * 100) + '%'
+      })),
+      noClicks: clickTop.length === 0,
+      topSales: salesTop.map((t, i) => ({
+        rank: (i + 1) + '.', name: t.name, value: String(t.value),
+        revenue: fmt(saleRev[t.name] || 0)
+      })),
+      noSales: salesTop.length === 0,
+      dataNote: s.source === 'supabase'
+        ? 'Somando os acessos de todos os clientes, direto do banco.'
+        : 'Sem Supabase conectado, o dashboard conta apenas os acessos feitos neste aparelho.',
+
+      outOfStock: doc.products.filter(p => p.out).map(p => ({
+        name: p.name,
+        catName: (doc.categories.find(c => c.id === p.catId) || {}).name || '',
+        onEdit: () => this.pickProduct(p.id, p.catId)
+      })),
+
+      catName: cat ? cat.name : '',
+      onRenameCat: e => { const v = e.target.value; this.mutate(d => { const x = d.categories.find(y => y.id === catId); if (x) x.name = v; }); },
+      onAddHere: () => this.addProduct(catId),
+      onNewFirst: () => this.addProduct(doc.categories[0].id),
+      deleteCatLabel: s.confirmCat ? 'Confirmar' : 'Apagar coleção',
+      onDeleteCat: () => {
+        if (doc.categories.length < 2) return this.flash('Deixe pelo menos uma coleção');
+        if (!s.confirmCat) return this.setState({ confirmCat: true });
+        const keep = doc.categories.filter(c => c.id !== catId);
+        this.mutate(d => {
+          const k = d.categories.filter(c => c.id !== catId);
+          d.products.forEach(p => { if (p.catId === catId) p.catId = k[0].id; });
+          d.categories = k;
+        });
+        this.setState({ catId: keep[0].id, confirmCat: false });
+        this.flash('Coleção apagada');
+      },
+      collectionsOpen: s.collectionsOpen,
+      collectionsCaret: s.collectionsOpen ? '▾' : '▸',
+      onToggleCollections: () => this.setState(x => ({ collectionsOpen: !x.collectionsOpen })),
+      newCatOpen: s.newCatOpen, newCatName: s.newCatName || '',
+      onNewCatQuick: () => this.setState(x => ({ newCatOpen: !x.newCatOpen, newCatName: '' })),
+      onNewCatName: e => this.setState({ newCatName: e.target.value }),
+      onNewCatKey: e => { if (e.key === 'Enter') this.createNewCat(); },
+      onNewCatCreate: () => this.createNewCat(),
+      q: s.q, onQ: e => this.setState({ q: e.target.value }),
+      rows: rows, emptyCat: rows.length === 0,
+      adjust: s.adjust, onAdjust: e => this.setState({ adjust: e.target.value, confirmAdj: false }),
+      adjustLabel: s.confirmAdj ? 'Confirmar' : 'Aplicar',
+      onApplyAdjust: () => {
+        const pct = this.num(s.adjust);
+        if (!pct) return this.flash('Informe a porcentagem');
+        if (!s.confirmAdj) return this.setState({ confirmAdj: true });
+        const f = 1 + pct / 100;
+        const round = v => Math.round(v * 100) / 100;
+        this.mutate(d => {
+          d.products.forEach(p => {
+            if (p.catId !== catId) return;
+            p.price = round(p.price * f);
+            p.fardos = (p.fardos || []).map(x => [x[0], round(x[1] * f)]);
+          });
+        });
+        this.setState({ confirmAdj: false, adjust: '', raw: {} });
+        this.flash('Preços da coleção ajustados em ' + pct + '%');
+      },
+      ed: ed, globalUpsell: globalUpsell, margins: margins,
+      st: {
+        whatsapp: st.whatsapp || '', address: st.address || '', hours: st.hours || '',
+        minutes: st.minutes || '', instagram: st.instagram || '', pin: st.pin || '',
+        upsellTitle: st.upsellTitle || '',
+        tagline: st.tagline || '', payments: st.payments || '',
+        storeName: st.storeName || '', customAccent: st.accent || '', logo: st.logo || '', cover: st.cover || '',
+        deliveryFee: this.rawGet('deliveryFee', st.deliveryFee),
+        freeAbove: this.rawGet('freeAbove', st.freeAbove || 0),
+        kmDelivery: st.kmDelivery !== false,
+        pricePerKm: this.rawGet('pricePerKm', st.pricePerKm != null ? st.pricePerKm : 4)
+      },
+      kmLabel: st.kmDelivery !== false ? 'Ativado' : 'Desativado',
+      kmStyle: this.chipStyle(st.kmDelivery !== false),
+      onToggleKm: () => this.mutate(d => { d.settings.kmDelivery = d.settings.kmDelivery === false; }),
+      onPricePerKm: e => this.rawSet('pricePerKm', e.target.value, n => this.mutate(d => { d.settings.pricePerKm = n; })),
+      onWhats: stF('whatsapp'), onAddress: stF('address'), onHours: stF('hours'),
+      onMinutes: stF('minutes'), onInsta: stF('instagram'), onPin: stF('pin'),
+      onStoreName: stF('storeName'), onLogo: stF('logo'),
+      onLogoFile: e => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
+        this.flash('Enviando logo…');
+        VN.uploadPhoto(file).then(url => {
+          this.mutate(d => { d.settings.logo = url; });
+          this.flash(VN.connected() ? 'Logo enviada' : 'Logo salva neste aparelho (conecte o Supabase para hospedar de verdade)');
+        }).catch(() => this.flash('Falha ao enviar a logo'));
+      },
+      onCustomAccent: e => { const v = e.target.value; this.mutate(d => { d.settings.accent = v; }); },
+      onCover: stF('cover'),
+      onCoverFile: e => {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
+        this.flash('Enviando capa…');
+        VN.uploadPhoto(file).then(url => {
+          this.mutate(d => { d.settings.cover = url; });
+          this.flash(VN.connected() ? 'Capa enviada' : 'Capa salva neste aparelho (conecte o Supabase para hospedar de verdade)');
+        }).catch(() => this.flash('Falha ao enviar a capa'));
+      },
+      onUpsellTitle: stF('upsellTitle'), onFee: stN('deliveryFee'), onFreeAbove: stN('freeAbove'),
+      statusLabel: s.source === 'supabase' ? 'Ao vivo' : 'Neste aparelho',
+      statusStyle: 'display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;'
+        + (s.source === 'supabase'
+          ? 'background:rgba(47,182,115,.16);color:#5fd39a'
+          : 'background:rgba(255,255,255,.12);color:rgba(242,242,245,.7)'),
+      savedLabel: s.saving ? 'salvando…' : (s.saveError ? 'não salvo!' : (s.savedAt ? 'salvo' : '')),
+      onToggleNav: () => this.setState(x => ({ navOpen: !x.navOpen })),
+      onCloseNav: () => this.setState({ navOpen: false }),
+      onSidebarNav: e => { if (e.target.closest('button')) this.setState({ navOpen: false }); },
+      navInlineStyle: s.navOpen ? 'transform:translateX(0)' : '',
+      backdropStyle: s.navOpen ? 'display:block;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:90' : 'display:none',
+      onGoConn: () => this.setState({ view: 'conexao', topQ: '' }),
+      cfgUrl: s.cfgUrl, cfgKey: s.cfgKey, connMsg: s.connMsg, sql: VN.sql,
+      onCfgUrl: e => this.setState({ cfgUrl: e.target.value }),
+      onCfgKey: e => this.setState({ cfgKey: e.target.value }),
+      onConnect: () => {
+        VN.setCfg({ url: s.cfgUrl.trim(), key: s.cfgKey.trim() });
+        this.setState({ connMsg: 'testando…' });
+        VN.save(this.state.doc).then(r => {
+          if (r.error) return this.setState({ connMsg: 'Falhou: ' + r.error, source: 'local' });
+          VN.load().then(x => this.setState({ doc: x.doc, source: x.source, connMsg: 'Conectado. A vitrine já lê daqui.' }));
+          VN.events().then(ev => this.setState({ events: ev || [] }));
+        });
+      },
+      onDisconnect: () => { VN.setCfg({ disconnected: true }); this.setState({ source: 'local', connMsg: 'Desconectado neste aparelho.' }); },
+      onCopySql: () => { navigator.clipboard.writeText(VN.sql).then(() => this.flash('SQL copiado')); },
+      onExport: () => {
+        const blob = new Blob([JSON.stringify(this.state.doc, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'cardapio-vai-nessa.json';
+        a.click();
+      },
+      importOpen: s.importOpen, importText: s.importText || '',
+      onImport: () => this.setState(x => ({ importOpen: !x.importOpen, importText: '' })),
+      onImportText: e => this.setState({ importText: e.target.value }),
+      onImportCancel: () => this.setState({ importOpen: false, importText: '' }),
+      onImportApply: () => {
+        const txt = this.state.importText;
+        if (!txt || !txt.trim()) return;
+        try {
+          const d = VN.normalize(JSON.parse(txt));
+          this.setState({ doc: d, raw: {}, importOpen: false, importText: '' }, () => this.queueSave());
+          this.flash('Cardápio importado');
+        } catch (e) { this.flash('JSON inválido'); }
+      },
+      resetLabel: s.confirmReset ? 'Confirmar restauração' : 'Restaurar lista original',
+      onReset: () => {
+        if (!s.confirmReset) return this.setState({ confirmReset: true });
+        this.setState({ doc: VN.seed(), raw: {}, confirmReset: false }, () => this.queueSave());
+        this.flash('Cardápio restaurado');
+      }
+    });
+  }
+
+  tryUnlock() {
+    const pin = (this.state.doc && this.state.doc.settings.pin) || '1234';
+    if (this.state.pinTry.trim() === String(pin)) this.setState({ locked: false, pinTry: '', pinError: '' });
+    else this.setState({ pinError: 'PIN incorreto' });
+  }
+}
+
+</script>
+</body>
+</html>

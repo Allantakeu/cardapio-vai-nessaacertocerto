@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./dc-runtime.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap">
+<script src="image-slot.js"></script>
+<script src="./vn-data.js"></script>
+<style>
+:root{
+  --font-heading:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-body:'Inter',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --color-bg:#ffffff;--color-surface:#f7f5f1;--color-text:#17171b;
+  --color-accent:#d81b84;--color-accent-100:#8c104f;--color-accent-200:#fbd0e6;
+  --color-accent-300:#f291c3;--color-accent-400:#e8579f;--color-accent-500:#d81b84;
+  --color-accent-600:#b31569;--color-accent-700:#8c104f;--color-accent-800:#5d0a35;--color-accent-900:#33061d;
+  --color-neutral-300:#a3a3ac;--color-neutral-400:#7c7c86;--color-neutral-500:#63636c;--color-neutral-600:#63636c;--color-neutral-700:#d8d6d1;
+  --color-divider:rgba(23,23,27,.14);
+  --gold:#f5c517;--gold-ink:#9c7400;
+  --brand-2:#e6208c;--brand-2-soft:rgba(230,32,140,.10);--brand-2-text:#c11570;
+  --line:rgba(23,23,27,.10);
+  --shadow-sm:0 0 0 1px rgba(23,23,27,.08);
+  --shadow-md:0 0 0 1px rgba(23,23,27,.08), 0 6px 18px rgba(23,23,27,.10);
+  --shadow-lg:0 0 0 1px rgba(23,23,27,.08), 0 16px 40px rgba(23,23,27,.16);
+}
+body{margin:0;background:#ffffff;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"cv05","ss03","kern";font-optical-sizing:auto}
+h1,h2,h3,h4,h5,h6{font-feature-settings:"cv05","ss03","kern";text-wrap:balance}
+p,.clamp2{text-wrap:pretty}
+.eyebrow{font-family:var(--font-heading);font-weight:600;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+.money{font-variant-numeric:tabular-nums;font-feature-settings:"tnum","kern";letter-spacing:-.01em}
+.sect{font-family:var(--font-heading);font-weight:700;font-size:11.5px;letter-spacing:.16em;text-transform:uppercase}
+.itemname{font-family:var(--font-heading);font-weight:600;font-size:15.5px;letter-spacing:-.012em;line-height:1.25}
+.desc{font-size:12.5px;line-height:1.5;color:var(--color-neutral-500);text-wrap:pretty;letter-spacing:.002em}
+a{color:var(--color-accent);text-decoration:none}
+a:hover{color:var(--color-accent-300)}
+@keyframes sheetUp{from{transform:translateY(26px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes slideInRight{from{transform:translateX(28px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes slideInLeft{from{transform:translateX(-28px);opacity:.35}to{transform:none;opacity:1}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.noscroll::-webkit-scrollbar{height:0;width:0}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media (min-width:481px){
+  body{background:#e7e4dc}
+  .vn-frame{margin:28px 0;border-radius:26px;box-shadow:0 24px 60px rgba(23,23,27,.22), 0 0 0 1px rgba(23,23,27,.07);overflow:hidden}
+}
+</style>
+</helmet>
+<template data-dc-template>
+<div style="min-height:100vh;display:flex;justify-content:center;font-family:var(--font-body);color:var(--color-text);{{ accentVars }}">
+<div class="vn-frame" style="width:100%;max-width:440px;position:relative;padding-bottom:112px;background:radial-gradient(130% 55% at 50% 0%, #fffaf0 0%, #ffffff 60%)">
+
+  <sc-if value="{{ showSwitcher }}" hint-placeholder-val="{{ false }}">
+  <div class="eyebrow" style="display:flex;align-items:center;gap:9px;padding:10px 18px 0;color:var(--color-neutral-600)">
+    <span>Ficha do item</span>
+    <div class="noscroll" style="display:flex;gap:6px;overflow-x:auto">
+      <sc-for list="{{ variants }}" as="v" hint-placeholder-count="3">
+        <button onClick="{{ v.onClick }}" style="{{ v.style }}">{{ v.name }}</button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <div style="position:relative">
+    <div style="width:100%;height:128px;overflow:hidden;background:var(--color-surface)">
+      <image-slot id="vn-cover" shape="rect" style="width:100%;height:100%" placeholder="Capa da loja" src="{{ coverUrl }}"></image-slot>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(23,23,27,0) 55%, rgba(23,23,27,.30))"></div>
+    </div>
+  </div>
+  <div style="position:relative;padding:8px 20px 18px;margin-top:-34px;background:radial-gradient(120% 100% at 18% 40%, rgba(245,197,23,.10), transparent 60%)">
+    <div style="position:relative;display:flex;align-items:flex-end;gap:16px">
+      <div style="width:92px;height:92px;flex:none;border-radius:50%;padding:4px;background:linear-gradient(160deg, rgba(245,197,23,.65), rgba(230,32,140,.45));box-shadow:0 10px 24px rgba(23,23,27,.16)">
+        <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:#fff;box-shadow:0 0 0 3px #fff">
+          <image-slot id="vn-logo" shape="circle" style="width:100%;height:100%" placeholder="Logo" src="{{ logoUrl }}"></image-slot>
+        </div>
+      </div>
+      <div style="min-width:0;flex:1;padding-bottom:2px">
+        <div class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--gold-ink)">
+          <span style="width:5px;height:5px;border-radius:50%;background:var(--gold-ink)"></span>Adega
+        </div>
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:25px;line-height:1.08;letter-spacing:-.03em;margin-top:6px;color:var(--color-text);text-wrap:balance">
+          <span style="color:var(--gold-ink)">{{ storeNamePart1 }}</span> <span style="color:var(--brand-2-text)">{{ storeNamePart2 }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="desc" style="margin-top:12px;line-height:1.55">{{ tagline }}</div>
+    <div style="position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
+      <span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">
+        <span style="width:6px;height:6px;border-radius:50%;background:#39d98a;box-shadow:0 0 8px #39d98a"></span>{{ hoursLabel }}
+      </span>
+      <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ minutesLabel }}</span>
+      <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ paymentsLabel }}</span>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;gap:11px;margin-top:14px;padding:11px 13px;border-radius:12px;background:rgba(245,197,23,.1);box-shadow:inset 0 0 0 1px rgba(156,116,0,.22)">
+      <span style="width:26px;height:26px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#6f5200;background:rgba(245,197,23,.3)">◆</span>
+      <span style="flex:1;min-width:0;font-size:13px;line-height:1.38;letter-spacing:-.005em;color:var(--color-text)"><span style="font-family:var(--font-heading);font-weight:600">{{ addr1 }}</span><br><span style="font-size:12px;color:var(--color-neutral-500)">{{ addr2 }}</span></span>
+      <a href="{{ mapHref }}" target="_blank" style="flex:none;font-size:11.5px;font-family:var(--font-heading);font-weight:500;color:var(--color-accent);white-space:nowrap">Ver no mapa</a>
+    </div>
+  </div>
+
+  <div style="padding:10px 18px 6px">
+    <input class="input" type="text" placeholder="Buscar bebida" value="{{ q }}" onChange="{{ onSearch }}">
+  </div>
+  <div style="position:sticky;top:0;z-index:20;padding:8px 18px 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);box-shadow:0 1px 0 var(--line)">
+    <div style="position:relative">
+      <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:2px">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+          <button onClick="{{ tab.onClick }}" style="scroll-snap-align:start;{{ tab.style }}">{{ tab.name }}</button>
+        </sc-for>
+      </div>
+      <div style="position:absolute;top:0;right:0;bottom:2px;width:28px;pointer-events:none;background:linear-gradient(to right, transparent, rgba(255,255,255,.96))"></div>
+    </div>
+  </div>
+
+  <sc-if value="{{ showFeatured }}" hint-placeholder-val="{{ false }}">
+  <div style="padding:4px 0 0">
+    <div style="display:flex;align-items:center;gap:8px;padding:0 18px 8px">
+      <h6 class="sect" style="margin:0;font-size:10.5px;color:var(--brand-2-text)">Promoções da semana</h6>
+      <span style="flex:1;height:1px;background:linear-gradient(to right, var(--line), transparent)"></span>
+      <button onClick="{{ promoPrev }}" aria-label="Anterior" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">‹</button>
+      <button onClick="{{ promoNext }}" aria-label="Próxima" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">›</button>
+    </div>
+    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" onPointerDown="{{ stopAuto }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 18px 8px;overscroll-behavior-x:contain">
+      <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
+        <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:132px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
+          <div style="position:relative">
+            <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;height:96px" placeholder="Foto da promo" src="{{ p.photoUrl }}"></image-slot>
+            <span style="position:absolute;top:6px;left:6px;pointer-events:none;background:var(--brand-2);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:7.5px;letter-spacing:.08em;padding:3px 6px;border-radius:999px">{{ p.tagLabel }}</span>
+          </div>
+          <div style="padding:8px 9px 10px;display:flex;flex-direction:column;gap:3px">
+            <div class="itemname" style="font-size:12px;line-height:1.25">{{ p.name }}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
+              <span class="money" style="font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:-.02em;color:var(--color-accent)">{{ p.priceLabel }}</span>
+              <span style="flex:1"></span>
+              <button onClick="{{ p.onAdd }}" aria-label="Adicionar" style="flex:none;cursor:pointer;width:22px;height:22px;border-radius:50%;font-size:14px;line-height:1;display:grid;place-items:center;border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)">+</button>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:center;align-items:center;gap:5px;padding:0 18px 4px">
+      <sc-for list="{{ promoDots }}" as="d" hint-placeholder-count="3">
+        <button onClick="{{ d.onClick }}" aria-label="Ir para promoção" style="{{ d.style }}"></button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <div key="{{ cat }}" style="{{ groupsAnimStyle }}padding:14px 18px 0">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+      <div style="margin-bottom:22px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
+          <span style="width:4px;height:14px;border-radius:2px;background:var(--gold-ink);flex:none"></span>
+          <h6 class="sect" style="margin:0;color:var(--gold-ink)">{{ g.name }}</h6>
+          <span style="flex:1;height:1px;background:linear-gradient(to right, var(--line), transparent)"></span>
+          <span style="font-size:11px;color:var(--color-neutral-600)">{{ g.count }}</span>
+        </div>
+        <sc-for list="{{ g.items }}" as="item" hint-placeholder-count="4">
+          <div onClick="{{ item.onOpen }}" style="display:flex;gap:14px;align-items:flex-start;padding:14px 0;cursor:pointer;border-bottom:1px solid var(--line)" style-hover="background:rgba(23,23,27,.035)">
+            <image-slot id="{{ item.slotId }}" shape="rounded" radius="11" style="width:92px;height:92px;flex:none;box-shadow:0 0 0 1px rgba(23,23,27,.06)" placeholder="Foto" src="{{ item.photoUrl }}"></image-slot>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+                <span class="itemname">{{ item.name }}</span>
+                <sc-if value="{{ item.tag }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-family:var(--font-heading);font-weight:600;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:var(--brand-2-soft);color:var(--brand-2-text)">{{ item.tag }}</span>
+                </sc-if>
+              </div>
+              <div class="clamp2 desc" style="margin-top:4px">{{ item.desc }}</div>
+              <div class="money" style="display:inline-flex;align-items:center;margin-top:8px;font-family:var(--font-heading);font-weight:600;font-size:13px;padding:3px 9px;border-radius:6px;color:#6f5200;background:rgba(245,197,23,.2);box-shadow:inset 0 0 0 1px rgba(156,116,0,.28)">{{ item.priceLabel }}</div>
+            </div>
+            <div style="{{ item.plusStyle }}">{{ item.plusLabel }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:40px 0;text-align:center;color:var(--color-neutral-500);font-size:13.5px">Nada encontrado com esse nome.</div>
+    </sc-if>
+
+    <div style="padding:8px 0 20px;font-size:11.5px;line-height:1.65;letter-spacing:.005em;color:var(--color-neutral-600)">
+      Pedidos pelo WhatsApp (11) 99934-7715 · @vai.nessa1.0__<br>Venda proibida para menores de 18 anos. Imagens ilustrativas.
+    </div>
+  </div>
+
+  <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;padding:12px 18px 18px;background:linear-gradient(to top, #ffffff 62%, rgba(255,255,255,0));z-index:30">
+      <button class="btn btn-primary btn-block" onClick="{{ openCart }}" style="height:52px;font-size:15px;background:var(--color-accent);color:#fff;box-shadow:0 10px 24px rgba(216,27,132,.32);justify-content:space-between;padding:0 8px 0 16px;border-radius:14px">
+        <span style="display:flex;align-items:center;gap:10px"><span style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:12px;font-weight:700">{{ cartCount }}</span>Ver pedido</span>
+        <span style="background:rgba(255,255,255,.16);padding:8px 14px;border-radius:10px">{{ cartTotalLabel }}</span>
+      </button>
+    </div>
+  </sc-if>
+
+
+</div>
+
+<sc-if value="{{ sheetA }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:50;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
+    <div onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:88vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 18px">
+      <div style="display:flex;justify-content:center;padding:10px 0 4px"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:6px 0 14px">
+        <div style="flex:1">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:1.12;letter-spacing:-.025em">{{ item.name }}</div>
+          <div class="desc" style="margin-top:6px">{{ item.desc }}</div>
+          <div class="money" style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent);margin-top:9px">{{ item.priceLabel }}</div>
+        </div>
+        <image-slot id="{{ item.sheetSlotId }}" shape="rounded" radius="12" style="width:116px;height:116px;flex:none;box-shadow:0 0 0 1px rgba(23,23,27,.06)" placeholder="Foto" src="{{ item.photoUrl }}"></image-slot>
+      </div>
+      <div>
+        <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">Como quer levar?</h6>
+        <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
+          <label onClick="{{ op.onPick }}" style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px">
+            <span style="{{ op.dotStyle }}"></span>
+            <span style="flex:1;min-width:0">
+              <span style="font-family:var(--font-heading);font-weight:500">{{ op.label }}</span>
+              <span style="display:block;font-size:11.5px;color:var(--color-neutral-500);margin-top:2px">{{ op.each }}</span>
+            </span>
+            <span class="money" style="font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-text)">{{ op.priceLabel }}</span>
+          </label>
+        </sc-for>
+      </div>
+      <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-top:14px">
+          <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
+          <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
+            <label onClick="{{ ad.onToggle }}" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px">
+              <span style="{{ ad.boxStyle }}">{{ ad.mark }}</span>
+              <span style="flex:1">{{ ad.name }}</span>
+              <span style="color:var(--color-neutral-400);font-size:12.5px">{{ ad.priceLabel }}</span>
+            </label>
+          </sc-for>
+        </div>
+      </sc-if>
+      <div class="field" style="padding:14px 0 4px">
+        <label>Observação</label>
+        <input class="input" type="text" placeholder="Ex: bem gelada, sem gelo" value="{{ obs }}" onChange="{{ onObs }}">
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding-top:16px">
+        <div style="display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:4px">
+          <button class="btn btn-ghost" onClick="{{ dec }}" style="width:34px;height:34px;padding:0;font-size:18px">−</button>
+          <span style="min-width:26px;text-align:center;font-size:15px">{{ qty }}</span>
+          <button class="btn btn-ghost" onClick="{{ inc }}" style="width:34px;height:34px;padding:0;font-size:18px">+</button>
+        </div>
+        <button class="btn btn-primary" onClick="{{ addToCart }}" style="flex:1;height:46px;font-size:15px;justify-content:space-between;padding:0 16px">
+          <span>Adicionar</span><span>{{ sheetTotalLabel }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ sheetB }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:50;background:rgba(23,23,27,.38);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
+    <div onClick="{{ stop }}" style="width:100%;max-width:440px;height:92vh;overflow-y:auto;background:var(--color-surface);border-radius:18px 18px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .24s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column">
+      <div style="position:relative;flex:none">
+        <image-slot id="{{ item.bigSlotId }}" shape="rect" style="width:100%;height:280px" placeholder="Foto da bebida" src="{{ item.photoUrl }}"></image-slot>
+        <button class="btn" onClick="{{ closeSheet }}" style="position:absolute;top:12px;right:12px;width:34px;height:34px;padding:0;border-radius:50%;background:rgba(255,255,255,.88);color:#17171b;font-size:15px">✕</button>
+        <div style="position:absolute;inset:auto 0 0 0;height:110px;pointer-events:none;background:linear-gradient(to top, var(--color-surface), transparent)"></div>
+      </div>
+      <div style="position:relative;z-index:1;padding:0 20px 20px;margin-top:-14px;flex:1;display:flex;flex-direction:column">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:1.06;letter-spacing:-.035em;text-wrap:balance">{{ item.name }}</div>
+        <div class="desc" style="font-size:13.5px;margin-top:9px">{{ item.desc }}</div>
+        <div class="money" style="font-family:var(--font-heading);font-weight:600;font-size:34px;color:var(--color-accent);margin-top:14px;letter-spacing:-.04em">{{ item.priceLabel }}</div>
+        <div style="margin-top:18px">
+          <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">Como quer levar?</h6>
+          <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
+            <label onClick="{{ op.onPick }}" style="display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px">
+              <span style="{{ op.dotStyle }}"></span>
+              <span style="flex:1;min-width:0">
+                <span style="font-family:var(--font-heading);font-weight:500">{{ op.label }}</span>
+                <span style="display:block;font-size:12px;color:var(--color-neutral-500);margin-top:2px">{{ op.each }}</span>
+              </span>
+              <span class="money" style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-text)">{{ op.priceLabel }}</span>
+            </label>
+          </sc-for>
+        </div>
+        <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
+                <button onClick="{{ ad.onToggle }}" style="{{ ad.chipStyle }}">{{ ad.chipLabel }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <div class="field" style="padding-top:18px">
+          <label>Observação</label>
+          <input class="input" type="text" placeholder="Ex: bem gelada, sem gelo" value="{{ obs }}" onChange="{{ onObs }}">
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn btn-secondary" onClick="{{ dec }}" style="width:42px;height:42px;padding:0;border-radius:50%;font-size:20px">−</button>
+            <span style="min-width:22px;text-align:center;font-family:var(--font-heading);font-size:19px">{{ qty }}</span>
+            <button class="btn btn-secondary" onClick="{{ inc }}" style="width:42px;height:42px;padding:0;border-radius:50%;font-size:20px">+</button>
+          </div>
+          <span style="font-size:12.5px;color:var(--color-neutral-500)">Total {{ sheetTotalLabel }}</span>
+        </div>
+        <button class="btn btn-primary btn-block" onClick="{{ addToCart }}" style="height:52px;font-size:16px;margin-top:14px;background:rgba(216,27,132,.08)">Adicionar ao pedido</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ added }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ keepChoosing }}" style="position:fixed;inset:0;z-index:65;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
+    <div onClick="{{ stop }}" style="width:100%;max-width:440px;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .2s cubic-bezier(.2,.8,.2,1);padding:22px 18px 20px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="position:relative;flex:none">
+          <image-slot id="{{ addedSlotId }}" shape="rounded" radius="10" style="width:48px;height:48px" placeholder="Foto" src="{{ addedPhoto }}"></image-slot>
+          <span style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--color-accent);box-shadow:0 0 0 2px var(--color-surface)">✓</span>
+        </div>
+        <div style="min-width:0">
+          <div class="itemname" style="font-size:15px">{{ added }}</div>
+          <div style="font-size:12px;color:var(--color-neutral-500);margin-top:2px">no seu pedido · {{ cartTotalLabel }}</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" onClick="{{ goCart }}" style="height:50px;font-size:15.5px;margin-top:18px;background:rgba(216,27,132,.08)">Finalizar pedido</button>
+      <button class="btn btn-secondary btn-block" onClick="{{ keepChoosing }}" style="height:44px;font-size:14px;margin-top:9px">Continuar escolhendo</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ cartOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:60;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
+    <div onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 20px">
+      <div style="display:flex;justify-content:center;padding:10px 0 4px"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 8px">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:-.025em">Seu pedido</div>
+        <span style="font-size:12px;color:var(--color-neutral-500)">{{ cartCountLabel }}</span>
+      </div>
+
+      <div>
+          <sc-for list="{{ lines }}" as="ln" hint-placeholder-count="2">
+            <div style="display:flex;gap:11px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--line)">
+              <image-slot id="{{ ln.slotId }}" shape="rounded" radius="9" style="width:52px;height:52px;flex:none;box-shadow:0 0 0 1px rgba(23,23,27,.06)" placeholder="Foto" src="{{ ln.photoUrl }}"></image-slot>
+              <div style="flex:1;min-width:0">
+                <div class="itemname" style="font-size:14px">{{ ln.name }}</div>
+                <div style="font-size:11.5px;color:var(--color-neutral-500);margin-top:3px">{{ ln.detail }}</div>
+                <button class="btn" onClick="{{ ln.onRemove }}" style="display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 8px;margin-top:6px;margin-left:-8px;border-radius:7px;background:transparent;font-size:11.5px;color:var(--color-neutral-500)" style-hover="background:rgba(23,23,27,.05);color:var(--color-text)"><span style="font-size:11px;line-height:1">✕</span>Remover</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                <button class="btn btn-ghost" onClick="{{ ln.onDec }}" style="width:28px;height:28px;padding:0;font-size:16px">−</button>
+                <span style="min-width:20px;text-align:center;font-size:13.5px">{{ ln.qty }}</span>
+                <button class="btn btn-ghost" onClick="{{ ln.onInc }}" style="width:28px;height:28px;padding:0;font-size:16px">+</button>
+              </div>
+              <div class="money" style="min-width:74px;text-align:right;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-accent)">{{ ln.totalLabel }}</div>
+            </div>
+          </sc-for>
+      </div>
+
+      <div style="display:flex;gap:8px;padding:16px 0 4px">
+        <button onClick="{{ setEntrega }}" style="{{ entregaStyle }}">Entrega</button>
+        <button onClick="{{ setRetirada }}" style="{{ retiradaStyle }}">Retirar na adega</button>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:14px 14px 4px;margin-top:12px;box-shadow:0 0 0 1px rgba(23,23,27,.06)">
+        <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Seus dados</div>
+        <div class="field" style="padding-top:10px"><label>Seu nome</label><input class="input" type="text" placeholder="Como te chamamos" value="{{ nome }}" onChange="{{ onNome }}"></div>
+        <div class="field" style="padding-top:10px"><label>Seu WhatsApp</label><input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}"></div>
+      </div>
+
+      <sc-if value="{{ isEntrega }}" hint-placeholder-val="{{ true }}">
+        <div style="background:#fff;border-radius:12px;padding:14px 14px 4px;margin-top:10px;box-shadow:0 0 0 1px rgba(23,23,27,.06)">
+          <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Endereço de entrega</div>
+          <div class="field" style="padding-top:10px"><label>CEP</label><input class="input money" type="text" inputmode="numeric" placeholder="00000-000" value="{{ cep }}" onChange="{{ onCep }}"></div>
+          <sc-if value="{{ cepHint }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11.5px;line-height:1.5;color:var(--color-neutral-500);margin-top:5px">{{ cepHint }}</div>
+          </sc-if>
+          <div style="display:flex;gap:8px;padding-top:10px">
+            <div class="field" style="flex:1"><label>Rua</label><input class="input" type="text" placeholder="Nome da rua" value="{{ rua }}" onChange="{{ onRua }}"></div>
+            <div class="field" style="width:88px;flex:none"><label>Número</label><input class="input" type="text" inputmode="numeric" placeholder="nº" value="{{ numero }}" onChange="{{ onNumero }}"></div>
+          </div>
+          <div class="field" style="padding:10px 0 10px"><label>Bairro</label><input class="input" type="text" placeholder="Bairro" value="{{ bairro }}" onChange="{{ onBairro }}"></div>
+        </div>
+      </sc-if>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;color:var(--color-neutral-400)"><span>Subtotal</span><span class="money">{{ subtotalLabel }}</span></div>
+        <sc-if value="{{ showFeeRow }}" hint-placeholder-val="{{ true }}">
+          <div style="{{ feeRowStyle }}"><span>{{ feeName }}</span><span class="money" style="{{ feeValueStyle }}">{{ feeLabel }}</span></div>
+        </sc-if>
+        <sc-if value="{{ freeHint }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px;line-height:1.45;color:var(--brand-2-text);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px;margin-top:2px">{{ freeHint }}</div>
+        </sc-if>
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-family:var(--font-heading);font-weight:600;letter-spacing:-.02em;margin-top:5px"><span>Total</span><span class="money" style="color:var(--color-accent)">{{ totalLabel }}</span></div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-top:16px;padding:11px 13px;border-radius:10px;background:rgba(245,197,23,.1);box-shadow:inset 0 0 0 1px rgba(156,116,0,.22)">
+        <span style="flex:none;font-size:12px;line-height:1.4;color:#6f5200">◆</span>
+        <span style="font-size:12px;line-height:1.45;color:var(--color-text)">Verifique os itens, o nome e o endereço antes de enviar o pedido.</span>
+      </div>
+      <button class="btn btn-primary btn-block" onClick="{{ send }}" style="height:48px;font-size:15px;margin-top:12px;background:rgba(216,27,132,.08)">Enviar pedido no WhatsApp</button>
+      <button class="btn btn-secondary btn-block" onClick="{{ closeSheet }}" style="height:42px;font-size:13.5px;margin-top:8px">Continuar escolhendo</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;inset:0;z-index:70;background:linear-gradient(180deg, #fdeef6, #ffffff 220px);display:flex;justify-content:center;overflow-y:auto;animation:fadeIn .18s ease">
+    <div style="width:100%;max-width:440px;padding:48px 22px 28px;display:flex;flex-direction:column;align-items:center;text-align:center">
+      <div style="width:88px;height:88px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px rgba(23,23,27,.06),0 12px 28px rgba(216,27,132,.16)">
+        <image-slot id="vn-logo-done" shape="circle" style="width:88px;height:88px" placeholder="Logo" src="{{ logoUrl }}"></image-slot>
+      </div>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:27px;margin-top:16px;line-height:1.08;letter-spacing:-.03em">Pedido pronto</div>
+      <div style="font-size:13.5px;color:var(--color-neutral-500);margin-top:8px;line-height:1.5;max-width:320px">Toque abaixo para abrir a conversa com o resumo já escrito.</div>
+      <pre style="margin:22px 0 0;padding:16px;width:100%;box-sizing:border-box;text-align:left;background:var(--color-surface);border-radius:14px;box-shadow:var(--shadow-sm);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.65;white-space:pre-wrap;color:#3a3a42">{{ waMessage }}</pre>
+      <a class="btn btn-primary btn-block" href="{{ waHref }}" target="_blank" style="height:48px;font-size:15px;margin-top:20px;background:rgba(216,27,132,.08)">Abrir WhatsApp</a>
+      <button class="btn btn-secondary btn-block" onClick="{{ reset }}" style="height:42px;font-size:13.5px;margin-top:8px">Voltar ao cardápio</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:0;right:0;bottom:26px;display:flex;justify-content:center;z-index:90;pointer-events:none;padding:0 18px">
+    <div style="animation:toastIn .18s ease;background:#1a1a20;color:#f7f5f1;border-radius:999px;padding:11px 18px;font-size:12.5px;line-height:1.35;text-align:center;box-shadow:0 8px 24px rgba(16,16,24,.28)">{{ toast }}</div>
+  </div>
+</sc-if>
+</div>
+
+</template>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:900},&quot;itemStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Compacta&quot;,&quot;Foto grande&quot;,&quot;Rápida&quot;],&quot;default&quot;:&quot;Compacta&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Ficha do item&quot;},&quot;deliveryFee&quot;:{&quot;editor&quot;:&quot;float&quot;,&quot;default&quot;:8,&quot;min&quot;:0,&quot;max&quot;:30,&quot;step&quot;:1,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Pedido&quot;},&quot;whatsapp&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;5511999347715&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Pedido&quot;}}">
+class Component extends DCLogic {
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: [], cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '', toast: '', variant: null, added: '', deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
+
+  get data() {
+    const d = this.state.doc;
+    if (!d) return [];
+    return d.categories
+      .map(c => ({ name: c.name, items: d.products.filter(p => p.catId === c.id && !p.out) }))
+      .filter(g => g.items.length);
+  }
+
+  get extras() { return {}; }
+
+  get promoItems() {
+    const d = this.state.doc;
+    if (!d) return [];
+    return d.products.filter(p => p.featured && !p.out);
+  }
+
+  promoTrack = (el) => {
+    this._promoTrack = el;
+    if (el) this._startAuto();
+  };
+
+  _startAuto() {
+    clearInterval(this._autoTimer);
+    this._autoTimer = setInterval(() => {
+      const n = this.promoItems.length;
+      if (n > 1) this._scrollPromoTo((this.state.promoIdx + 1) % n);
+    }, 4500);
+  }
+
+  stopAuto = () => { clearInterval(this._autoTimer); };
+
+  _scrollPromoTo(i) {
+    const el = this._promoTrack;
+    if (!el || !el.children[i]) return;
+    el.scrollTo({ left: el.children[i].offsetLeft - 18, behavior: 'smooth' });
+    this.setState({ promoIdx: i });
+  }
+
+  onPromoScroll = (e) => {
+    const el = e.target;
+    let closest = 0, min = Infinity;
+    Array.from(el.children).forEach((c, i) => {
+      const dist = Math.abs(c.offsetLeft - 18 - el.scrollLeft);
+      if (dist < min) { min = dist; closest = i; }
+    });
+    if (closest !== this.state.promoIdx) this.setState({ promoIdx: closest });
+  };
+
+  promoPrev = () => {
+    const n = this.promoItems.length;
+    this._scrollPromoTo((this.state.promoIdx - 1 + n) % n);
+    this._startAuto();
+  };
+
+  promoNext = () => {
+    const n = this.promoItems.length;
+    this._scrollPromoTo((this.state.promoIdx + 1) % n);
+    this._startAuto();
+  };
+
+  extrasFor(it) {
+    const d = this.state.doc;
+    if (!d || !it) return [];
+    const ids = (it.upsell || []).concat(d.settings.globalUpsell || []);
+    const seen = {};
+    return ids
+      .filter(id => id !== it.id && !seen[id] && (seen[id] = 1))
+      .map(id => d.products.find(p => p.id === id))
+      .filter(p => p && !p.out)
+      .map(p => ({ name: p.name, price: p.price }));
+  }
+
+  seedData = [
+    { name: 'Cervejas', items: [
+      { id: 'cv1', name: 'Skol fina 269ml', vol: 'Garrafa 269ml', price: 3.5, fardos: [[15, 42]] },
+      { id: 'cv2', name: 'Skol 350ml', vol: 'Lata 350ml', price: 5, fardos: [[12, 45], [15, 56.5]] },
+      { id: 'cv3', name: 'Itaipava fina 269ml', vol: 'Garrafa 269ml', price: 3.5, fardos: [[12, 30], [15, 37.5]] },
+      { id: 'cv4', name: 'Itaipava 350ml', vol: 'Lata 350ml', price: 5, fardos: [[12, 35], [15, 43.75]] },
+      { id: 'cv5', name: 'Petra fina 269ml', vol: 'Garrafa 269ml', price: 3.5, fardos: [[12, 32], [15, 40]] },
+      { id: 'cv6', name: 'Brahma fina 269ml', vol: 'Garrafa 269ml', price: 4, fardos: [[15, 44]] },
+      { id: 'cv7', name: 'Brahma latão 350ml', vol: 'Latão 350ml', price: 6, fardos: [[12, 45], [15, 56.25]] },
+      { id: 'cv8', name: 'Império fina 269ml', vol: 'Garrafa 269ml', price: 3.5, fardos: [[12, 35], [15, 43.25]] },
+      { id: 'cv9', name: 'Amstel fina 269ml', vol: 'Garrafa 269ml', price: 4, fardos: [[12, 38], [15, 47.5]] },
+      { id: 'cv10', name: 'Budweiser 269ml', vol: 'Garrafa 269ml', price: 4, fardos: [[8, 30], [15, 55]] },
+      { id: 'cv11', name: 'Original 269ml', vol: 'Garrafa 269ml', price: 4, fardos: [[8, 30], [15, 55]] },
+      { id: 'cv12', name: 'Spaten 269ml', vol: 'Garrafa 269ml', price: 5, fardos: [[8, 30], [15, 55]] },
+      { id: 'cv13', name: 'Heineken fina 269ml', vol: 'Garrafa 269ml', price: 5, fardos: [[8, 37], [15, 69.5]] },
+      { id: 'cv14', name: 'Heineken fina zero 269ml', vol: 'Garrafa 269ml · sem álcool', price: 5, fardos: [[8, 37.5], [15, 70]] },
+      { id: 'cv15', name: 'Heineken 350ml', vol: 'Lata 350ml', price: 7.5, fardos: [[12, 67], [15, 83.75]] },
+      { id: 'cv16', name: 'Michelob 350ml', vol: 'Lata 350ml', price: 6.5, fardos: [[12, 63], [15, 78.75]] }
+    ] }
+  ];
+
+  extras = {};
+
+  componentDidMount() {
+    const boot = () => {
+      if (!window.VN) return setTimeout(boot, 60);
+      VN.load().then(r => this.setState({ doc: r.doc }));
+      this._poll = setInterval(() => {
+        if (document.hidden) return;
+        VN.load().then(r => {
+          const a = JSON.stringify(r.doc), b = JSON.stringify(this.state.doc);
+          if (a !== b) this.setState({ doc: r.doc });
+        });
+      }, 6000);
+      this._vis = () => {
+        if (!document.hidden) VN.load().then(r => this.setState({ doc: r.doc }));
+      };
+      document.addEventListener('visibilitychange', this._vis);
+      this._storage = (e) => {
+        if (e.key === 'vn.doc') VN.load().then(r => this.setState({ doc: r.doc }));
+      };
+      window.addEventListener('storage', this._storage);
+    };
+    boot();
+  }
+
+
+
+  componentDidUpdate() {
+    /* No celular, deixar a página de fundo ainda rolando com uma ficha fixa por cima
+       causa um bug visual de "fantasma" (o Safari/iOS repinta errado durante o scroll).
+       Trava o scroll do body enquanto qualquer ficha/carrinho estiver aberto. */
+    const s = this.state;
+    const anyOpen = !!s.open || s.cartOpen || !!s.added || s.done;
+    if (anyOpen && !this._scrollLocked) {
+      this._scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = '-' + this._scrollY + 'px';
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      this._scrollLocked = true;
+    } else if (!anyOpen && this._scrollLocked) {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, this._scrollY || 0);
+      this._scrollLocked = false;
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this._poll);
+    clearInterval(this._autoTimer);
+    if (this._vis) document.removeEventListener('visibilitychange', this._vis);
+    if (this._storage) window.removeEventListener('storage', this._storage);
+  }
+
+  fmt(v) { return 'R$ ' + v.toFixed(2).replace('.', ','); }
+
+  optsOf(it) {
+    const list = [{ label: 'Unidade', price: it.price, each: '' }];
+    (it.fardos || []).forEach(f => list.push({
+      label: 'Fardo ' + f[0] + ' un', price: f[1], each: this.fmt(f[1] / f[0]) + ' cada'
+    }));
+    return list;
+  }
+
+  openItem(it, cat) {
+    if (window.VN) VN.track('click', { product: it.name, qty: 1, total: it.price });
+    if (this.variant() === 'Rápida') return this.quickAdd(it);
+    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', cartOpen: false, added: '' });
+  }
+
+  quickAdd(it) {
+    this.setState(st => {
+      const i = st.cart.findIndex(l => l.name === it.name && !l.extras.length && !l.obs);
+      const cart = i >= 0
+        ? st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: l.qty + 1 }) : l)
+        : st.cart.concat([{ name: it.name + ' · unidade', unit: it.price, qty: 1, obs: '', extras: [], photo: it.photo || '', pid: it.id }]);
+      return { cart: cart, added: it.name, open: null, cartOpen: false };
+    });
+  }
+
+  variant() {
+    const cfg = (this.state.doc && this.state.doc.settings) || {};
+    return this.state.variant || cfg.itemStyle || this.props.itemStyle || 'Compacta';
+  }
+
+  unitOf(it, sel, opt) {
+    const list = this.extrasFor(it);
+    const o = this.optsOf(it)[opt] || this.optsOf(it)[0];
+    return o.price + list.reduce((t, a) => t + (sel[a.name] ? a.price : 0), 0);
+  }
+
+  bump(i, d) {
+    this.setState(st => ({ cart: st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: Math.max(1, l.qty + d) }) : l) }));
+  }
+
+  buildMsg(subtotal, feeVal) {
+    const s = this.state, fmt = this.fmt.bind(this);
+    const rows = s.cart.map(l => l.qty + 'x ' + l.name + (l.extras.length ? ' (+ ' + l.extras.join(', ') + ')' : '') + (l.obs ? ' — ' + l.obs : '') + '  ' + fmt(l.unit * l.qty));
+    const out = ['*Pedido — Vai Nessa Adega*', ''].concat(rows, ['',
+      'Subtotal: ' + fmt(subtotal),
+      (s.mode === 'entrega' ? 'Entrega: ' + fmt(feeVal) : 'Retirada na adega'),
+      'Total: ' + fmt(subtotal + feeVal), '',
+      'Nome: ' + (s.nome || '—'),
+      'WhatsApp: ' + (s.telefone || '—')
+    ]);
+    if (s.mode === 'entrega') out.push('Endereço: ' + (this.fullAddress() || '—'));
+    return out.join('\n');
+  }
+
+  fullAddress() {
+    const s = this.state;
+    const ruaNum = [s.rua, s.numero].filter(Boolean).join(', ');
+    return [ruaNum, s.bairro, s.cep].filter(Boolean).join(' - ');
+  }
+
+  geocodeAddress() {
+    const s = this.state;
+    const ruaNum = [s.rua, s.numero].filter(Boolean).join(', ');
+    return [ruaNum, s.bairro].filter(Boolean).join(', ');
+  }
+
+  scheduleDeliveryCalc(storeAddress, pricePerKm, kmOn) {
+    if (!kmOn) return;
+    clearTimeout(this._addrTimer);
+    this.setState({ deliveryCalcStatus: 'loading' });
+    this._addrTimer = setTimeout(() => {
+      const q = this.geocodeAddress();
+      if (q.trim().length > 6) this.calcDelivery(storeAddress, q, pricePerKm);
+      else this.setState({ deliveryCalcStatus: 'idle' });
+    }, 900);
+  }
+
+  lookupCep(cep, storeAddress, pricePerKm, kmOn) {
+    const digits = cep.replace(/\D/g, '');
+    if (digits.length !== 8) return;
+    this.setState({ cepStatus: 'loading' });
+    fetch('https://viacep.com.br/ws/' + digits + '/json/')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (!d || d.erro) return this.setState({ cepStatus: 'error' });
+        this.setState(st => ({
+          cepStatus: 'ok',
+          rua: d.logradouro || st.rua,
+          bairro: d.bairro || st.bairro
+        }));
+        this.scheduleDeliveryCalc(storeAddress, pricePerKm, kmOn);
+      })
+      .catch(() => this.setState({ cepStatus: 'error' }));
+  }
+
+  geocode(address) {
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=' + encodeURIComponent(address);
+    return fetch(url).then(r => r.ok ? r.json() : []).then(rows => {
+      if (!rows || !rows.length) return null;
+      return { lat: parseFloat(rows[0].lat), lng: parseFloat(rows[0].lon) };
+    }).catch(() => null);
+  }
+
+  /* Busca estruturada (rua + número + CEP) em vez de um texto só — o Nominatim casa cada
+     pedaço com o campo certo do endereço em vez de tentar adivinhar, então é bem mais
+     exato quando temos o CEP. Prioriza o CEP puro (a área certa quase sempre bate) e
+     refina com a rua/número quando dá certo. */
+  geocodeStructured(rua, numero, cep) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'br' });
+    const street = [numero, rua].filter(Boolean).join(' ').trim();
+    if (street) params.set('street', street);
+    const digits = String(cep || '').replace(/\D/g, '');
+    if (digits.length === 8) params.set('postalcode', digits.slice(0, 5) + '-' + digits.slice(5));
+    params.set('country', 'Brazil');
+    if (!street && !digits) return Promise.resolve(null);
+    const url = 'https://nominatim.openstreetmap.org/search?' + params.toString();
+    return fetch(url).then(r => r.ok ? r.json() : []).then(rows => {
+      if (!rows || !rows.length) return null;
+      return { lat: parseFloat(rows[0].lat), lng: parseFloat(rows[0].lon) };
+    }).catch(() => null);
+  }
+
+  /* Bairros digitados de forma informal (ex: "Cidade Nova São Miguel", "Jardim Nair")
+     às vezes não batem com o nome oficial no OpenStreetMap. Se a busca completa falhar,
+     tenta de novo com menos detalhe — rua + número + cidade, depois só rua + cidade —
+     até achar alguma coisa. Uma pausa entre tentativas por causa do limite de uso do Nominatim. */
+  geocodeWithFallback(address) {
+    const parts = address.split(',').map(s => s.trim()).filter(Boolean);
+    const last = parts[parts.length - 1];
+    const candidates = [address];
+    if (parts.length >= 3) {
+      const withNumber = [parts[0], parts[1], last].join(', ');
+      if (!candidates.includes(withNumber)) candidates.push(withNumber);
+    }
+    if (parts.length >= 2) {
+      const streetOnly = [parts[0], last].join(', ');
+      if (!candidates.includes(streetOnly)) candidates.push(streetOnly);
+    }
+    const tryNext = i => {
+      if (i >= candidates.length) return Promise.resolve(null);
+      const attempt = i === 0 ? this.geocode(candidates[i]) : new Promise(r => setTimeout(r, 600)).then(() => this.geocode(candidates[i]));
+      return attempt.then(g => g || tryNext(i + 1));
+    };
+    return tryNext(0);
+  }
+
+  routeKm(a, b) {
+    const url = 'https://router.project-osrm.org/route/v1/driving/' + a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat + '?overview=false';
+    return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+      const route = data && data.routes && data.routes[0];
+      return route ? route.distance / 1000 : null;
+    }).catch(() => null);
+  }
+
+  /* Arredonda o frete pra um valor redondo em vez de centavos exatos:
+     menos de 25 centavos cai pro real cheio, 25 a 69 vira ",50", 70+ sobe pro próximo real. */
+  showToast(msg) {
+    clearTimeout(this._toastTimer);
+    this.setState({ toast: msg });
+    this._toastTimer = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+
+  roundFee(v) {
+    const whole = Math.floor(v);
+    const cents = Math.round((v - whole) * 100);
+    if (cents < 25) return whole;
+    if (cents < 70) return whole + 0.5;
+    return whole + 1;
+  }
+
+  normalizeForGeocode(addr) {
+    const a = addr.replace(/\s*[—–]\s*/g, ', ').trim();
+    return /s(ã|a)o paulo/i.test(a) ? a : a + ', São Paulo - SP';
+  }
+
+  calcDelivery(storeAddressRaw, custAddressRaw, pricePerKm) {
+    const storeAddress = this.normalizeForGeocode(storeAddressRaw);
+    const custAddress = this.normalizeForGeocode(custAddressRaw);
+    const key = storeAddress + '|' + custAddress;
+    if (this._deliveryCalcKey === key) return;
+    this._deliveryCalcKey = key;
+    this.setState({ deliveryCalcStatus: 'loading' });
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    /* Nominatim pede no máx. ~1 req/s da mesma origem — chamadas em paralelo
+       às vezes voltam vazias. Fazendo uma de cada vez, com uma pausa entre elas. */
+    const storeGeo = this._storeGeoCache && this._storeGeoAddr === storeAddress
+      ? Promise.resolve(this._storeGeoCache)
+      : this.geocodeWithFallback(storeAddress).then(g => { this._storeGeoCache = g; this._storeGeoAddr = storeAddress; return g; });
+    storeGeo.then(origin => {
+      if (this._deliveryCalcKey !== key) return;
+      if (!origin) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+      const s = this.state;
+      return wait(600)
+        .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
+        .then(dest => dest || wait(600).then(() => this.geocodeWithFallback(custAddress)))
+        .then(dest => {
+        if (this._deliveryCalcKey !== key) return;
+        if (!dest) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+        return this.routeKm(origin, dest).then(km => {
+          if (this._deliveryCalcKey !== key) return;
+          if (km == null) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+          this.setState({ deliveryCalcStatus: 'ok', deliveryKm: km, deliveryFeeCalc: this.roundFee(km * pricePerKm) });
+        });
+      });
+    });
+  }
+
+  renderVals() {
+    const s = this.state, fmt = this.fmt.bind(this), V = this.variant();
+    const cfg = (s.doc && s.doc.settings) || {};
+    const flatFee = cfg.deliveryFee != null ? cfg.deliveryFee : (this.props.deliveryFee != null ? this.props.deliveryFee : 8);
+    const pricePerKm = Number(cfg.pricePerKm) || 4;
+    const kmOn = cfg.kmDelivery !== false;
+    const fee = (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryFeeCalc != null) ? s.deliveryFeeCalc : flatFee;
+    const phone = cfg.whatsapp || this.props.whatsapp || '5511999347715';
+    const freeAbove = Number(cfg.freeAbove) || 0;
+    const address = cfg.address || 'Rua Moacir Dantas Itapicuru, 911 — Cidade Nova São Miguel Paulista';
+    const addrParts = address.split(/\s+[—-]\s+/);
+
+    const pill = 'flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;padding:9px 16px;border-radius:999px;';
+    const onSt = 'border:1px solid var(--color-accent);color:#fff;background:var(--color-accent);box-shadow:0 4px 12px rgba(216,27,132,.28)';
+    const offSt = 'border:1px solid var(--line);color:var(--color-neutral-500);background:#fff';
+
+    const variants = ['Compacta', 'Foto grande', 'Rápida'].map(v => ({
+      name: v,
+      style: 'flex:none;cursor:pointer;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;background:transparent;' + (v === V ? 'border:1px solid var(--color-accent);color:var(--color-accent)' : 'border:1px solid var(--line);color:var(--color-neutral-600)'),
+      onClick: () => this.setState({ variant: v, open: null })
+    }));
+
+    const cats = ['Todos'].concat(this.data.map(g => g.name));
+    const tabs = cats.map((c, i) => ({
+      name: c, style: pill + (c === s.cat ? onSt : offSt),
+      onClick: () => this.setState({ cat: c, catDir: i >= cats.indexOf(s.cat) ? 'r' : 'l' })
+    }));
+    const groupsAnimStyle = 'animation:' + (s.catDir === 'l' ? 'slideInLeft' : 'slideInRight') + ' .28s cubic-bezier(.2,.8,.2,1);';
+
+    const q = s.q.trim().toLowerCase();
+    const match = it => !q || (it.name + ' ' + (it.vol || '')).toLowerCase().includes(q);
+    const quick = V === 'Rápida';
+    const plusStyle = 'width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;margin-top:29px;' + (quick
+      ? 'border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)'
+      : 'border:1px solid var(--line);color:var(--color-accent)');
+    const groups = this.data
+      .filter(g => s.cat === 'Todos' || g.name === s.cat)
+      .map(g => {
+        const items = g.items.filter(match).map(it => ({
+          name: it.name, tag: it.tag,
+          desc: [it.vol].concat((it.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
+          priceLabel: fmt(it.price) + ' un',
+          slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
+          onOpen: () => this.openItem(it, g.name)
+        }));
+        return { name: g.name, count: items.length + (items.length === 1 ? ' item' : ' itens'), items: items };
+      })
+      .filter(g => g.items.length);
+
+    const open = s.open;
+    const promos = this.promoItems.map(p => ({
+      name: p.name, desc: [p.vol].concat((p.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
+      priceLabel: fmt(p.price) + ' un', tagLabel: p.tag || 'Promoção',
+      slotId: 'vn-promo-' + p.id, photoUrl: p.photo || '',
+      onOpen: () => this.openItem(p, (this.data.find(g => g.items.some(it => it.id === p.id)) || {}).name),
+      onAdd: e => { e.stopPropagation(); this.quickAdd(p); }
+    }));
+    const promoIdx = Math.min(s.promoIdx, Math.max(0, promos.length - 1));
+    const promoDots = promos.map((_, i) => ({
+      onClick: () => this._scrollPromoTo(i),
+      style: 'padding:0;border:none;cursor:pointer;border-radius:999px;transition:width .2s;' +
+        (i === promoIdx ? 'width:16px;height:6px;background:var(--brand-2)' : 'width:6px;height:6px;background:var(--color-neutral-300)')
+    }));
+    const extras = open ? this.extrasFor(open) : [];
+    const addons = extras.map(a => ({
+      name: a.name, priceLabel: '+ ' + fmt(a.price), mark: s.sel[a.name] ? '✓' : '',
+      chipLabel: a.name + ' · ' + fmt(a.price),
+      chipStyle: pill + 'font-size:12.5px;' + (s.sel[a.name] ? onSt : offSt),
+      boxStyle: 'width:19px;height:19px;flex:none;border-radius:5px;display:grid;place-items:center;font-size:11px;' + (s.sel[a.name]
+        ? 'border:1px solid var(--color-accent);background:rgba(216,27,132,.16);color:var(--color-accent)'
+        : 'border:1px solid var(--line);color:transparent'),
+      onToggle: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = !sel[a.name]; return { sel: sel }; })
+    }));
+    const optList = open ? this.optsOf(open) : [];
+    const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
+    const opts = optList.map((o, i) => ({
+      label: o.label, each: o.each, priceLabel: fmt(o.price),
+      dotStyle: 'width:18px;height:18px;flex:none;border-radius:50%;box-sizing:border-box;' + (i === optIdx
+        ? 'border:5px solid var(--color-accent)'
+        : 'border:1px solid var(--line)'),
+      onPick: () => this.setState({ opt: i })
+    }));
+    const unit = open ? this.unitOf(open, s.sel, optIdx) : 0;
+
+    const lines = s.cart.map((l, i) => ({
+      name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
+      photoUrl: l.photo || '', slotId: 'vn-cart-' + (l.pid || i) + '-' + i,
+      detail: [l.extras.length ? '+ ' + l.extras.join(', ') : null, l.obs ? '“' + l.obs + '”' : null, fmt(l.unit) + ' cada'].filter(Boolean).join(' · '),
+      onInc: () => this.bump(i, 1), onDec: () => this.bump(i, -1),
+      onRemove: () => this.setState(st => ({ cart: st.cart.filter((x, j) => j !== i) }))
+    }));
+    const subtotal = s.cart.reduce((t, l) => t + l.unit * l.qty, 0);
+    const count = s.cart.reduce((t, l) => t + l.qty, 0);
+    const isEntrega = s.mode === 'entrega';
+    const freeOk = freeAbove > 0 && subtotal >= freeAbove;
+    const showFeeRow = !isEntrega || s.cep.trim().length > 0;
+    const feeVal = isEntrega && !freeOk && showFeeRow ? fee : 0;
+    const freeHint = (freeAbove > 0 && isEntrega && count)
+      ? (freeOk ? 'Frete grátis aplicado.' : 'Faltam ' + fmt(freeAbove - subtotal) + ' pro frete grátis.')
+      : '';
+    const modeBase = 'flex:1;cursor:pointer;font-family:var(--font-heading);font-weight:500;font-size:13px;padding:11px 8px;border-radius:10px;background:transparent;';
+    const modeOn = 'border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)';
+
+    return {
+      q: s.q, obs: s.obs, qty: s.qty, nome: s.nome, cep: s.cep, rua: s.rua, numero: s.numero, bairro: s.bairro, toast: s.toast, variants: variants,
+      cepHint: s.cepStatus === 'loading' ? 'Buscando endereço…' : s.cepStatus === 'error' ? 'CEP não encontrado — preencha manualmente.' : '',
+      onCep: e => {
+        const v = e.target.value;
+        this.setState({ cep: v });
+        clearTimeout(this._cepTimer);
+        this._cepTimer = setTimeout(() => this.lookupCep(v, address, pricePerKm, kmOn), 500);
+      },
+      onRua: e => { this.setState({ rua: e.target.value }); this.scheduleDeliveryCalc(address, pricePerKm, kmOn); },
+      onNumero: e => { this.setState({ numero: e.target.value }); this.scheduleDeliveryCalc(address, pricePerKm, kmOn); },
+      onBairro: e => { this.setState({ bairro: e.target.value }); this.scheduleDeliveryCalc(address, pricePerKm, kmOn); },
+      onSearch: e => this.setState({ q: e.target.value }),
+      onObs: e => this.setState({ obs: e.target.value }),
+      onNome: e => this.setState({ nome: e.target.value }),
+      telefone: s.telefone,
+      onTelefone: e => {
+        const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+        const v = d.length > 10
+          ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7)
+          : (d.length > 6 ? '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6)
+            : (d.length > 2 ? '(' + d.slice(0, 2) + ') ' + d.slice(2) : d));
+        this.setState({ telefone: v });
+      },
+      tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle,
+      showFeatured: promos.length > 0 && s.cat === 'Todos',
+      promos: promos, promoDots: promoDots, promoTrack: this.promoTrack,
+      promoPrev: this.promoPrev, promoNext: this.promoNext, onPromoScroll: this.onPromoScroll, stopAuto: this.stopAuto,
+      opts: opts,
+      item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, photoUrl: open.photo || '' } : null,
+      sheetA: !!open && V === 'Compacta', sheetB: !!open && V === 'Foto grande',
+      addons: addons, hasAddons: addons.length > 0,
+      sheetTotalLabel: fmt(unit * s.qty),
+      inc: () => this.setState(st => ({ qty: st.qty + 1 })),
+      dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
+      addToCart: () => this.setState(st => ({
+        cart: st.cart.concat([{ name: open.name + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, extras: extras.filter(a => st.sel[a.name]).map(a => a.name), photo: open.photo || '', pid: open.id }]),
+        open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name
+      })),
+      closeSheet: () => this.setState({ open: null, cartOpen: false, added: '' }),
+      stop: e => e.stopPropagation(),
+      hasCart: count > 0, cartOpen: s.cartOpen,
+      added: s.added, addedPhoto: (s.cart.length && s.cart[s.cart.length - 1].photo) || '', addedSlotId: 'vn-added-' + (s.cart.length ? (s.cart[s.cart.length - 1].pid || s.cart.length) : '0'),
+      goCart: () => this.setState({ added: '', cartOpen: true }),
+      keepChoosing: () => this.setState({ added: '' }),
+      cartCountLabel: count + (count === 1 ? ' item' : ' itens'), cartCount: count,
+      cartTotalLabel: fmt(subtotal),
+      openCart: () => this.setState({ cartOpen: true, open: null, added: '' }),
+      lines: lines, subtotalLabel: fmt(subtotal),
+      showFeeRow: showFeeRow,
+      feeName: isEntrega
+        ? 'Entrega' + (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryKm != null ? ' (' + s.deliveryKm.toFixed(1) + ' km)' : '')
+        : 'Retirada na adega',
+      feeRowStyle: 'display:flex;justify-content:space-between;color:var(--color-neutral-400)',
+      feeValueStyle: '',
+      deliveryCalcHint: !kmOn || !isEntrega ? '' : (
+        s.deliveryCalcStatus === 'loading' ? 'Calculando frete pela distância…' :
+        s.deliveryCalcStatus === 'error' ? 'Não achamos esse endereço — usando taxa fixa de ' + fmt(flatFee) + '.' :
+        ''
+      ),
+      feeLabel: !isEntrega ? 'grátis'
+        : freeOk ? 'grátis'
+        : (kmOn && s.deliveryCalcStatus === 'loading') ? 'calculando…'
+        : fmt(feeVal),
+      freeHint: freeHint,
+      accentVars: cfg.accent
+        ? '--color-accent:' + cfg.accent
+          + ';--brand-2:' + cfg.accent
+          + ';--brand-2-text:color-mix(in srgb, ' + cfg.accent + ' 80%, #17171b)'
+          + ';--brand-2-soft:color-mix(in srgb, ' + cfg.accent + ' 10%, transparent)'
+        : '',
+      showSwitcher: !!cfg.showSwitcher,
+      tagline: cfg.tagline || 'Bebida gelada, combo montado e entrega no bairro.',
+      storeNamePart1: (cfg.storeName || 'Vai Nessa').split(' ')[0],
+      storeNamePart2: (cfg.storeName || 'Vai Nessa').split(' ').slice(1).join(' '),
+      logoUrl: cfg.logo || '', coverUrl: cfg.cover || '',
+      paymentsLabel: cfg.payments || 'Pix · cartão · dinheiro',
+      hoursLabel: cfg.hours || 'Aberto até 23:00',
+      minutesLabel: cfg.minutes || 'Entrega 20–40 min',
+      addr1: addrParts[0] || '', addr2: addrParts[1] || '',
+      mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(address),
+      upsellTitle: cfg.upsellTitle || 'Quer junto?',
+      totalLabel: fmt(subtotal + feeVal),
+      isEntrega: isEntrega,
+      entregaStyle: modeBase + (isEntrega ? modeOn : offSt),
+      retiradaStyle: modeBase + (isEntrega ? offSt : modeOn),
+      setEntrega: () => {
+        this.setState({ mode: 'entrega' });
+        this.scheduleDeliveryCalc(address, pricePerKm, kmOn);
+      },
+      setRetirada: () => this.setState({ mode: 'retirada' }),
+      send: () => {
+        const missing = [];
+        if (!s.nome.trim()) missing.push('seu nome');
+        if (s.telefone.replace(/\D/g, '').length < 10) missing.push('seu WhatsApp');
+        if (isEntrega) {
+          if (!s.rua.trim()) missing.push('a rua');
+          if (!s.numero.trim()) missing.push('o número');
+        }
+        if (missing.length) return this.showToast('Falta preencher ' + missing.join(', ') + '.');
+        if (window.VN) {
+          VN.track('order', {
+            product: null, qty: count, total: subtotal + feeVal,
+            detail: {
+              nome: s.nome, telefone: s.telefone, endereco: this.fullAddress(), mode: s.mode,
+              itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty }))
+            }
+          });
+          s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty }));
+        }
+        this.setState({ done: true, cartOpen: false, msg: this.buildMsg(subtotal, feeVal) });
+      },
+      done: s.done, waMessage: s.msg,
+      waHref: 'https://wa.me/' + phone + '?text=' + encodeURIComponent(s.msg || ''),
+      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '' })
+    };
+  }
+}
+
+</script>
+</body>
+</html>
