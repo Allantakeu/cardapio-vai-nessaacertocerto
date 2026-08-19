@@ -97,8 +97,15 @@
         <input class="fld" type="password" autocomplete="current-password" placeholder="Senha" value="{{ loginPass }}" onChange="{{ onLoginPass }}" onKeyDown="{{ onLoginKey }}" style="height:44px">
       </div>
       <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ loginError }}</div>
-      <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
-      <button onClick="{{ onForgotPass }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:10px;font-size:12px;color:var(--mut)">Esqueci minha senha</button>
+      <sc-if value="{{ !showSignup }}" hint-placeholder-val="{{ true }}">
+        <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
+      </sc-if>
+      <sc-if value="{{ showSignup }}" hint-placeholder-val="{{ false }}">
+        <button class="btnp" onClick="{{ onSignup }}" style="width:100%;height:46px;margin-top:4px">{{ signupBtnLabel }}</button>
+        <p style="font-size:11px;line-height:1.5;color:var(--mut);margin:8px 0 0;text-align:center">A senha deve ter pelo menos 6 caracteres.</p>
+      </sc-if>
+      <button onClick="{{ onToggleSignup }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:10px;font-size:12px;color:var(--acc)">{{ signupToggleLabel }}</button>
+      <button onClick="{{ onForgotPass }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:6px;font-size:12px;color:var(--mut)">Esqueci minha senha</button>
       <button onClick="{{ onGoLocal }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:4px;font-size:12px;color:var(--mut)" title="Sem sincronizar com o Supabase — só neste aparelho, até você reconectar">Continuar sem Supabase (modo local)</button>
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
@@ -932,7 +939,7 @@ const THEMES = {
 
 class Component extends DCLogic {
   state = {
-    locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, showCfgForm: false, doc: null, events: [], theme: 'claro',
+    locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, showSignup: false, signingUp: false, showCfgForm: false, doc: null, events: [], theme: 'claro',
     view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
     cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}
@@ -1089,10 +1096,19 @@ class Component extends DCLogic {
       loginBtnLabel: s.loggingIn ? 'Entrando…' : 'Entrar',
       onLoginEmail: e => this.setState({ loginEmail: e.target.value, loginError: '' }),
       onLoginPass: e => this.setState({ loginPass: e.target.value, loginError: '' }),
-      onLoginKey: e => { if (e.key === 'Enter') this.trySignIn(); },
+      onLoginKey: e => { if (e.key !== 'Enter') return; if (s.showSignup) this.trySignUp(); else this.trySignIn(); },
       onLogin: () => this.trySignIn(),
       onLogout: () => this.doLogout(),
       showLogout: VN.connected(),
+      /* Cadastro fica escondido atrás de um toggle, não é a tela padrão —
+         é só uma saída pra criar o primeiro (e único) usuário quando o
+         Dashboard do Supabase não está acessível. Depois de usado uma vez,
+         o pedido é remover esse caminho do código de novo. */
+      showSignup: s.showSignup,
+      signupBtnLabel: s.signingUp ? 'Criando…' : 'Criar conta',
+      signupToggleLabel: s.showSignup ? 'Já tenho conta — entrar' : 'Ainda não tenho conta — criar agora',
+      onToggleSignup: () => this.setState({ showSignup: !s.showSignup, loginError: '' }),
+      onSignup: () => this.trySignUp(),
       onForgotPass: () => this.forgotPassword(),
       /* Sem isto, um problema no lado do Supabase (o serviço de Auth caiu,
          por exemplo) prende o dono pra sempre na tela de login — sem
@@ -1719,6 +1735,24 @@ class Component extends DCLogic {
       if (this.state.doc) this.queueSave();
     }).catch(err => {
       this.setState({ loggingIn: false, loginError: (err && err.message) || 'E-mail ou senha incorretos.' });
+    });
+  }
+
+  trySignUp() {
+    const email = this.state.loginEmail.trim(), pass = this.state.loginPass;
+    if (!email || !pass) return this.setState({ loginError: 'Preencha e-mail e senha.' });
+    if (pass.length < 6) return this.setState({ loginError: 'A senha precisa ter pelo menos 6 caracteres.' });
+    this.setState({ signingUp: true, loginError: '' });
+    VN.signUp(email, pass).then(r => {
+      if (r.needsConfirmation) {
+        this.setState({ signingUp: false, showSignup: false, loginPass: '', loginError: '' });
+        this.flash('Conta criada! Confira seu e-mail pra confirmar antes de entrar.');
+      } else {
+        this.setState({ signingUp: false, showSignup: false, locked: false, loginPass: '', loginError: '' });
+        if (this.state.doc) this.queueSave();
+      }
+    }).catch(err => {
+      this.setState({ signingUp: false, loginError: (err && err.message) || 'Não foi possível criar a conta.' });
     });
   }
 
