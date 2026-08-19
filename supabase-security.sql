@@ -2,6 +2,10 @@
 -- Vai Nessa — correção de segurança (RLS + Storage)
 -- Rode este script inteiro no Supabase: Dashboard > SQL Editor > New query > Run
 --
+-- Idempotente: pode rodar de novo sem erro se travar no meio ou se quiser
+-- confirmar que está tudo aplicado — cada policy é derrubada (se existir) e
+-- recriada, então rodar duas vezes dá no mesmo resultado que rodar uma vez.
+--
 -- MODELO DE AMEAÇA: qualquer pessoa na internet, sem login, que descubra a
 -- URL do projeto e a chave anon (que é pública por definição — ela vai no
 -- código de qualquer app Supabase que roda no navegador). O que protege os
@@ -43,6 +47,10 @@ alter table vn_catalog enable row level security;
 
 drop policy if exists vn_read on vn_catalog;
 drop policy if exists vn_write on vn_catalog;
+drop policy if exists vn_catalog_public_read on vn_catalog;
+drop policy if exists vn_catalog_owner_write on vn_catalog;
+drop policy if exists vn_catalog_owner_update on vn_catalog;
+drop policy if exists vn_catalog_owner_delete on vn_catalog;
 
 -- Leitura pública, mas travada na linha 'main' — mesmo que um dia apareça
 -- outra linha na tabela por engano, ela não fica exposta.
@@ -91,6 +99,8 @@ alter table vn_events enable row level security;
 
 drop policy if exists ev_read on vn_events;
 drop policy if exists ev_write on vn_events;
+drop policy if exists vn_events_public_insert on vn_events;
+drop policy if exists vn_events_owner_read on vn_events;
 
 -- Mantém o insert anônimo, mas trava o campo `type` num conjunto conhecido —
 -- não impede spam de eventos (é público por natureza), mas impede gravar
@@ -137,6 +147,10 @@ where id = 'vn-photos';
 
 drop policy if exists vn_photos_read on storage.objects;
 drop policy if exists vn_photos_write on storage.objects;
+drop policy if exists vn_photos_public_read on storage.objects;
+drop policy if exists vn_photos_owner_insert on storage.objects;
+drop policy if exists vn_photos_owner_update on storage.objects;
+drop policy if exists vn_photos_owner_delete on storage.objects;
 
 create policy vn_photos_public_read
   on storage.objects for select
