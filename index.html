@@ -193,9 +193,9 @@ a:hover{color:var(--color-accent-300)}
     </div>
     <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:none">
       <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
-        <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:132px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
+        <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:154px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
           <div style="position:relative">
-            <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;height:96px" placeholder="Foto da promo" src="{{ p.photoUrl }}"></image-slot>
+            <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;height:114px" placeholder="Foto da promo" src="{{ p.photoUrl }}"></image-slot>
             <span style="position:absolute;top:6px;left:6px;pointer-events:none;background:var(--brand-2);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:7.5px;letter-spacing:.08em;padding:3px 6px;border-radius:999px">{{ p.tagLabel }}</span>
           </div>
           <div style="padding:8px 9px 10px;display:flex;flex-direction:column;gap:3px">
@@ -631,7 +631,7 @@ class Component extends DCLogic {
     requestAnimationFrame(() => {
       const track = this._promoTrack, spacer = this._promoSpacer;
       if (!track || !spacer) return;
-      const CARD_W = 132;
+      const CARD_W = 154; // precisa bater com o width do .card no template acima
       spacer.style.width = Math.max(0, track.clientWidth - CARD_W) + 'px';
     });
   }
