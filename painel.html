@@ -99,6 +99,7 @@
       <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ loginError }}</div>
       <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
       <button onClick="{{ onForgotPass }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:10px;font-size:12px;color:var(--mut)">Esqueci minha senha</button>
+      <button onClick="{{ onGoLocal }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:4px;font-size:12px;color:var(--mut)" title="Sem sincronizar com o Supabase — só neste aparelho, até você reconectar">Continuar sem Supabase (modo local)</button>
 
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
         <button onClick="{{ onToggleCfgForm }}" style="width:100%;background:transparent;border:0;cursor:pointer;font-size:11.5px;color:var(--mut)">{{ cfgToggleLabel }}</button>
@@ -1093,6 +1094,12 @@ class Component extends DCLogic {
       onLogout: () => this.doLogout(),
       showLogout: VN.connected(),
       onForgotPass: () => this.forgotPassword(),
+      /* Sem isto, um problema no lado do Supabase (o serviço de Auth caiu,
+         por exemplo) prende o dono pra sempre na tela de login — sem
+         conseguir nem entrar no painel pra desligar a sincronização. Isto dá
+         uma saída sempre disponível: continuar só neste aparelho até
+         reconectar, sem depender de nada externo estar de pé. */
+      onGoLocal: () => { VN.setCfg({ disconnected: true }); location.reload(); },
       /* Sem isto, quem clona o projeto pra uma loja nova fica preso na tela de
          login pra sempre: o painel só sabe pedir login DEPOIS de já estar
          apontando pra um projeto Supabase (mesmo que seja o projeto errado,
