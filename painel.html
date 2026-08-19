@@ -355,14 +355,34 @@
           <button class="btns" onClick="{{ onReloadOrders }}" style="flex:none">Atualizar</button>
         </div>
 
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <sc-for list="{{ orderStatusCounts }}" as="oc" hint-placeholder-count="2">
+            <span style="{{ oc.style }}">{{ oc.text }}</span>
+          </sc-for>
+        </div>
+
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:18px">
           <sc-for list="{{ orders }}" as="o" hint-placeholder-count="3">
-            <div class="card" style="padding:0;overflow:hidden">
+            <div class="card" style="{{ o.cardStyle }}">
               <button onClick="{{ o.onToggle }}" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;width:100%;cursor:pointer;background:transparent;border:0;padding:14px 18px;text-align:left;color:inherit">
-                <span class="num" style="flex:none;font-size:12px;color:var(--mut)">{{ o.when }}</span>
+                <span style="flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-heading);font-weight:700;font-size:12.5px;color:#fff;background:var(--acc)">{{ o.initial }}</span>
+                <span style="flex:none;font-size:12px;color:var(--mut)" class="num">{{ o.when }}</span>
                 <span class="orderName" style="flex:1;min-width:0;font-family:var(--font-heading);font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.name }}</span>
+                <sc-if value="{{ o.missingAddress }}" hint-placeholder-val="{{ false }}">
+                  <span title="Sem endereço" style="flex:none;color:var(--acc);display:flex">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                  </span>
+                </sc-if>
                 <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ o.itemCount }}</span>
-                <span class="pill" style="{{ o.modeStyle }}">{{ o.mode }}</span>
+                <span class="pill" style="{{ o.modeStyle }};display:inline-flex;align-items:center;gap:4px">
+                  <sc-if value="{{ o.isEntrega }}" hint-placeholder-val="{{ false }}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="18.5" r="2.3"></circle><circle cx="18.5" cy="18.5" r="2.3"></circle><path d="M3 18.5h2.5l3-9h6l4 6h2"></path><path d="M8.5 9.5l2-4h3l2 4"></path></svg>
+                  </sc-if>
+                  <sc-if value="{{ !o.isEntrega }}" hint-placeholder-val="{{ true }}">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 3l9 6.5"></path><path d="M5 10v10h14V10"></path></svg>
+                  </sc-if>
+                  {{ o.mode }}
+                </span>
                 <span class="pill" style="{{ o.statusStyle }}">{{ o.statusLabel }}</span>
                 <span class="num" style="flex:none;font-family:var(--font-heading);font-weight:600;font-size:16px">{{ o.total }}</span>
                 <span style="flex:none;width:16px;text-align:center;font-size:11px;color:var(--mut)">{{ o.caret }}</span>
@@ -1301,11 +1321,20 @@ class Component extends DCLogic {
       return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
     };
     const STATUS_STEPS = [
-      { id: 'novo', label: 'Novo' },
-      { id: 'preparando', label: 'Preparando' },
-      { id: 'caminho', label: 'A caminho' },
-      { id: 'entregue', label: 'Entregue' }
+      { id: 'novo', label: 'Novo', dot: '●' },
+      { id: 'preparando', label: 'Preparando', dot: '●' },
+      { id: 'caminho', label: 'A caminho', dot: '●' },
+      { id: 'entregue', label: 'Entregue', dot: '✓' }
     ];
+    const STATUS_COLORS = {
+      novo: 'var(--acc)',
+      preparando: '#d97706',
+      caminho: '#2563eb',
+      entregue: '#2fb673'
+    };
+    const statusPillStyle = (id, on) => on
+      ? 'border-color:' + STATUS_COLORS[id] + ';background:color-mix(in srgb, ' + STATUS_COLORS[id] + ' 14%, transparent);color:' + STATUS_COLORS[id]
+      : '';
     const orderStatusMap = doc.orderStatus || {};
     const orders = (s.events || [])
       .filter(e => e.type === 'order')
@@ -1321,15 +1350,17 @@ class Component extends DCLogic {
         const qEnc = encodeURIComponent(addr + (addr ? ' — São Miguel Paulista, São Paulo' : ''));
         const statusId = orderStatusMap[key] || 'novo';
         const statusIdx = STATUS_STEPS.findIndex(st => st.id === statusId);
+        const sc = STATUS_COLORS[statusId] || STATUS_COLORS.novo;
         return {
           when: dt(e.ts),
           name: det.nome || 'Sem nome',
+          initial: (det.nome || '?').trim().charAt(0).toUpperCase(),
           address: addr || '—',
           hasAddress: !!addr, noAddress: !isEnt, missingAddress: isEnt && !addr,
           mapHref: 'https://maps.google.com/?q=' + qEnc,
           routeHref: 'https://www.google.com/maps/dir/?api=1&destination=' + qEnc,
           onCopy: () => { navigator.clipboard.writeText(addr).then(() => this.flash('Endereço copiado')); },
-          mode: isEnt ? 'Entrega' : 'Retirada',
+          mode: isEnt ? 'Entrega' : 'Retirada', isEntrega: isEnt,
           modeStyle: isEnt ? 'border-color:var(--acc);color:var(--acc)' : '',
           total: fmt(e.total), raw: Number(e.total) || 0,
           itemCount: items.reduce((t, l) => t + (Number(l.qty) || 0), 0) + ' itens',
@@ -1338,17 +1369,24 @@ class Component extends DCLogic {
           onToggle: () => this.setState({ openOrder: s.openOrder === key ? null : key }),
           items: items.map(l => ({ qty: l.qty + 'x', name: l.name, total: fmt(l.total) })),
           statusLabel: STATUS_STEPS[statusIdx] ? STATUS_STEPS[statusIdx].label : 'Novo',
-          statusStyle: statusId === 'entregue'
-            ? 'border-color:#2fb673;color:#2fb673;background:rgba(47,182,115,.10)'
-            : statusId === 'novo' ? '' : 'border-color:var(--acc);color:var(--acc)',
+          statusStyle: 'border-color:' + sc + ';color:' + sc + ';background:color-mix(in srgb, ' + sc + ' 12%, transparent)',
+          cardStyle: 'padding:0;overflow:hidden;border-left:4px solid ' + sc,
           statusOptions: STATUS_STEPS.map(st => ({
             label: st.label,
-            style: this.chipStyle(st.id === statusId),
+            style: statusPillStyle(st.id, st.id === statusId),
             onPick: () => this.mutate(d => { d.orderStatus = Object.assign({}, d.orderStatus, { [key]: st.id }); })
           }))
         };
       });
     const openOrdersCount = orders.filter(o => o.statusLabel !== 'Entregue').length;
+    const orderStatusCounts = STATUS_STEPS.map(st => {
+      const count = orders.filter(o => o.statusLabel === st.label).length;
+      const c = STATUS_COLORS[st.id];
+      return {
+        count: count, text: count + ' ' + st.label.toLowerCase(),
+        style: 'display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 10px;border-radius:99px;border:1px solid ' + c + ';color:' + c + ';background:color-mix(in srgb, ' + c + ' 10%, transparent)'
+      };
+    }).filter(x => x.count > 0);
 
     const byPhone = {};
     (s.events || []).filter(e => e.type === 'order').forEach(e => {
@@ -1640,7 +1678,7 @@ class Component extends DCLogic {
         ? 'flex:none;font-size:11px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb, var(--acc) 14%, transparent);color:var(--acc)'
         : 'display:none',
       orders: orders.slice(0, 60),
-      noOrders: orders.length === 0,
+      noOrders: orders.length === 0, orderStatusCounts: orderStatusCounts,
       ordersSub: orders.length
         ? orders.length + (orders.length === 1 ? ' pedido registrado' : ' pedidos registrados') + ' · ' + fmt(orders.reduce((t, o) => t + o.raw, 0))
         : 'Nenhum pedido ainda',
