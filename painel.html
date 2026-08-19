@@ -1324,13 +1324,15 @@ class Component extends DCLogic {
       { id: 'novo', label: 'Novo', dot: '●' },
       { id: 'preparando', label: 'Preparando', dot: '●' },
       { id: 'caminho', label: 'A caminho', dot: '●' },
-      { id: 'entregue', label: 'Entregue', dot: '✓' }
+      { id: 'entregue', label: 'Entregue', dot: '✓' },
+      { id: 'cancelado', label: 'Cancelado', dot: '✕' }
     ];
     const STATUS_COLORS = {
       novo: 'var(--acc)',
       preparando: '#d97706',
       caminho: '#2563eb',
-      entregue: '#2fb673'
+      entregue: '#2fb673',
+      cancelado: '#dc2626'
     };
     const statusPillStyle = (id, on) => on
       ? 'border-color:' + STATUS_COLORS[id] + ';background:color-mix(in srgb, ' + STATUS_COLORS[id] + ' 14%, transparent);color:' + STATUS_COLORS[id]
@@ -1378,7 +1380,7 @@ class Component extends DCLogic {
           }))
         };
       });
-    const openOrdersCount = orders.filter(o => o.statusLabel !== 'Entregue').length;
+    const openOrdersCount = orders.filter(o => o.statusLabel !== 'Entregue' && o.statusLabel !== 'Cancelado').length;
     const orderStatusCounts = STATUS_STEPS.map(st => {
       const count = orders.filter(o => o.statusLabel === st.label).length;
       const c = STATUS_COLORS[st.id];
