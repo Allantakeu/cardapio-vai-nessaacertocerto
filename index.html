@@ -191,7 +191,7 @@ a:hover{color:var(--color-accent-300)}
       <button onClick="{{ promoPrev }}" aria-label="Anterior" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">‹</button>
       <button onClick="{{ promoNext }}" aria-label="Próxima" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">›</button>
     </div>
-    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" onPointerDown="{{ stopAuto }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 18px 8px;overscroll-behavior-x:contain">
+    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 18px 8px;overscroll-behavior-x:contain">
       <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
         <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:132px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
           <div style="position:relative">
@@ -543,7 +543,6 @@ class Component extends DCLogic {
 
   promoTrack = (el) => {
     this._promoTrack = el;
-    if (el) this._startAuto();
     this._sizePromoSpacer();
   };
 
@@ -571,16 +570,6 @@ class Component extends DCLogic {
       spacer.style.width = Math.max(0, track.clientWidth - CARD_W) + 'px';
     });
   }
-
-  _startAuto() {
-    clearInterval(this._autoTimer);
-    this._autoTimer = setInterval(() => {
-      const n = this.promoItems.length;
-      if (n > 1) this._scrollPromoTo((this.state.promoIdx + 1) % n);
-    }, 4500);
-  }
-
-  stopAuto = () => { clearInterval(this._autoTimer); };
 
   /* Arrastar a alça pra baixo fecha a ficha/carrinho — segue o dedo em tempo
      real (sem transição) e só anima de volta pro lugar se soltar sem ter
@@ -618,18 +607,18 @@ class Component extends DCLogic {
 
   /* Anima o scroll do carrossel de promoções na mão, em vez de
      scrollTo({behavior:'smooth'}) — chamado de novo antes da animação
-     anterior terminar (o avanço automático a cada 4.5s cedo ou tarde cai
-     perto de um toque manual nas setas/dots), o smooth nativo simplesmente
-     descarta a chamada nova e o carrossel para de responder a clique ou
-     arrasto. Só atribuição direta de scrollLeft, que sempre atualiza. */
+     anterior terminar (clicar em ‹› rápido demais, por exemplo), o smooth
+     nativo simplesmente descarta a chamada nova e o carrossel para de
+     responder. Aqui sempre cancela a animação anterior antes de iniciar a
+     próxima; ease-in-out cúbico pra a transição ficar suave nas duas pontas. */
   _animatePromoScroll(target) {
     const el = this._promoTrack;
     if (!el) return;
     cancelAnimationFrame(this._promoAnimId);
     const start = el.scrollLeft, dist = target - start;
     if (Math.abs(dist) < 1) return;
-    const duration = 260, t0 = performance.now();
-    const ease = t => 1 - Math.pow(1 - t, 3);
+    const duration = 420, t0 = performance.now();
+    const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     const step = (now) => {
       const t = Math.min(1, (now - t0) / duration);
       el.scrollLeft = start + dist * ease(t);
@@ -651,13 +640,11 @@ class Component extends DCLogic {
   promoPrev = () => {
     const n = this.promoItems.length;
     this._scrollPromoTo((this.state.promoIdx - 1 + n) % n);
-    this._startAuto();
   };
 
   promoNext = () => {
     const n = this.promoItems.length;
     this._scrollPromoTo((this.state.promoIdx + 1) % n);
-    this._startAuto();
   };
 
   extrasFor(it) {
@@ -754,7 +741,6 @@ class Component extends DCLogic {
 
   componentWillUnmount() {
     clearInterval(this._poll);
-    clearInterval(this._autoTimer);
     if (this._vis) document.removeEventListener('visibilitychange', this._vis);
     if (this._storage) window.removeEventListener('storage', this._storage);
     if (this._onResize) window.removeEventListener('resize', this._onResize);
@@ -1148,7 +1134,7 @@ class Component extends DCLogic {
       tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle,
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
       promos: promos, promoDots: promoDots, promoTrack: this.promoTrack, promoSpacer: this.promoSpacer,
-      promoPrev: this.promoPrev, promoNext: this.promoNext, onPromoScroll: this.onPromoScroll, stopAuto: this.stopAuto,
+      promoPrev: this.promoPrev, promoNext: this.promoNext, onPromoScroll: this.onPromoScroll,
       opts: opts,
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, photoUrl: open.photo || '' } : null,
       sheetA: !!open && V === 'Compacta', sheetB: !!open && V === 'Foto grande',
