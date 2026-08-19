@@ -731,10 +731,17 @@
 
             <div class="card">
               <h2 class="h2">Preços</h2>
-              <div style="margin-top:14px">
-                <span class="lbl">Preço da unidade</span>
-                <input class="fld num" inputmode="decimal" value="{{ ed.price }}" onChange="{{ ed.onPrice }}" style="max-width:150px;font-family:var(--font-heading);font-weight:600;font-size:16px">
+              <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:14px">
+                <div>
+                  <span class="lbl">Preço da unidade</span>
+                  <input class="fld num" inputmode="decimal" value="{{ ed.price }}" onChange="{{ ed.onPrice }}" style="max-width:150px;font-family:var(--font-heading);font-weight:600;font-size:16px">
+                </div>
+                <div>
+                  <span class="lbl">Custo da unidade</span>
+                  <input class="fld num" inputmode="decimal" value="{{ ed.cost }}" onChange="{{ ed.onCost }}" style="max-width:150px" placeholder="0,00">
+                </div>
               </div>
+              <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0 0">Quanto você paga pra ter essa unidade (o que você pagou no fornecedor). Usado na calculadora de lucro.</p>
               <div style="margin-top:16px">
                 <span class="lbl">Fardos</span>
                 <div style="display:flex;flex-direction:column;gap:8px">
@@ -792,6 +799,57 @@
       <div style="max-width:660px">
         <h1 class="h1">Lucro</h1>
         <div style="display:flex;flex-direction:column;gap:16px;margin-top:18px">
+          <div class="card">
+            <h2 class="h2">Calculadora de lucro por pedido</h2>
+            <p style="font-size:12.5px;line-height:1.55;color:var(--mut);margin:6px 0 14px">Veja quanto sobra de um pedido depois do custo do produto, embalagem, entregador e outras despesas.</p>
+            <div>
+              <span class="lbl">Produto (opcional — preenche venda e custo)</span>
+              <select class="fld" value="{{ calc.prodId }}" onChange="{{ calc.onProd }}">
+                <option value="">— escolher um produto —</option>
+                <option dc-for="calc.prodOptions" dc-as="o" value="{{ o.id }}">{{ o.name }}</option>
+              </select>
+            </div>
+            <div class="grid2" style="margin-top:14px">
+              <div>
+                <span class="lbl">Quantidade</span>
+                <input class="fld num" inputmode="numeric" value="{{ calc.qty }}" onChange="{{ calc.onQty }}">
+              </div>
+              <div>
+                <span class="lbl">Valor de venda (total)</span>
+                <input class="fld num" inputmode="decimal" value="{{ calc.venda }}" onChange="{{ calc.onVenda }}">
+              </div>
+            </div>
+            <div class="grid2" style="margin-top:12px">
+              <div>
+                <span class="lbl">Custo do produto (total)</span>
+                <input class="fld num" inputmode="decimal" value="{{ calc.custo }}" onChange="{{ calc.onCusto }}">
+              </div>
+              <div>
+                <span class="lbl">Embalagem</span>
+                <input class="fld num" inputmode="decimal" value="{{ calc.embalagem }}" onChange="{{ calc.onEmbalagem }}" placeholder="0,00">
+              </div>
+            </div>
+            <div class="grid2" style="margin-top:12px">
+              <div>
+                <span class="lbl">Extra entregador</span>
+                <input class="fld num" inputmode="decimal" value="{{ calc.entregador }}" onChange="{{ calc.onEntregador }}" placeholder="0,00">
+              </div>
+              <div>
+                <span class="lbl">Outros custos</span>
+                <input class="fld num" inputmode="decimal" value="{{ calc.outros }}" onChange="{{ calc.onOutros }}" placeholder="0,00">
+              </div>
+            </div>
+            <div style="display:flex;gap:28px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+              <div>
+                <span class="lbl">Lucro</span>
+                <div class="num" style="{{ calc.lucroStyle }}">{{ calc.lucroLabel }}</div>
+              </div>
+              <div>
+                <span class="lbl">Margem</span>
+                <div class="num" style="font-family:var(--font-heading);font-weight:700;font-size:24px">{{ calc.margemLabel }}</div>
+              </div>
+            </div>
+          </div>
           <div class="card">
             <span class="lbl">Frete por distância (km)</span>
             <button class="pill" onClick="{{ onToggleKm }}" style="{{ kmStyle }}">{{ kmLabel }}</button>
@@ -922,7 +980,8 @@ class Component extends DCLogic {
     locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, doc: null, events: [], theme: 'claro',
     view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
-    cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}
+    cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {},
+    calcProdId: '', calcQty: 1, calcVenda: 0, calcCusto: 0, calcEmbalagem: 0, calcEntregador: 0, calcOutros: 0
   };
 
   componentDidMount() {
@@ -1351,6 +1410,7 @@ class Component extends DCLogic {
         name: p.name, vol: p.vol || '', photo: p.photo || '', tag: p.tag || '', catId: p.catId,
         photoBoxStyle: 'flex:none;width:96px;height:96px;border-radius:10px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
         price: this.rawGet('price', p.price),
+        cost: this.rawGet('cost', p.cost),
         marginNote: pct === null
           ? 'Sem fardo cadastrado: o cliente só consegue comprar unidade.'
           : 'Vendendo ' + f[0] + ' unidades soltas você faz ' + fmt(p.price * f[0]) + ', contra ' + fmt(f[1]) + ' no fardo — diferença de ' + pct + '%.',
@@ -1373,6 +1433,7 @@ class Component extends DCLogic {
         onTag: e => { const v = e.target.value; set(t => { t.tag = v; }); },
         onCat: e => { const v = e.target.value; set(t => { t.catId = v; }); this.setState({ catId: v }); },
         onPrice: e => this.rawSet('price', e.target.value, n => set(t => { t.price = n; })),
+        onCost: e => this.rawSet('cost', e.target.value, n => set(t => { t.cost = n; })),
         fardos: (p.fardos || []).map((fd, i) => ({
           qty: this.rawGet('fq' + i, fd[0]),
           price: this.rawGet('fp' + i, fd[1]),
@@ -1404,6 +1465,45 @@ class Component extends DCLogic {
         }
       };
     })();
+
+    /* ——— calculadora de lucro por pedido ——— */
+    const calcLucro = (this.num(s.calcVenda)) - (this.num(s.calcCusto) + this.num(s.calcEmbalagem) + this.num(s.calcEntregador) + this.num(s.calcOutros));
+    const calcMargem = this.num(s.calcVenda) ? Math.round((calcLucro / this.num(s.calcVenda)) * 100) : 0;
+    const calcApplyProd = (id, qty) => {
+      const p = doc.products.find(x => x.id === id);
+      if (!p) return {};
+      return {
+        calcVenda: Math.round(p.price * qty * 100) / 100,
+        calcCusto: Math.round((this.num(p.cost) || 0) * qty * 100) / 100,
+        raw: Object.assign({}, this.state.raw, { calcVenda: undefined, calcCusto: undefined })
+      };
+    };
+    const calc = {
+      prodId: s.calcProdId,
+      prodOptions: doc.products.map(p => ({ id: p.id, name: p.name + (p.vol ? ' · ' + p.vol : '') })),
+      qty: this.rawGet('calcQty', s.calcQty),
+      venda: this.rawGet('calcVenda', s.calcVenda),
+      custo: this.rawGet('calcCusto', s.calcCusto),
+      embalagem: this.rawGet('calcEmbalagem', s.calcEmbalagem),
+      entregador: this.rawGet('calcEntregador', s.calcEntregador),
+      outros: this.rawGet('calcOutros', s.calcOutros),
+      lucroLabel: fmt(calcLucro),
+      lucroStyle: 'font-family:var(--font-heading);font-weight:700;font-size:24px;color:' + (calcLucro < 0 ? 'var(--acc)' : '#2fb673'),
+      margemLabel: this.num(s.calcVenda) ? calcMargem + '%' : '—',
+      onProd: e => {
+        const id = e.target.value;
+        const qty = this.num(s.calcQty) || 1;
+        this.setState(Object.assign({ calcProdId: id }, calcApplyProd(id, qty)));
+      },
+      onQty: e => this.rawSet('calcQty', e.target.value, n => {
+        this.setState(Object.assign({ calcQty: n }, s.calcProdId ? calcApplyProd(s.calcProdId, n || 1) : {}));
+      }),
+      onVenda: e => this.rawSet('calcVenda', e.target.value, n => this.setState({ calcVenda: n })),
+      onCusto: e => this.rawSet('calcCusto', e.target.value, n => this.setState({ calcCusto: n })),
+      onEmbalagem: e => this.rawSet('calcEmbalagem', e.target.value, n => this.setState({ calcEmbalagem: n })),
+      onEntregador: e => this.rawSet('calcEntregador', e.target.value, n => this.setState({ calcEntregador: n })),
+      onOutros: e => this.rawSet('calcOutros', e.target.value, n => this.setState({ calcOutros: n }))
+    };
 
     const globalUpsell = doc.products.slice(0, 40).map(x => {
       const on = (st.globalUpsell || []).indexOf(x.id) >= 0;
@@ -1593,7 +1693,7 @@ class Component extends DCLogic {
         this.setState({ confirmAdj: false, adjust: '', raw: {} });
         this.flash('Preços da coleção ajustados em ' + pct + '%');
       },
-      ed: ed, globalUpsell: globalUpsell, margins: margins,
+      ed: ed, globalUpsell: globalUpsell, margins: margins, calc: calc,
       st: {
         whatsapp: st.whatsapp || '', address: st.address || '', hours: st.hours || '',
         minutes: st.minutes || '', instagram: st.instagram || '', pin: st.pin || '',
