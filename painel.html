@@ -776,6 +776,19 @@
             <div class="card">
               <h2 class="h2">Identificação</h2>
               <div style="margin-top:14px"><span class="lbl">Volume / descrição</span><input class="fld" value="{{ ed.vol }}" onChange="{{ ed.onVol }}" placeholder="ex: Garrafa 269ml"></div>
+              <div style="margin-top:16px">
+                <span class="lbl">Sabores / variantes</span>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
+                      <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
+                    </div>
+                  </sc-for>
+                </div>
+                <button class="btns" onClick="{{ ed.onAddFlavor }}" style="margin-top:10px;height:34px">+ Sabor</button>
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Se tiver pelo menos 1 sabor cadastrado, o cliente escolhe um antes de adicionar ao pedido na vitrine. Deixe vazio pra produtos sem variante.</p>
+              </div>
             </div>
 
             <div class="card">
@@ -1582,6 +1595,12 @@ class Component extends DCLogic {
           onRemove: () => { this.setState({ raw: {} }); set(t => { t.fardos.splice(i, 1); }); }
         })),
         onAddFardo: () => { this.setState({ raw: {} }); set(t => { t.fardos = (t.fardos || []).concat([[12, 0]]); }); },
+        flavors: (p.flavors || []).map((fl, i) => ({
+          name: fl,
+          onName: e => { const v = e.target.value; set(t => { t.flavors[i] = v; }); },
+          onRemove: () => set(t => { t.flavors.splice(i, 1); })
+        })),
+        onAddFlavor: () => set(t => { t.flavors = (t.flavors || []).concat(['']); }),
         upsellOpts: doc.products.filter(x => x.id !== p.id).slice(0, 40).map(x => {
           const on = (p.upsell || []).indexOf(x.id) >= 0;
           return {

@@ -292,6 +292,16 @@ a:hover{color:var(--color-accent-300)}
         </div>
         <image-slot id="{{ item.sheetSlotId }}" shape="rounded" radius="12" style="width:116px;height:116px;flex:none;box-shadow:0 0 0 1px rgba(23,23,27,.06)" placeholder="Foto" src="{{ item.photoUrl }}"></image-slot>
       </div>
+      <sc-if value="{{ hasFlavors }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-bottom:14px">
+          <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">Escolha o sabor</h6>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ flavorOpts }}" as="fl" hint-placeholder-count="3">
+              <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
       <div>
         <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">Como quer levar?</h6>
         <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
@@ -347,6 +357,16 @@ a:hover{color:var(--color-accent-300)}
         <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:1.06;letter-spacing:-.035em;text-wrap:balance">{{ item.name }}</div>
         <div class="desc" style="font-size:13.5px;margin-top:9px">{{ item.desc }}</div>
         <div class="money" style="font-family:var(--font-heading);font-weight:600;font-size:34px;color:var(--color-accent);margin-top:14px;letter-spacing:-.04em">{{ item.priceLabel }}</div>
+        <sc-if value="{{ hasFlavors }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">Escolha o sabor</h6>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ flavorOpts }}" as="fl" hint-placeholder-count="3">
+                <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
         <div style="margin-top:18px">
           <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">Como quer levar?</h6>
           <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
@@ -532,7 +552,7 @@ function loadCart() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle' };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle' };
 
   get data() {
     const d = this.state.doc;
@@ -687,11 +707,15 @@ class Component extends DCLogic {
 
   openItem(it, cat) {
     if (window.VN) VN.track('click', { product: it.name, qty: 1, total: it.price });
-    if (this.variant() === 'Rápida') return this.quickAdd(it);
-    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', cartOpen: false, added: '' });
+    if (this.variant() === 'Rápida' && !(it.flavors && it.flavors.length)) return this.quickAdd(it);
+    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: (it.flavors && it.flavors[0]) || null, cartOpen: false, added: '' });
   }
 
   quickAdd(it) {
+    /* Produto com sabores/variantes sempre abre a ficha — precisa de uma
+       escolha explícita, então não dá pra supor um sabor sozinho no toque
+       rápido do "+". */
+    if (it.flavors && it.flavors.length) return this.openItem(it, (this.data.find(g => g.items.some(x => x.id === it.id)) || {}).name);
     /* Comparava l.name === it.name, mas a linha nova é salva como
        it.name + ' · unidade' — nunca batia, então cada toque no "+" rápido
        (variante "Rápida" e cards de promoção) criava uma linha duplicada em
@@ -954,7 +978,7 @@ class Component extends DCLogic {
             priceLabel: fmt(it.price) + ' un',
             slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
             onOpen: () => this.openItem(it, g.name),
-            rowQty: li >= 0 ? s.cart[li].qty : 0,
+            rowQty: (it.flavors && it.flavors.length) ? 0 : (li >= 0 ? s.cart[li].qty : 0),
             /* onQuickAdd é só pro primeiro toque (ainda não tá no carrinho) —
                usa quickAdd (mostra o toast de confirmação). Depois que já tem
                uma linha, os toques no stepper usam bumpSimple, sem toast:
@@ -997,6 +1021,11 @@ class Component extends DCLogic {
       onPick: () => this.setState({ opt: i })
     }));
     const unit = open ? this.unitOf(open, s.sel, optIdx) : 0;
+    const flavorList = (open && open.flavors) || [];
+    const flavorOpts = flavorList.map(f => ({
+      name: f, style: pill + 'font-size:12.5px;' + (s.flavor === f ? onSt : offSt),
+      onPick: () => this.setState({ flavor: f })
+    }));
 
     const lines = s.cart.map((l, i) => ({
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
@@ -1063,14 +1092,18 @@ class Component extends DCLogic {
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
       promos: promos,
       opts: opts,
+      flavorOpts: flavorOpts, hasFlavors: flavorOpts.length > 0,
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, photoUrl: open.photo || '' } : null,
-      sheetA: !!open && V === 'Compacta', sheetB: !!open && V === 'Foto grande',
+      /* No modo "Rápida" normalmente não existe ficha nenhuma (é sempre
+         quick-add) — mas um produto com sabores precisa de uma escolha
+         explícita, então cai pra ficha compacta mesmo nesse modo. */
+      sheetA: !!open && (V === 'Compacta' || (V === 'Rápida' && hasFlavors)), sheetB: !!open && V === 'Foto grande',
       addons: addons, hasAddons: addons.length > 0,
       sheetTotalLabel: fmt(unit * s.qty),
       inc: () => this.setState(st => ({ qty: st.qty + 1 })),
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
       addToCart: () => this.setState(st => ({
-        cart: st.cart.concat([{ name: open.name + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, extras: extras.filter(a => st.sel[a.name]).map(a => a.name), photo: open.photo || '', pid: open.id }]),
+        cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.name]).map(a => a.name), photo: open.photo || '', pid: open.id }]),
         open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name, addedLineIndex: st.cart.length
       })),
       closeSheet: () => this.setState({ open: null, cartOpen: false, added: '' }),
