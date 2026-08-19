@@ -665,6 +665,7 @@ class Component extends DCLogic {
     const onUp = (ev) => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
       const dy = Math.max(0, ev.clientY - startY);
       if (dy > 80) {
         this.setState({ open: null, cartOpen: false, added: '' });
@@ -675,6 +676,7 @@ class Component extends DCLogic {
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
   };
 
   _scrollPromoTo(i) {
