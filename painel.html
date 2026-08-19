@@ -798,7 +798,37 @@
       <sc-if value="{{ isLucro }}" hint-placeholder-val="{{ false }}">
       <div style="max-width:660px">
         <h1 class="h1">Lucro</h1>
-        <div style="display:flex;flex-direction:column;gap:16px;margin-top:18px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="4">
+            <button class="pill" onClick="{{ r.onPick }}" style="{{ r.style }}">{{ r.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+          <div class="card">
+            <h2 class="h2">Faturamento e lucro do período</h2>
+            <p style="font-size:12.5px;line-height:1.55;color:var(--mut);margin:6px 0 14px">Faturamento menos o custo dos produtos vendidos (não inclui embalagem/entregador — isso é por pedido, use a calculadora abaixo).</p>
+            <div style="display:flex;gap:28px;flex-wrap:wrap">
+              <div>
+                <span class="lbl">Faturamento</span>
+                <div class="num" style="font-family:var(--font-heading);font-weight:700;font-size:24px">{{ periodSummary.faturamento }}</div>
+              </div>
+              <div>
+                <span class="lbl">Custo dos produtos</span>
+                <div class="num" style="font-family:var(--font-heading);font-weight:700;font-size:24px">{{ periodSummary.custo }}</div>
+              </div>
+              <div>
+                <span class="lbl">Lucro</span>
+                <div class="num" style="{{ periodSummary.lucroStyle }}">{{ periodSummary.lucro }}</div>
+              </div>
+              <div>
+                <span class="lbl">Margem</span>
+                <div class="num" style="font-family:var(--font-heading);font-weight:700;font-size:24px">{{ periodSummary.margem }}</div>
+              </div>
+            </div>
+            <sc-if value="{{ periodSummary.hasMissingCost }}" hint-placeholder-val="{{ false }}">
+              <p style="font-size:12px;line-height:1.5;color:var(--acc);margin:14px 0 0;padding-top:12px;border-top:1px solid var(--line)">⚠ {{ periodSummary.missingCostNote }}</p>
+            </sc-if>
+          </div>
           <div class="card">
             <h2 class="h2">Calculadora de lucro por pedido</h2>
             <p style="font-size:12.5px;line-height:1.55;color:var(--mut);margin:6px 0 14px">Veja quanto sobra de um pedido depois do custo do produto, embalagem, entregador e outras despesas.</p>
@@ -1467,6 +1497,32 @@ class Component extends DCLogic {
     })();
 
     /* ——— calculadora de lucro por pedido ——— */
+    /* ——— faturamento e lucro do período (mesmo filtro do Dashboard: s.days) ———
+       Os eventos de venda gravam "Nome do produto · variante" (ex: "Skol 350ml · unidade"),
+       não o id do produto — tira o último " · algo" pra recuperar o nome puro do catálogo. */
+    const baseProductName = full => full.split(' · ').slice(0, -1).join(' · ') || full;
+    const saleQtyByProduct = {};
+    Object.keys(saleQty).forEach(name => {
+      const base = baseProductName(name);
+      saleQtyByProduct[base] = (saleQtyByProduct[base] || 0) + saleQty[name];
+    });
+    const periodCost = Object.keys(saleQtyByProduct).reduce((sum, name) => {
+      const p = doc.products.find(pp => pp.name === name);
+      return sum + (p ? (this.num(p.cost) || 0) * saleQtyByProduct[name] : 0);
+    }, 0);
+    const productsMissingCost = doc.products.filter(p => saleQtyByProduct[p.name] && !this.num(p.cost)).length;
+    const periodLucro = totalRevenue - periodCost;
+    const periodMargem = totalRevenue ? Math.round((periodLucro / totalRevenue) * 100) : 0;
+    const periodSummary = {
+      faturamento: fmt(totalRevenue),
+      custo: fmt(periodCost),
+      lucro: fmt(periodLucro),
+      lucroStyle: 'font-family:var(--font-heading);font-weight:700;font-size:24px;color:' + (periodLucro < 0 ? 'var(--acc)' : '#2fb673'),
+      margem: totalRevenue ? periodMargem + '%' : '—',
+      hasMissingCost: productsMissingCost > 0,
+      missingCostNote: productsMissingCost + (productsMissingCost === 1 ? ' produto vendido ainda não tem custo cadastrado' : ' produtos vendidos ainda não têm custo cadastrado') + ' — o lucro real é menor que o mostrado aqui.'
+    };
+
     const calcLucro = (this.num(s.calcVenda)) - (this.num(s.calcCusto) + this.num(s.calcEmbalagem) + this.num(s.calcEntregador) + this.num(s.calcOutros));
     const calcMargem = this.num(s.calcVenda) ? Math.round((calcLucro / this.num(s.calcVenda)) * 100) : 0;
     const calcApplyProd = (id, qty) => {
@@ -1693,7 +1749,7 @@ class Component extends DCLogic {
         this.setState({ confirmAdj: false, adjust: '', raw: {} });
         this.flash('Preços da coleção ajustados em ' + pct + '%');
       },
-      ed: ed, globalUpsell: globalUpsell, margins: margins, calc: calc,
+      ed: ed, globalUpsell: globalUpsell, margins: margins, calc: calc, periodSummary: periodSummary,
       st: {
         whatsapp: st.whatsapp || '', address: st.address || '', hours: st.hours || '',
         minutes: st.minutes || '', instagram: st.instagram || '', pin: st.pin || '',
