@@ -449,11 +449,20 @@ a:hover{color:var(--color-accent-300)}
           <sc-if value="{{ cepHint }}" hint-placeholder-val="{{ false }}">
             <div style="font-size:11.5px;line-height:1.5;color:var(--color-neutral-500);margin-top:5px">{{ cepHint }}</div>
           </sc-if>
-          <div style="display:flex;gap:8px;padding-top:10px">
-            <div class="field" style="flex:1"><label>Rua</label><input class="input" type="text" placeholder="Nome da rua" value="{{ rua }}" onChange="{{ onRua }}"></div>
-            <div class="field" style="width:88px;flex:none"><label>Número</label><input class="input" type="text" inputmode="numeric" placeholder="nº" value="{{ numero }}" onChange="{{ onNumero }}"></div>
-          </div>
-          <div class="field" style="padding:10px 0 10px"><label>Bairro</label><input class="input" type="text" placeholder="Bairro" value="{{ bairro }}" onChange="{{ onBairro }}"></div>
+          <sc-if value="{{ !addrCollapsed }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:8px;padding-top:10px">
+              <div class="field" style="flex:1"><label>Rua</label><input class="input" type="text" placeholder="Nome da rua" value="{{ rua }}" onChange="{{ onRua }}"></div>
+              <div class="field" style="width:88px;flex:none"><label>Número</label><input class="input" type="text" inputmode="numeric" placeholder="nº" value="{{ numero }}" onChange="{{ onNumero }}"></div>
+            </div>
+            <div class="field" style="padding:10px 0 10px"><label>Bairro</label><input class="input" type="text" placeholder="Bairro" value="{{ bairro }}" onChange="{{ onBairro }}"></div>
+          </sc-if>
+          <sc-if value="{{ addrCollapsed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:10px">
+              <div style="font-size:12px;line-height:1.4;color:var(--color-neutral-500)">✓ {{ addrSummary }}</div>
+              <button onClick="{{ onAddrEdit }}" style="flex:none;background:transparent;border:0;cursor:pointer;font-size:11.5px;font-family:var(--font-heading);font-weight:500;color:var(--color-accent)">Editar</button>
+            </div>
+            <div class="field" style="width:120px;padding:10px 0 10px"><label>Número</label><input class="input" type="text" inputmode="numeric" placeholder="nº" value="{{ numero }}" onChange="{{ onNumero }}"></div>
+          </sc-if>
         </div>
       </sc-if>
 
@@ -513,7 +522,7 @@ function loadCart() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '', toast: '', variant: null, added: '', deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
 
   get data() {
     const d = this.state.doc;
@@ -1012,9 +1021,12 @@ class Component extends DCLogic {
       loaded: !!s.doc,
       q: s.q, obs: s.obs, qty: s.qty, nome: s.nome, cep: s.cep, rua: s.rua, numero: s.numero, bairro: s.bairro, toast: s.toast, variants: variants,
       cepHint: s.cepStatus === 'loading' ? 'Buscando endereço…' : s.cepStatus === 'error' ? 'CEP não encontrado — preencha manualmente.' : '',
+      addrCollapsed: s.cepStatus === 'ok' && !!s.rua.trim() && !s.addrEdit,
+      addrSummary: [s.rua, s.bairro].filter(Boolean).join(' · '),
+      onAddrEdit: () => this.setState({ addrEdit: true }),
       onCep: e => {
         const v = e.target.value;
-        this.setState({ cep: v });
+        this.setState({ cep: v, addrEdit: false });
         clearTimeout(this._cepTimer);
         this._cepTimer = setTimeout(() => this.lookupCep(v, address, pricePerKm, kmOn), 500);
       },
@@ -1137,7 +1149,7 @@ class Component extends DCLogic {
       },
       done: s.done, waMessage: s.msg,
       waHref: 'https://wa.me/' + phone + '?text=' + encodeURIComponent(s.msg || ''),
-      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', msg: '' })
+      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '' })
     };
   }
 }
