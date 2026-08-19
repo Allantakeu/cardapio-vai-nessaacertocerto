@@ -197,6 +197,8 @@
               <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
               <span class="num" style="flex:none;font-size:11.5px;color:var(--mut)">{{ c.count }}</span>
             </button>
+            <button class="mini" onClick="{{ c.onUp }}" title="Subir coleção" style="flex:none;border-color:transparent;background:transparent;width:20px;{{ c.upStyle }}">▲</button>
+            <button class="mini" onClick="{{ c.onDown }}" title="Descer coleção" style="flex:none;border-color:transparent;background:transparent;width:20px;{{ c.downStyle }}">▼</button>
             <button class="mini" onClick="{{ c.onToggle }}" style="flex:none;border-color:transparent;background:transparent;width:22px">{{ c.caret }}</button>
           </div>
           <sc-if value="{{ c.expanded }}" hint-placeholder-val="{{ true }}">
@@ -1196,6 +1198,16 @@ class Component extends DCLogic {
     });
   }
 
+  /* A ordem de doc.categories é a mesma ordem que aparece nos filtros e na
+     lista do cardápio pro cliente — mover aqui muda isso direto. */
+  moveCategory(id, dir) {
+    this.mutate(doc => {
+      const i = doc.categories.findIndex(c => c.id === id), j = i + dir;
+      if (i < 0 || j < 0 || j >= doc.categories.length) return;
+      const t = doc.categories[i]; doc.categories[i] = doc.categories[j]; doc.categories[j] = t;
+    });
+  }
+
   chipStyle(on) {
     return on
       ? 'border-color:var(--acc);background:color-mix(in srgb, var(--acc) 12%, transparent);color:var(--acc)'
@@ -1260,13 +1272,17 @@ class Component extends DCLogic {
     const catId = cat ? cat.id : null;
     const topQ = s.topQ.trim().toLowerCase();
 
-    const nav = doc.categories.map(c => {
+    const nav = doc.categories.map((c, ci) => {
       const items = this.prodsOf(doc, c.id);
       return {
         name: c.name, count: items.length,
         expanded: !!s.expanded[c.id],
         caret: s.expanded[c.id] ? '▾' : '▸',
         style: this.navStyle(c.id === catId && s.view === 'cat'),
+        upStyle: ci === 0 ? 'opacity:.3;pointer-events:none' : '',
+        downStyle: ci === doc.categories.length - 1 ? 'opacity:.3;pointer-events:none' : '',
+        onUp: () => this.moveCategory(c.id, -1),
+        onDown: () => this.moveCategory(c.id, 1),
         onPick: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
         onToggle: () => this.setState(x => ({ expanded: Object.assign({}, x.expanded, { [c.id]: !x.expanded[c.id] }) })),
         onAdd: () => this.addProduct(c.id),
