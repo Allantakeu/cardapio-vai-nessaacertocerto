@@ -154,6 +154,14 @@ a:hover{color:var(--color-accent-300)}
           <span style="color:var(--gold-ink)">{{ storeNamePart1 }}</span> <span style="color:var(--brand-2-text)">{{ storeNamePart2 }}</span>
         </div>
       </div>
+      <div style="flex:none;display:flex;gap:8px;padding-bottom:4px">
+        <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+        </a>
+        <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        </button>
+      </div>
     </div>
     <div class="desc" style="margin-top:12px;line-height:1.55">{{ tagline }}</div>
     <div style="position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
@@ -1260,6 +1268,13 @@ class Component extends DCLogic {
           + ';--brand-2-text:color-mix(in srgb, ' + cfg.accent + ' 80%, #17171b)'
           + ';--brand-2-soft:color-mix(in srgb, ' + cfg.accent + ' 10%, transparent)'
         : '',
+      onShare: () => {
+        const url = 'https://www.vainessa.online/';
+        const data = { title: 'Vai Nessa', text: 'Confira o cardápio da Vai Nessa!', url: url };
+        if (navigator.share) { navigator.share(data).catch(() => {}); return; }
+        if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
+        this.showToast(url);
+      },
       showSwitcher: !!cfg.showSwitcher,
       tagline: cfg.tagline || 'Sua bebida gelada, com entrega rápida até você.',
       storeNamePart1: (cfg.storeName || 'Vai Nessa').split(' ')[0],
