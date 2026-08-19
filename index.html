@@ -202,11 +202,15 @@ a:hover{color:var(--color-accent-300)}
         <div onClick="{{ p.onOpen }}" style="cursor:pointer">
           <div style="position:relative;border-radius:12px;overflow:hidden">
             <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;aspect-ratio:1/1;border-radius:12px" placeholder="Foto" src="{{ p.photoUrl }}"></image-slot>
-            <span style="position:absolute;top:6px;left:6px;pointer-events:none;background:rgba(23,23,27,.72);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:7px;letter-spacing:.04em;padding:3px 6px;border-radius:6px">{{ p.tagLabel }}</span>
             <button onClick="{{ p.onAdd }}" aria-label="Adicionar" style="position:absolute;bottom:6px;right:6px;cursor:pointer;width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;border:0;color:var(--color-accent);background:#fff;box-shadow:0 1px 4px rgba(23,23,27,.25)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
           </div>
           <div style="padding:7px 1px 0;display:flex;flex-direction:column;gap:2px">
-            <span class="money" style="font-family:var(--font-heading);font-weight:700;font-size:13px;letter-spacing:-.02em;color:var(--color-accent)">{{ p.priceLabel }}</span>
+            <div style="display:flex;align-items:baseline;gap:5px;flex-wrap:wrap">
+              <span class="money" style="font-family:var(--font-heading);font-weight:700;font-size:13px;letter-spacing:-.02em;color:var(--color-accent)">{{ p.priceLabel }}</span>
+              <sc-if value="{{ p.hasCompare }}" hint-placeholder-val="{{ false }}">
+                <span class="money" style="font-size:10px;color:var(--color-neutral-400);text-decoration:line-through">{{ p.compareLabel }}</span>
+              </sc-if>
+            </div>
             <div class="itemname" style="font-size:11px;line-height:1.3;color:var(--color-text);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ p.name }}</div>
           </div>
         </div>
@@ -965,7 +969,8 @@ class Component extends DCLogic {
     const open = s.open;
     const promos = this.promoItems.map(p => ({
       name: p.name, desc: [p.vol].concat((p.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
-      priceLabel: fmt(p.price) + ' un', tagLabel: p.tag || 'Promoção',
+      priceLabel: fmt(p.price) + ' un',
+      hasCompare: (Number(p.compare) || 0) > p.price, compareLabel: fmt(Number(p.compare) || 0),
       slotId: 'vn-promo-' + p.id, photoUrl: p.photo || '',
       onOpen: () => this.openItem(p, (this.data.find(g => g.items.some(it => it.id === p.id)) || {}).name),
       onAdd: e => { e.stopPropagation(); this.quickAdd(p); }

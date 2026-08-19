@@ -804,8 +804,12 @@
                   <span class="lbl">Custo da unidade</span>
                   <input class="fld num" inputmode="decimal" value="{{ ed.cost }}" onChange="{{ ed.onCost }}" style="max-width:150px" placeholder="0,00">
                 </div>
+                <div>
+                  <span class="lbl">Preço comparativo (de)</span>
+                  <input class="fld num" inputmode="decimal" value="{{ ed.compare }}" onChange="{{ ed.onCompare }}" style="max-width:150px" placeholder="0,00">
+                </div>
               </div>
-              <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0 0">Quanto você paga pra ter essa unidade (o que você pagou no fornecedor). Usado na calculadora de lucro.</p>
+              <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0 0">Quanto você paga pra ter essa unidade (o que você pagou no fornecedor). Usado na calculadora de lucro. O "de" é o preço riscado que aparece em Promoções da semana quando maior que o preço de venda — deixe em branco pra não mostrar.</p>
               <div style="margin-top:16px">
                 <span class="lbl">Fardos</span>
                 <div style="display:flex;flex-direction:column;gap:8px">
@@ -1545,6 +1549,7 @@ class Component extends DCLogic {
         photoBoxStyle: 'flex:none;width:96px;height:96px;border-radius:10px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
         price: this.rawGet('price', p.price),
         cost: this.rawGet('cost', p.cost),
+        compare: this.rawGet('compare', p.compare),
         marginNote: pct === null
           ? 'Sem fardo cadastrado: o cliente só consegue comprar unidade.'
           : 'Vendendo ' + f[0] + ' unidades soltas você faz ' + fmt(p.price * f[0]) + ', contra ' + fmt(f[1]) + ' no fardo — diferença de ' + pct + '%.',
@@ -1568,6 +1573,7 @@ class Component extends DCLogic {
         onCat: e => { const v = e.target.value; set(t => { t.catId = v; }); this.setState({ catId: v }); },
         onPrice: e => this.rawSet('price', e.target.value, n => set(t => { t.price = n; })),
         onCost: e => this.rawSet('cost', e.target.value, n => set(t => { t.cost = n; })),
+        onCompare: e => this.rawSet('compare', e.target.value, n => set(t => { t.compare = n; })),
         fardos: (p.fardos || []).map((fd, i) => ({
           qty: this.rawGet('fq' + i, fd[0]),
           price: this.rawGet('fp' + i, fd[1]),
