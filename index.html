@@ -278,8 +278,8 @@ a:hover{color:var(--color-accent-300)}
 
 <sc-if value="{{ sheetA }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:50;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
-    <div onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:88vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 18px">
-      <div style="display:flex;justify-content:center;padding:10px 0 4px"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
+    <div class="sheet-box" onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:88vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 18px">
+      <div onPointerDown="{{ sheetDrag }}" style="display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
       <div style="display:flex;gap:12px;align-items:flex-start;padding:6px 0 14px">
         <div style="flex:1">
           <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;line-height:1.12;letter-spacing:-.025em">{{ item.name }}</div>
@@ -405,8 +405,8 @@ a:hover{color:var(--color-accent-300)}
 
 <sc-if value="{{ cartOpen }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:60;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
-    <div onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 20px">
-      <div style="display:flex;justify-content:center;padding:10px 0 4px"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
+    <div class="sheet-box" onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 20px">
+      <div onPointerDown="{{ sheetDrag }}" style="display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
       <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 8px">
         <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:-.025em">Seu pedido</div>
         <span style="font-size:12px;color:var(--color-neutral-500)">{{ cartCountLabel }}</span>
@@ -554,6 +554,33 @@ class Component extends DCLogic {
   }
 
   stopAuto = () => { clearInterval(this._autoTimer); };
+
+  /* Arrastar a alça pra baixo fecha a ficha/carrinho — segue o dedo em tempo
+     real (sem transição) e só anima de volta pro lugar se soltar sem ter
+     arrastado o suficiente. */
+  sheetDrag = (e) => {
+    const box = e.currentTarget.closest('.sheet-box');
+    if (!box) return;
+    box.style.transition = 'none';
+    const startY = e.clientY;
+    const onMove = (ev) => {
+      const dy = Math.max(0, ev.clientY - startY);
+      box.style.transform = 'translateY(' + dy + 'px)';
+    };
+    const onUp = (ev) => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      const dy = Math.max(0, ev.clientY - startY);
+      if (dy > 80) {
+        this.setState({ open: null, cartOpen: false, added: '' });
+      } else {
+        box.style.transition = 'transform .2s ease';
+        box.style.transform = '';
+      }
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  };
 
   _scrollPromoTo(i) {
     const el = this._promoTrack;
@@ -1075,6 +1102,7 @@ class Component extends DCLogic {
         open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name
       })),
       closeSheet: () => this.setState({ open: null, cartOpen: false, added: '' }),
+      sheetDrag: this.sheetDrag,
       stop: e => e.stopPropagation(),
       hasCart: count > 0, cartOpen: s.cartOpen,
       added: s.added, addedPhoto: (s.cart.length && s.cart[s.cart.length - 1].photo) || '', addedSlotId: 'vn-added-' + (s.cart.length ? (s.cart[s.cart.length - 1].pid || s.cart.length) : '0'),
