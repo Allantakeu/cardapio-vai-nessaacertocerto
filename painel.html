@@ -601,6 +601,36 @@
               </div>
             </div>
 
+            <div class="card" style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <h2 class="h2">Promoções da semana</h2>
+                <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:6px 0 0">Produtos marcados como "Destaque" na ficha aparecem aqui, nesta ordem, no topo do cardápio. Use as setas pra reordenar.</p>
+              </div>
+              <sc-if value="{{ !hasPromoAdmin }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:0">Nenhum produto em destaque ainda — marque "Destaque" na ficha de um produto (aba Preços) pra ele aparecer aqui.</p>
+              </sc-if>
+              <sc-if value="{{ hasPromoAdmin }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ promoAdmin }}" as="pa" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--line);border-radius:10px">
+                      <div style="flex:none;width:38px;height:38px;border-radius:8px;background:var(--hover);overflow:hidden;display:flex;align-items:center;justify-content:center">
+                        <sc-if value="{{ pa.photo }}" hint-placeholder-val="{{ false }}">
+                          <img src="{{ pa.photo }}" style="width:100%;height:100%;object-fit:cover">
+                        </sc-if>
+                      </div>
+                      <div style="flex:1;min-width:0">
+                        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pa.name }}</div>
+                        <div class="num" style="font-size:11.5px;color:var(--mut)">{{ pa.priceLabel }}</div>
+                      </div>
+                      <button class="mini" onClick="{{ pa.onUp }}" title="Subir" style="{{ pa.upStyle }}">▲</button>
+                      <button class="mini" onClick="{{ pa.onDown }}" title="Descer" style="{{ pa.downStyle }}">▼</button>
+                      <button class="mini" onClick="{{ pa.onRemove }}" title="Tirar da promoção">✕</button>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+
             <div class="card">
               <h2 class="h2">Cor de destaque</h2>
               <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:6px 0 12px">Usada nos preços, botões e no carrinho.</p>
@@ -1142,6 +1172,21 @@ class Component extends DCLogic {
       const sib = doc.products.filter(x => x.catId === p.catId);
       const i = sib.findIndex(x => x.id === id), j = i + dir;
       if (j < 0 || j >= sib.length) return;
+      const ia = doc.products.indexOf(sib[i]), ib = doc.products.indexOf(sib[j]);
+      const t = doc.products[ia]; doc.products[ia] = doc.products[ib]; doc.products[ib] = t;
+    });
+  }
+
+  /* A vitrine monta "Promoções da semana" com os produtos em Destaque, na
+     mesma ordem em que aparecem em doc.products (um simples .filter, sem
+     campo de ordenação próprio) — então subir/descer um produto aqui é
+     trocar sua posição com o vizinho em Destaque mais próximo dentro do
+     array geral, igual o moveProduct acima já faz por categoria. */
+  movePromoProduct(id, dir) {
+    this.mutate(doc => {
+      const sib = doc.products.filter(x => x.featured && !x.out);
+      const i = sib.findIndex(x => x.id === id), j = i + dir;
+      if (i < 0 || j < 0 || j >= sib.length) return;
       const ia = doc.products.indexOf(sib[i]), ib = doc.products.indexOf(sib[j]);
       const t = doc.products[ia]; doc.products[ia] = doc.products[ib]; doc.products[ib] = t;
     });
@@ -1706,6 +1751,18 @@ class Component extends DCLogic {
         ? orders.length + (orders.length === 1 ? ' pedido registrado' : ' pedidos registrados') + ' · ' + fmt(orders.reduce((t, o) => t + o.raw, 0))
         : 'Nenhum pedido ainda',
       onReloadOrders: () => VN.events().then(ev => { this.setState({ events: ev || [] }); this.flash('Pedidos atualizados'); }),
+      promoAdmin: (() => {
+        const list = doc.products.filter(p => p.featured && !p.out);
+        return list.map((p, i) => ({
+          name: p.name, priceLabel: fmt(p.price), photo: p.photo || '', noPhoto: !p.photo,
+          upStyle: i === 0 ? 'opacity:.35;pointer-events:none' : '',
+          downStyle: i === list.length - 1 ? 'opacity:.35;pointer-events:none' : '',
+          onUp: () => this.movePromoProduct(p.id, -1),
+          onDown: () => this.movePromoProduct(p.id, 1),
+          onRemove: () => this.mutate(d => { const t = d.products.find(x => x.id === p.id); if (t) t.featured = false; })
+        }));
+      })(),
+      hasPromoAdmin: doc.products.some(p => p.featured && !p.out),
       layouts: ['Compacta', 'Foto grande', 'Rápida'].map(v => ({
         label: v, style: this.chipStyle((st.itemStyle || 'Compacta') === v),
         onPick: () => this.mutate(d => { d.settings.itemStyle = v; })
