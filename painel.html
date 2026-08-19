@@ -50,7 +50,7 @@
     a { color:var(--acc); text-decoration:none }
     .hamburger { display:none; flex:none; width:34px; height:34px; border-radius:8px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.10); color:#f2f2f5; cursor:pointer; align-items:center; justify-content:center; padding:0 }
     .navBackdrop { display:none; backdrop-filter:blur(2px) }
-    .kpiGrid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px }
+    .kpiGrid { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px }
     .tblwrap { position:relative; margin-top:16px; border-radius:14px; background:var(--card); border:1px solid var(--line); box-shadow:0 1px 3px rgba(16,16,24,.06); padding:14px 8px 4px; overflow-x:auto; -webkit-overflow-scrolling:touch }
     .tblwrap::-webkit-scrollbar{height:0}
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px }
@@ -1131,6 +1131,8 @@ class Component extends DCLogic {
     const cutoff = isToday ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() : now.getTime() - days * 86400000;
     const clickBy = {}, saleQty = {}, saleRev = {};
     let totalClicks = 0, totalOrders = 0, totalRevenue = 0, totalUnits = 0;
+    let entregaCount = 0, retiradaCount = 0;
+    const periodPhones = {}, hourCounts = {};
     (s.events || []).forEach(e => {
       const t = new Date(e.ts).getTime();
       if (!t || t < cutoff) return;
@@ -1145,6 +1147,14 @@ class Component extends DCLogic {
         totalOrders++;
         totalRevenue += Number(e.total) || 0;
         if (b) { b.orders++; b.revenue += Number(e.total) || 0; }
+        let det = e.detail;
+        if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
+        det = det || {};
+        if ((det.mode || 'entrega') === 'entrega') entregaCount++; else retiradaCount++;
+        const digits = String(det.telefone || '').replace(/\D/g, '');
+        if (digits.length >= 10) periodPhones[digits] = (periodPhones[digits] || 0) + 1;
+        const hr = new Date(t).getHours();
+        hourCounts[hr] = (hourCounts[hr] || 0) + 1;
       } else if (e.type === 'sale') {
         const n = e.product || '—';
         const q = Number(e.qty) || 1;
@@ -1153,6 +1163,13 @@ class Component extends DCLogic {
         saleRev[n] = (saleRev[n] || 0) + (Number(e.total) || 0);
       }
     });
+    const ticketMedio = totalOrders ? totalRevenue / totalOrders : 0;
+    const recurringCount = Object.values(periodPhones).filter(n => n > 1).length;
+    let peakHour = null, peakHourCount = 0;
+    Object.keys(hourCounts).forEach(h => { if (hourCounts[h] > peakHourCount) { peakHourCount = hourCounts[h]; peakHour = Number(h); } });
+    const peakHourLabel = peakHour != null ? (String(peakHour).padStart(2, '0') + 'h–' + String((peakHour + 1) % 24).padStart(2, '0') + 'h') : '—';
+    const entregaRetiradaTotal = entregaCount + retiradaCount;
+    const entregaPct = entregaRetiradaTotal ? Math.round((entregaCount / entregaRetiradaTotal) * 100) : 0;
 
     const maxClicks = Math.max(1, ...slots.map(x => buckets[x.key].clicks));
     const maxOrders = Math.max(1, ...slots.map(x => buckets[x.key].orders));
@@ -1182,7 +1199,11 @@ class Component extends DCLogic {
       { label: 'Cliques em produtos', value: String(totalClicks), dotStyle: 'width:9px;height:9px;border-radius:2px;background:var(--mut);opacity:.5' },
       { label: 'Pedidos enviados', value: String(totalOrders), dotStyle: 'width:9px;height:9px;border-radius:2px;background:var(--acc)' },
       { label: 'Faturamento', value: fmt(totalRevenue), dotStyle: 'display:none' },
-      { label: 'Conversão', value: totalClicks ? Math.round((totalOrders / totalClicks) * 100) + '%' : '—', dotStyle: 'display:none' }
+      { label: 'Conversão', value: totalClicks ? Math.round((totalOrders / totalClicks) * 100) + '%' : '—', dotStyle: 'display:none' },
+      { label: 'Ticket médio', value: totalOrders ? fmt(ticketMedio) : '—', dotStyle: 'display:none' },
+      { label: 'Clientes recorrentes', value: String(recurringCount), dotStyle: 'width:9px;height:9px;border-radius:2px;background:#2fb673' },
+      { label: 'Horário de pico', value: peakHourLabel, dotStyle: 'display:none' },
+      { label: 'Entrega x retirada', value: entregaRetiradaTotal ? entregaPct + '% entrega' : '—', dotStyle: 'display:none' }
     ];
 
     const dt = v => {
