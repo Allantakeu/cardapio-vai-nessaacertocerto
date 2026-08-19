@@ -279,12 +279,30 @@
     return api('vn_events', { method: 'POST', body: row }).catch(function () {});
   }
 
+  /* Busca todas as páginas de um filtro em vez de cortar num limite fixo —
+     antes, um "limit=5000" fazia pedidos/eventos mais antigos simplesmente
+     sumirem dos relatórios (sem aviso nenhum) assim que a loja passasse
+     dessa marca. Agora pagina de 1000 em 1000 até a página vir incompleta. */
+  function fetchAllEvents(filter) {
+    var PAGE = 1000;
+    function loop(offset, acc) {
+      return api('vn_events?select=id,ts,type,product,qty,total,detail&' + filter + '&order=ts.desc&limit=' + PAGE + '&offset=' + offset)
+        .then(function (rows) {
+          rows = rows || [];
+          acc = acc.concat(rows);
+          if (rows.length < PAGE) return acc;
+          return loop(offset + PAGE, acc);
+        });
+    }
+    return loop(0, []);
+  }
+
   function events() {
     if (!connected()) return Promise.resolve(localEvents());
     /* Pedidos nunca podem sumir: buscados à parte, sem disputar espaço com o
        volume bem maior de cliques/vendas que alimenta só os gráficos. */
-    var orders = api('vn_events?select=id,ts,type,product,qty,total,detail&type=eq.order&order=ts.desc&limit=5000');
-    var rest = api('vn_events?select=id,ts,type,product,qty,total,detail&type=neq.order&order=ts.desc&limit=5000');
+    var orders = fetchAllEvents('type=eq.order');
+    var rest = fetchAllEvents('type=neq.order');
     return Promise.all([orders, rest])
       .then(function (r) { return (r[0] || []).concat(r[1] || []); })
       .catch(function () { return localEvents(); });

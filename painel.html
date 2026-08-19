@@ -1238,11 +1238,16 @@ class Component extends DCLogic {
       slots.push({ key: k, date: d });
     }
     const cutoff = isToday ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() : now.getTime() - days * 86400000;
+    /* Precisa vir antes do loop de totais: um pedido cancelado não deve contar
+       em faturamento/pedidos enviados/etc do Dashboard (mas continua
+       aparecendo normalmente na lista da aba Pedidos). */
+    const orderStatusMap = doc.orderStatus || {};
+    const orderKeyOf = (e, i) => e.id != null ? String(e.id) : String(e.ts) + '-' + i;
     const clickBy = {}, saleQty = {}, saleRev = {};
     let totalClicks = 0, totalOrders = 0, totalRevenue = 0, totalUnits = 0;
     let entregaCount = 0, retiradaCount = 0;
     const periodPhones = {}, hourCounts = {};
-    (s.events || []).forEach(e => {
+    (s.events || []).forEach((e, i) => {
       const t = new Date(e.ts).getTime();
       if (!t || t < cutoff) return;
       const k = dayKey(new Date(t));
@@ -1253,6 +1258,7 @@ class Component extends DCLogic {
         const n = e.product || '—';
         clickBy[n] = (clickBy[n] || 0) + 1;
       } else if (e.type === 'order') {
+        if (orderStatusMap[orderKeyOf(e, i)] === 'cancelado') return;
         totalOrders++;
         totalRevenue += Number(e.total) || 0;
         if (b) { b.orders++; b.revenue += Number(e.total) || 0; }
@@ -1337,7 +1343,6 @@ class Component extends DCLogic {
     const statusPillStyle = (id, on) => on
       ? 'border-color:' + STATUS_COLORS[id] + ';background:color-mix(in srgb, ' + STATUS_COLORS[id] + ' 14%, transparent);color:' + STATUS_COLORS[id]
       : '';
-    const orderStatusMap = doc.orderStatus || {};
     const orders = (s.events || [])
       .filter(e => e.type === 'order')
       .sort((a, b) => new Date(b.ts) - new Date(a.ts))
