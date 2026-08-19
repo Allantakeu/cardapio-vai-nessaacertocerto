@@ -64,6 +64,127 @@
   function setCfg(c) { localStorage.setItem(LS_CFG, JSON.stringify(c || {})); }
   function connected() { var c = cfg(); return !!(c.url && c.key); }
 
+  /* ------------------------------------------------------------------------
+     Autenticação (Supabase Auth / GoTrue via REST — sem adicionar a lib
+     supabase-js, pra não mudar o jeito que o projeto carrega scripts).
+
+     Por quê isso existe: a chave anon só pode ler/gravar o que as policies de
+     RLS deixarem para o papel "anon". Depois da correção de RLS, gravar em
+     vn_catalog e no Storage passa a exigir o papel "authenticated" — ou seja,
+     um token de sessão de um usuário real logado. O PIN comparado no
+     navegador (como era antes) nunca protegia nada de verdade, porque quem
+     ataca a API REST direto nem carrega essa tela.
+
+     O dono da loja é criado uma única vez pelo painel do Supabase
+     (Authentication → Users → Add user) — não existe cadastro público aqui,
+     de propósito: é um único administrador, não multi-tenant. */
+  var LS_SESSION = 'vn.session';
+
+  function getSession() {
+    try {
+      var s = JSON.parse(localStorage.getItem(LS_SESSION));
+      return (s && s.access_token && s.refresh_token && s.expires_at) ? s : null;
+    } catch (e) { return null; }
+  }
+  function setSession(s) {
+    try { s ? localStorage.setItem(LS_SESSION, JSON.stringify(s)) : localStorage.removeItem(LS_SESSION); } catch (e) {}
+  }
+  /* "Logado" = tem sessão salva com um token ainda válido (ou renovável).
+     authToken() é quem realmente decide se dá pra renovar; isto aqui é só
+     pra UI decidir se mostra a tela de login sem esperar uma chamada de rede. */
+  function authed() { return !!getSession(); }
+
+  function authBase() {
+    var c = cfg();
+    return String(c.url || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
+  }
+  function toSession(tok) {
+    /* expires_in vem em segundos; guardamos o instante absoluto de expiração
+       com uma folga de 30s pra nunca usar um token que vence no meio de uma
+       requisição em voo. */
+    return {
+      access_token: tok.access_token,
+      refresh_token: tok.refresh_token,
+      expires_at: Date.now() + (Number(tok.expires_in) || 3600) * 1000 - 30000
+    };
+  }
+
+  function signIn(email, password) {
+    var c = cfg();
+    if (!connected()) return Promise.reject(new Error('Conecte o Supabase antes de entrar.'));
+    return fetch(authBase() + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: { apikey: c.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, password: password })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (!r.ok) throw new Error(b.error_description || b.msg || 'E-mail ou senha incorretos.');
+        setSession(toSession(b));
+        return b.user;
+      });
+    });
+  }
+
+  function signOut() {
+    var s = getSession();
+    setSession(null);
+    if (!s) return Promise.resolve();
+    var c = cfg();
+    /* Revoga o refresh token no servidor — best effort: se a rede cair aqui,
+       a sessão local já foi apagada de qualquer forma, então o painel volta
+       a pedir login mesmo que a revogação remota não confirme. */
+    return fetch(authBase() + '/auth/v1/logout', {
+      method: 'POST',
+      headers: { apikey: c.key, Authorization: 'Bearer ' + s.access_token }
+    }).catch(function () {});
+  }
+
+  function refreshSession() {
+    var s = getSession();
+    if (!s) return Promise.resolve(null);
+    var c = cfg();
+    return fetch(authBase() + '/auth/v1/token?grant_type=refresh_token', {
+      method: 'POST',
+      headers: { apikey: c.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; }).then(function (b) {
+        if (!r.ok) { setSession(null); return null; }
+        var ns = toSession(b);
+        setSession(ns);
+        return ns;
+      });
+    }).catch(function () { return null; });
+  }
+
+  /* Dispara o e-mail de redefinição de senha do Supabase Auth. Único admin,
+     sem tela de cadastro público — então "esqueci minha senha" é o único
+     jeito de recuperar acesso sem precisar abrir o painel do Supabase. */
+  function recoverPassword(email) {
+    var c = cfg();
+    if (!connected()) return Promise.reject(new Error('Conecte o Supabase antes.'));
+    return fetch(authBase() + '/auth/v1/recover', {
+      method: 'POST',
+      headers: { apikey: c.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    }).then(function (r) {
+      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (b) {
+        throw new Error(b.error_description || b.msg || 'Não foi possível enviar o e-mail.');
+      });
+    });
+  }
+
+  /* Devolve um access_token pronto pra usar, renovando sozinho se estiver
+     vencido — assim o dono não precisa logar de novo a cada hora (o access
+     token do Supabase dura só 1h por padrão). Sem sessão, devolve null e
+     quem chamou cai pra chave anon (que agora só serve pra leitura pública). */
+  function authToken() {
+    var s = getSession();
+    if (!s) return Promise.resolve(null);
+    if (s.expires_at > Date.now()) return Promise.resolve(s.access_token);
+    return refreshSession().then(function (ns) { return ns ? ns.access_token : null; });
+  }
+
   function localDoc() { try { return JSON.parse(localStorage.getItem(LS_DOC)); } catch (e) { return null; } }
   /* Devolve true/false: quando o localStorage estoura (cota cheia), quem chama precisa
      saber que a gravação NÃO aconteceu, senão o painel mostra "salvo" e o dono perde o trabalho. */
@@ -86,19 +207,30 @@
     var c = cfg();
     var o = opts || {};
     var base = String(c.url || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
-    return fetch(base + '/rest/v1/' + path, {
-      method: o.method || 'GET',
-      /* no-store: o cardápio precisa mostrar preço/estoque do momento. Sem isso o
-         navegador (ou um proxy no meio) pode devolver uma cópia velha do cardápio. */
-      cache: 'no-store',
-      headers: {
-        apikey: c.key, Authorization: 'Bearer ' + c.key,
-        'Content-Type': 'application/json', Prefer: 'return=representation',
-        'Cache-Control': 'no-cache'
-      },
-      body: o.body ? JSON.stringify(o.body) : undefined
+    /* Usa o token de sessão (papel "authenticated") quando o dono está logado;
+       sem sessão, cai pra chave anon — que depois da correção de RLS só
+       consegue mais ler o cardápio público, nunca gravar. Isso é o que faz
+       load()/track() continuarem funcionando pra qualquer visitante enquanto
+       save()/uploadPhoto() passam a exigir login de verdade. */
+    return authToken().then(function (tok) {
+      return fetch(base + '/rest/v1/' + path, {
+        method: o.method || 'GET',
+        /* no-store: o cardápio precisa mostrar preço/estoque do momento. Sem isso o
+           navegador (ou um proxy no meio) pode devolver uma cópia velha do cardápio. */
+        cache: 'no-store',
+        headers: {
+          apikey: c.key, Authorization: 'Bearer ' + (tok || c.key),
+          'Content-Type': 'application/json', Prefer: 'return=representation',
+          'Cache-Control': 'no-cache'
+        },
+        body: o.body ? JSON.stringify(o.body) : undefined
+      });
     }).then(function (r) {
-      if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + ' ' + t.slice(0, 140)); });
+      if (!r.ok) return r.text().then(function (t) {
+        var err = new Error(r.status + ' ' + t.slice(0, 140));
+        err.status = r.status;
+        throw err;
+      });
       return r.status === 204 ? null : r.json();
     });
   }
@@ -130,7 +262,17 @@
         if (rows && rows.length) return { source: 'supabase' };
         return api('vn_catalog', { method: 'POST', body: { id: 'main', data: doc } }).then(function () { return { source: 'supabase' }; });
       })
-      .catch(function (e) { return { source: 'local', error: e.message }; });
+      .catch(function (e) {
+        /* 401/403 aqui significa que a sessão do dono expirou (ou nunca
+           existiu) — a policy de RLS agora exige o papel "authenticated"
+           pra gravar. Derruba a sessão local pra o painel voltar pra tela
+           de login em vez de ficar tentando salvar em loop. O rascunho não
+           se perde: já está em localStorage (setLocalDoc, acima) e em
+           this.state.doc no painel. */
+        var expired = e.status === 401 || e.status === 403;
+        if (expired) setSession(null);
+        return { source: 'local', error: e.message, authExpired: expired };
+      });
   }
 
   var LS_EV = 'vn.ev';
@@ -210,18 +352,24 @@
     return compressImage(rawFile, 900, 0.82).then(function (file) {
     var c = cfg();
     if (!connected()) return fileToDataUrl(file);
-    var base = String(c.url || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
-    var path = 'p' + Date.now() + Math.random().toString(36).slice(2, 8) + '.jpg';
-    return fetch(base + '/storage/v1/object/' + BUCKET + '/' + path, {
-      method: 'POST',
-      headers: {
-        apikey: c.key, Authorization: 'Bearer ' + c.key,
-        'Content-Type': file.type || 'application/octet-stream'
-      },
-      body: file
-    }).then(function (r) {
-      if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
-      return base + '/storage/v1/object/public/' + BUCKET + '/' + path;
+    /* Upload no Storage agora exige o papel "authenticated" (ver policy
+       vn_photos_write no SQL) — sem sessão, nem tenta a chamada de rede,
+       só avisa que precisa logar. */
+    return authToken().then(function (tok) {
+      if (!tok) throw new Error('Faça login no painel para enviar fotos.');
+      var base = String(c.url || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '');
+      var path = 'p' + Date.now() + Math.random().toString(36).slice(2, 8) + '.jpg';
+      return fetch(base + '/storage/v1/object/' + BUCKET + '/' + path, {
+        method: 'POST',
+        headers: {
+          apikey: c.key, Authorization: 'Bearer ' + tok,
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      }).then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error(r.status + ' ' + t.slice(0, 200)); });
+        return base + '/storage/v1/object/public/' + BUCKET + '/' + path;
+      });
     });
     });
   }
@@ -230,39 +378,51 @@
     cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save,
     seed: seed, uid: uid, fmt: fmt, normalize: normalize, track: track, events: events,
     uploadPhoto: uploadPhoto,
+    signIn: signIn, signOut: signOut, authed: authed, getSession: getSession, recoverPassword: recoverPassword,
     sql: [
+      '-- Cardápio: leitura pública (só a linha \'main\'), escrita só autenticada.',
+      '-- Depois de rodar isto, crie o usuário do dono em Authentication > Users',
+      '-- > Add user (marque "Auto Confirm User") — é o login do painel.',
       'create table vn_catalog (',
       '  id text primary key,',
       '  data jsonb not null,',
       '  updated_at timestamptz default now()',
       ');',
       'alter table vn_catalog enable row level security;',
-      'create policy vn_read on vn_catalog for select using (true);',
-      'create policy vn_write on vn_catalog for all using (true) with check (true);',
+      "create policy vn_catalog_public_read on vn_catalog for select to anon, authenticated using (id = 'main');",
+      'create policy vn_catalog_owner_write on vn_catalog for insert to authenticated with check (true);',
+      'create policy vn_catalog_owner_update on vn_catalog for update to authenticated using (true) with check (true);',
+      'create policy vn_catalog_owner_delete on vn_catalog for delete to authenticated using (true);',
       '',
+      '-- Eventos (cliques/vendas/pedidos): gravar é público (é o próprio',
+      '-- rastreamento de visitantes sem login), ler exige o dono logado —',
+      '-- senão nome/telefone/endereço de cliente ficam expostos pra qualquer um.',
       'create table vn_events (',
       '  id bigserial primary key,',
       '  ts timestamptz default now(),',
       '  type text,',
       '  product text,',
       '  qty int,',
-      '  total numeric',
+      '  total numeric,',
+      '  detail jsonb',
       ');',
       'alter table vn_events enable row level security;',
-      'create policy ev_read on vn_events for select using (true);',
-      'create policy ev_write on vn_events for insert with check (true);',
+      "create policy vn_events_public_insert on vn_events for insert to anon, authenticated with check (type in ('click', 'sale', 'order'));",
+      'create policy vn_events_owner_read on vn_events for select to authenticated using (true);',
       '',
-      'alter table vn_events add column if not exists detail jsonb;',
-      '',
-      '-- bucket para fotos de produto e logo (rode uma vez)',
+      '-- Bucket para fotos de produto, logo e capa da loja (rode uma vez).',
+      '-- Leitura pública (a vitrine mostra as fotos pra qualquer cliente);',
+      '-- upload/troca/remoção exigem login; só imagem, até 5MB.',
       'insert into storage.buckets (id, name, public)',
       "values ('vn-photos', 'vn-photos', true)",
       'on conflict (id) do nothing;',
-      '',
-      'create policy vn_photos_read on storage.objects for select',
-      "using (bucket_id = 'vn-photos');",
-      'create policy vn_photos_write on storage.objects for insert',
-      "with check (bucket_id = 'vn-photos');"
+      'update storage.buckets set file_size_limit = 5242880,',
+      "  allowed_mime_types = array['image/jpeg', 'image/png', 'image/webp']",
+      "where id = 'vn-photos';",
+      "create policy vn_photos_public_read on storage.objects for select to anon, authenticated using (bucket_id = 'vn-photos');",
+      "create policy vn_photos_owner_insert on storage.objects for insert to authenticated with check (bucket_id = 'vn-photos');",
+      "create policy vn_photos_owner_update on storage.objects for update to authenticated using (bucket_id = 'vn-photos') with check (bucket_id = 'vn-photos');",
+      "create policy vn_photos_owner_delete on storage.objects for delete to authenticated using (bucket_id = 'vn-photos');"
     ].join('\n')
   };
 })();

@@ -91,10 +91,26 @@
         <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;margin-top:4px">Vai Nessa</div>
       </div>
       <h1 class="h1" style="margin-top:22px;font-size:19px;text-align:center">Entrar no painel</h1>
-      <p style="font-size:13.5px;line-height:1.55;color:var(--mut);margin:7px 0 18px;text-align:center">Digite o PIN para editar o cardápio.</p>
-      <input class="fld" type="password" inputmode="numeric" placeholder="PIN" value="{{ pinTry }}" onChange="{{ onPinTry }}" onKeyDown="{{ onPinKey }}" style="height:46px;text-align:center;font-size:16px;letter-spacing:.1em">
-      <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ pinError }}</div>
-      <button class="btnp" onClick="{{ onUnlock }}" style="width:100%;height:46px;margin-top:4px">Entrar</button>
+      <p style="font-size:13.5px;line-height:1.55;color:var(--mut);margin:7px 0 18px;text-align:center">Entre com o e-mail e a senha do dono da loja.</p>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <input class="fld" type="email" autocomplete="username" placeholder="E-mail" value="{{ loginEmail }}" onChange="{{ onLoginEmail }}" onKeyDown="{{ onLoginKey }}" style="height:44px">
+        <input class="fld" type="password" autocomplete="current-password" placeholder="Senha" value="{{ loginPass }}" onChange="{{ onLoginPass }}" onKeyDown="{{ onLoginKey }}" style="height:44px">
+      </div>
+      <div style="min-height:20px;font-size:12.5px;color:var(--acc);padding:7px 0 0;text-align:center">{{ loginError }}</div>
+      <button class="btnp" onClick="{{ onLogin }}" style="width:100%;height:46px;margin-top:4px">{{ loginBtnLabel }}</button>
+      <button onClick="{{ onForgotPass }}" style="width:100%;background:transparent;border:0;cursor:pointer;margin-top:10px;font-size:12px;color:var(--mut)">Esqueci minha senha</button>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+        <button onClick="{{ onToggleCfgForm }}" style="width:100%;background:transparent;border:0;cursor:pointer;font-size:11.5px;color:var(--mut)">{{ cfgToggleLabel }}</button>
+        <sc-if value="{{ showCfgForm }}" hint-placeholder-val="{{ false }}">
+          <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0">É a primeira vez que este cardápio conecta num Supabase? Cole os dados do <em>seu</em> projeto (veja o <a href="guia-supabase.html" target="_blank">guia</a>) — isto só troca pra onde o painel aponta, não faz login.</p>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <input class="fld" placeholder="https://xxxx.supabase.co" value="{{ cfgUrl }}" onChange="{{ onCfgUrl }}" style="height:40px;font-size:12.5px">
+            <input class="fld" placeholder="sb_publishable_… ou eyJ…" value="{{ cfgKey }}" onChange="{{ onCfgKey }}" style="height:40px;font-size:12.5px">
+            <button class="btns" onClick="{{ onLoginCfgSave }}">Salvar e recarregar</button>
+          </div>
+        </sc-if>
+      </div>
     </div>
   </div>
 </sc-if>
@@ -125,6 +141,9 @@
         </sc-for>
       </div>
       <a href="./" target="_blank" class="btnp" style="height:34px">Ver vitrine ↗</a>
+      <sc-if value="{{ showLogout }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ onLogout }}" title="Sair" style="height:34px;padding:0 13px;border-radius:8px;cursor:pointer;background:transparent;border:1px solid rgba(255,255,255,.18);color:rgba(242,242,245,.75);font-family:var(--font-heading);font-weight:500;font-size:13px">Sair</button>
+      </sc-if>
     </div>
   </div>
 
@@ -833,12 +852,9 @@
         <h1 class="h1">Ajustes</h1>
         <div class="card" style="margin-top:18px;display:flex;flex-direction:column;gap:14px">
           <div><span class="lbl">WhatsApp (com DDI e DDD)</span><input class="fld num" inputmode="numeric" value="{{ st.whatsapp }}" onChange="{{ onWhats }}"></div>
-          <div style="display:flex;gap:12px">
-            <div style="flex:1"><span class="lbl">Taxa de entrega</span><input class="fld num" inputmode="decimal" value="{{ st.deliveryFee }}" onChange="{{ onFee }}"></div>
-            <div style="flex:1"><span class="lbl">PIN do painel</span><input class="fld num" inputmode="numeric" value="{{ st.pin }}" onChange="{{ onPin }}"></div>
-          </div>
+          <div><span class="lbl">Taxa de entrega</span><input class="fld num" inputmode="decimal" value="{{ st.deliveryFee }}" onChange="{{ onFee }}"></div>
           <div><span class="lbl">Instagram</span><input class="fld" value="{{ st.instagram }}" onChange="{{ onInsta }}"></div>
-          <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:2px 0 0">Endereço, horário, tempo de entrega e pagamento ficam na aba Vitrine.</p>
+          <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:2px 0 0">Endereço, horário, tempo de entrega e pagamento ficam na aba Vitrine. O login do painel agora é por e-mail e senha (Supabase Auth) — pra trocar a senha, use "Esqueci minha senha" na tela de login ou o painel do Supabase (Authentication → Users).</p>
         </div>
       </div>
       </sc-if>
@@ -915,7 +931,7 @@ const THEMES = {
 
 class Component extends DCLogic {
   state = {
-    locked: true, pinTry: '', pinError: '', doc: null, events: [], theme: 'claro',
+    locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, showCfgForm: false, doc: null, events: [], theme: 'claro',
     view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
     cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}
@@ -934,6 +950,11 @@ class Component extends DCLogic {
         this.setState({
           doc: r.doc, theme: theme, catId: first ? first.id : null,
           expanded: {},
+          /* Sem Supabase conectado (modo local de teste), não faz sentido pedir
+             login — não existe um servidor pra autenticar contra. Com Supabase,
+             uma sessão salva (mesmo vencida, authToken() renova sozinho na
+             próxima chamada) já libera o painel sem pedir senha de novo. */
+          locked: VN.connected() ? !VN.authed() : false,
           source: r.source, cfgUrl: c.url || '', cfgKey: c.key || '',
           connMsg: r.error ? 'Sem conexão: ' + r.error : ''
         });
@@ -972,6 +993,14 @@ class Component extends DCLogic {
     this.setState({ saving: 'salvando' });
     this._t = setTimeout(() => {
       VN.save(this.state.doc).then(r => {
+        /* 401/403 do Supabase = sessão vencida (ou revogada). O rascunho já
+           está salvo em localStorage (VN.save faz isso sempre, antes de
+           tentar a rede), então não se perde nada — só manda o dono logar
+           de novo pra sincronizar. */
+        if (r.authExpired) {
+          this.setState({ saving: '', locked: true, loginError: 'Sua sessão expirou — entre novamente para salvar.' });
+          return;
+        }
         this.setState({
           saving: '', savedAt: r.error ? 0 : Date.now(), saveError: !!r.error, source: r.source,
           connMsg: r.error ? 'Salvo local. Supabase: ' + r.error : this.state.connMsg
@@ -1047,7 +1076,7 @@ class Component extends DCLogic {
       themeVars: Object.keys(vars).map(k => k + ':' + vars[k]).join(';'),
       locked: !!doc && s.locked,
       unlocked: !!doc && !s.locked,
-      pinTry: s.pinTry, pinError: s.pinError, toast: s.toast,
+      toast: s.toast,
       themes: ['claro', 'escuro'].map(t => ({
         label: t === 'claro' ? 'Claro' : 'Escuro',
         onPick: () => { try { localStorage.setItem('vn.theme2', t); } catch (e) {} this.setState({ theme: t }); },
@@ -1055,9 +1084,28 @@ class Component extends DCLogic {
           + (s.theme === t ? 'rgba(255,255,255,.18)' : 'transparent')
           + ';color:' + (s.theme === t ? '#f2f2f5' : 'rgba(242,242,245,.6)')
       })),
-      onPinTry: e => this.setState({ pinTry: e.target.value, pinError: '' }),
-      onPinKey: e => { if (e.key === 'Enter') this.tryUnlock(); },
-      onUnlock: () => this.tryUnlock()
+      loginEmail: s.loginEmail, loginPass: s.loginPass, loginError: s.loginError,
+      loginBtnLabel: s.loggingIn ? 'Entrando…' : 'Entrar',
+      onLoginEmail: e => this.setState({ loginEmail: e.target.value, loginError: '' }),
+      onLoginPass: e => this.setState({ loginPass: e.target.value, loginError: '' }),
+      onLoginKey: e => { if (e.key === 'Enter') this.trySignIn(); },
+      onLogin: () => this.trySignIn(),
+      onLogout: () => this.doLogout(),
+      showLogout: VN.connected(),
+      onForgotPass: () => this.forgotPassword(),
+      /* Sem isto, quem clona o projeto pra uma loja nova fica preso na tela de
+         login pra sempre: o painel só sabe pedir login DEPOIS de já estar
+         apontando pra um projeto Supabase (mesmo que seja o projeto errado,
+         de outra loja) — e a aba "Conexão" normal fica escondida atrás do
+         próprio login. Isto dá um jeito de trocar a URL/chave ANTES de logar,
+         sem nunca precisar de sessão pra isso (só grava no localStorage). */
+      showCfgForm: s.showCfgForm,
+      cfgToggleLabel: s.showCfgForm ? 'Cancelar' : 'Conectar em outro Supabase',
+      onToggleCfgForm: () => this.setState({ showCfgForm: !s.showCfgForm }),
+      onLoginCfgSave: () => {
+        VN.setCfg({ url: s.cfgUrl.trim(), key: s.cfgKey.trim() });
+        location.reload();
+      }
     };
     if (!doc) return base;
 
@@ -1317,7 +1365,7 @@ class Component extends DCLogic {
           VN.uploadPhoto(file).then(url => {
             set(t => { t.photo = url; });
             this.flash(VN.connected() ? 'Foto enviada' : 'Foto salva neste aparelho (conecte o Supabase para hospedar de verdade)');
-          }).catch(() => this.flash('Falha ao enviar a foto'));
+          }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a foto'));
         },
         onPhotoClear: () => set(t => { t.photo = ''; }),
         onTag: e => { const v = e.target.value; set(t => { t.tag = v; }); },
@@ -1571,7 +1619,7 @@ class Component extends DCLogic {
         VN.uploadPhoto(file).then(url => {
           this.mutate(d => { d.settings.logo = url; });
           this.flash(VN.connected() ? 'Logo enviada' : 'Logo salva neste aparelho (conecte o Supabase para hospedar de verdade)');
-        }).catch(() => this.flash('Falha ao enviar a logo'));
+        }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a logo'));
       },
       onCustomAccent: e => { const v = e.target.value; this.mutate(d => { d.settings.accent = v; }); },
       onCover: stF('cover'),
@@ -1584,7 +1632,7 @@ class Component extends DCLogic {
         VN.uploadPhoto(file).then(url => {
           this.mutate(d => { d.settings.cover = url; });
           this.flash(VN.connected() ? 'Capa enviada' : 'Capa salva neste aparelho (conecte o Supabase para hospedar de verdade)');
-        }).catch(() => this.flash('Falha ao enviar a capa'));
+        }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a capa'));
       },
       onUpsellTitle: stF('upsellTitle'), onFee: stN('deliveryFee'), onFreeAbove: stN('freeAbove'),
       statusLabel: s.source === 'supabase' ? 'Ao vivo' : 'Neste aparelho',
@@ -1642,10 +1690,34 @@ class Component extends DCLogic {
     });
   }
 
-  tryUnlock() {
-    const pin = (this.state.doc && this.state.doc.settings.pin) || '1234';
-    if (this.state.pinTry.trim() === String(pin)) this.setState({ locked: false, pinTry: '', pinError: '' });
-    else this.setState({ pinError: 'PIN incorreto' });
+  /* Login de verdade via Supabase Auth — troca o "PIN comparado no
+     navegador" (que não protegia nada, já que o dado comparado vinha do
+     próprio cardápio público) por uma sessão emitida pelo servidor. Depois
+     de logar, qualquer rascunho que já estava em memória (state.doc) é
+     reenviado — assim uma sessão que caiu no meio de uma edição não perde
+     a alteração, só precisa de um novo login pra sincronizar. */
+  trySignIn() {
+    const email = this.state.loginEmail.trim(), pass = this.state.loginPass;
+    if (!email || !pass) return this.setState({ loginError: 'Preencha e-mail e senha.' });
+    this.setState({ loggingIn: true, loginError: '' });
+    VN.signIn(email, pass).then(() => {
+      this.setState({ locked: false, loggingIn: false, loginPass: '', loginError: '' });
+      if (this.state.doc) this.queueSave();
+    }).catch(err => {
+      this.setState({ loggingIn: false, loginError: (err && err.message) || 'E-mail ou senha incorretos.' });
+    });
+  }
+
+  doLogout() {
+    VN.signOut().then(() => this.setState({ locked: true, loginEmail: '', loginPass: '', loginError: '' }));
+  }
+
+  forgotPassword() {
+    const email = this.state.loginEmail.trim();
+    if (!email) return this.setState({ loginError: 'Digite seu e-mail acima primeiro.' });
+    VN.recoverPassword(email)
+      .then(() => this.flash('Enviamos um link de redefinição para ' + email))
+      .catch(err => this.setState({ loginError: (err && err.message) || 'Não foi possível enviar o e-mail.' }));
   }
 }
 

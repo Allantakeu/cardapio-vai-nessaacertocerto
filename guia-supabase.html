@@ -99,18 +99,27 @@
     <div class="step">
       <div class="badge">5</div>
       <div>
-        <h2>Conectar no painel</h2>
-        <p style="margin-top:7px">Abra o <a href="painel.html" target="_blank">painel admin</a>, digite o PIN (<span class="num">1234</span>) e vá em <span class="ui">Conexão</span>. Cole a <strong>Project URL</strong> no primeiro campo, a <strong>chave anon</strong> no segundo e toque em <span class="ui">Conectar e testar</span>.</p>
-        <p style="margin-top:9px">Se der tudo certo: o selo no topo vira <span class="ui">Ao vivo</span> e aparece "Conectado. A vitrine já lê daqui." As suas 16 cervejas sobem para o banco nesse momento.</p>
+        <h2>Criar o seu login</h2>
+        <p style="margin-top:7px">No menu da esquerda, abra <span class="ui">Authentication</span> → <span class="ui">Users</span> e toque em <span class="ui">Add user</span>. Preencha seu e-mail e uma senha, e marque <span class="ui">Auto Confirm User</span> (senão o Supabase manda um e-mail de confirmação antes de liberar o login).</p>
+        <div class="warn" style="margin-top:11px">É esse e-mail e senha que abrem o painel a partir de agora — não existe mais PIN. Guarde bem, é a única conta.</div>
       </div>
     </div>
 
     <div class="step">
       <div class="badge">6</div>
       <div>
+        <h2>Conectar no painel</h2>
+        <p style="margin-top:7px">Abra o <a href="painel.html" target="_blank">painel admin</a>. Na tela de login, toque em <span class="ui">Conectar em outro Supabase</span>, cole a <strong>Project URL</strong> no primeiro campo, a <strong>chave anon</strong> no segundo e toque em <span class="ui">Salvar e recarregar</span> — isso só troca pra onde o painel aponta, ainda sem precisar logar.</p>
+        <p style="margin-top:9px">Depois de recarregar, entre com o e-mail e a senha que você criou no passo 5. Se der tudo certo, o painel abre e o selo no topo mostra <span class="ui">Ao vivo</span>. As suas 16 cervejas sobem para o banco assim que você salvar qualquer alteração.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="badge">7</div>
+      <div>
         <h2>Testar de verdade</h2>
         <p style="margin-top:7px">Abra a vitrine no seu celular e o painel no computador. Mude o preço de uma cerveja no painel, espere uns 15 segundos e olhe o celular: o preço muda sem recarregar. Marcar um produto como <span class="ui">Esgotado</span> some com ele da vitrine na hora seguinte.</p>
-        <p style="margin-top:9px">Por último, troque o PIN em <span class="ui">Ajustes → PIN do painel</span>. Ele fica salvo no banco, então vale para qualquer aparelho que abrir o painel.</p>
+        <p style="margin-top:9px">O painel te mantém logado entre visitas (a sessão renova sozinha). Pra sair de um aparelho compartilhado, use o botão <span class="ui">Sair</span> no topo.</p>
       </div>
     </div>
 
@@ -126,7 +135,11 @@
     </div>
     <div>
       <h3>Aparece "Falhou: 401" ou "Invalid API key"</h3>
-      <p style="font-size:13.5px;color:#63636c">A chave veio incompleta. Copie a <strong>anon public</strong> inteira pelo botão de copiar do Supabase, sem espaços no começo ou no fim.</p>
+      <p style="font-size:13.5px;color:#63636c">Duas causas possíveis: a chave veio incompleta (copie a <strong>anon public</strong> inteira pelo botão de copiar do Supabase, sem espaços no começo ou no fim) — ou você não está logado. Gravar no cardápio exige login (passo 5); sem sessão, só a leitura funciona.</p>
+    </div>
+    <div>
+      <h3>Não consigo logar no painel</h3>
+      <p style="font-size:13.5px;color:#63636c">Confira se o usuário foi criado em <span class="ui">Authentication → Users</span> (passo 5) e se <span class="ui">Auto Confirm User</span> estava marcado — sem isso, o Supabase espera você confirmar o e-mail antes de deixar logar.</p>
     </div>
     <div>
       <h3>Aparece "relation vn_catalog already exists"</h3>
@@ -143,7 +156,7 @@
   </div>
 
   <div class="warn" style="margin-top:26px">
-    <strong style="font-family:var(--font-heading)">Sobre segurança.</strong> Essa configuração deixa a leitura e a escrita abertas para quem tem a chave anon, que fica visível no navegador. É o que permite o painel funcionar sem login. Para uma adega isso costuma ser aceitável, já que ali não há dado de cliente. Se você preferir travar a escrita, me avise que eu troco por uma versão onde só quem tem a senha consegue gravar.
+    <strong style="font-family:var(--font-heading)">Sobre segurança.</strong> A leitura do cardápio é pública (qualquer cliente precisa ver a vitrine sem logar), mas gravar — mudar produto, preço, configurações ou enviar foto — exige estar logado com o e-mail e senha do passo 5. A chave anon, que fica visível no navegador, nunca sozinha basta pra escrever: quem decide isso são as policies de RLS do SQL do passo 3, não a chave. Os eventos de clique/venda/pedido (que guardam nome, telefone e endereço de cliente) só podem ser lidos por quem está logado, pelo mesmo motivo.
   </div>
 
   <p style="margin-top:24px;font-size:13px;color:#7c7c86">Guarde uma cópia do cardápio de vez em quando: <span class="ui">Conexão → Baixar JSON</span>.</p>
