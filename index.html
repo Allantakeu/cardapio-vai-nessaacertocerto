@@ -139,8 +139,8 @@ a:hover{color:var(--color-accent-300)}
       <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(23,23,27,0) 55%, rgba(23,23,27,.30))"></div>
     </div>
   </div>
-  <div style="position:relative;padding:8px 20px 18px;margin-top:-34px;background:radial-gradient(120% 100% at 18% 40%, rgba(245,197,23,.10), transparent 60%)">
-    <div style="position:relative;display:flex;align-items:flex-end;gap:16px">
+  <div style="position:relative;padding:8px 20px 18px;margin-top:-24px;background:radial-gradient(120% 100% at 18% 40%, rgba(245,197,23,.10), transparent 60%)">
+    <div style="position:relative;display:flex;align-items:flex-end;gap:12px">
       <div style="width:92px;height:92px;flex:none;border-radius:50%;padding:4px;background:linear-gradient(160deg, rgba(245,197,23,.65), rgba(230,32,140,.45));box-shadow:0 10px 24px rgba(23,23,27,.16)">
         <div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:#fff;box-shadow:0 0 0 3px #fff">
           <image-slot id="vn-logo" shape="circle" style="width:100%;height:100%" placeholder="Logo" src="{{ logoUrl }}"></image-slot>
@@ -150,16 +150,19 @@ a:hover{color:var(--color-accent-300)}
         <div class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--gold-ink)">
           <span style="width:5px;height:5px;border-radius:50%;background:var(--gold-ink)"></span>Adega
         </div>
-        <div style="font-family:var(--font-heading);font-weight:700;font-size:25px;line-height:1.08;letter-spacing:-.03em;margin-top:6px;color:var(--color-text);text-wrap:balance">
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:25px;line-height:1.08;letter-spacing:-.03em;margin-top:11px;color:var(--color-text);text-wrap:balance">
           <span style="color:var(--gold-ink)">{{ storeNamePart1 }}</span> <span style="color:var(--brand-2-text)">{{ storeNamePart2 }}</span>
         </div>
       </div>
-      <div style="flex:none;display:flex;gap:8px;padding-bottom:4px">
-        <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+      <div style="flex:none;display:flex;gap:6px;padding-bottom:4px">
+        <a href="{{ mapHref }}" target="_blank" rel="noopener" aria-label="Localização da adega" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
         </a>
-        <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:32px;height:32px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+        </a>
+        <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
         </button>
       </div>
     </div>
@@ -169,11 +172,6 @@ a:hover{color:var(--color-accent-300)}
         <span style="width:6px;height:6px;border-radius:50%;background:#39d98a;box-shadow:0 0 8px #39d98a"></span>{{ hoursLabel }}
       </span>
       <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ minutesLabel }}</span>
-    </div>
-    <div style="position:relative;display:flex;align-items:center;gap:8px;margin-top:10px;padding:7px 10px;border-radius:10px;background:rgba(245,197,23,.1);box-shadow:inset 0 0 0 1px rgba(156,116,0,.22)">
-      <span style="width:20px;height:20px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:9px;color:#6f5200;background:rgba(245,197,23,.3)">◆</span>
-      <span style="flex:1;min-width:0;font-size:12px;line-height:1.3;letter-spacing:-.005em;color:var(--color-text)"><span style="font-family:var(--font-heading);font-weight:600">{{ addr1 }}</span> <span style="font-size:11px;color:var(--color-neutral-500)">· {{ addr2 }}</span></span>
-      <a href="{{ mapHref }}" target="_blank" style="flex:none;font-size:11px;font-family:var(--font-heading);font-weight:500;color:var(--color-accent);white-space:nowrap">Ver no mapa</a>
     </div>
   </div>
 
@@ -268,7 +266,7 @@ a:hover{color:var(--color-accent-300)}
     </sc-if>
 
     <div style="padding:8px 0 20px;font-size:11.5px;line-height:1.65;letter-spacing:.005em;color:var(--color-neutral-600)">
-      {{ hoursLabel }}<br>Pedidos pelo WhatsApp (11) 99934-7715 · @vai.nessa1.0__<br>Venda proibida para menores de 18 anos. Imagens ilustrativas.
+      {{ addr1 }} · {{ addr2 }}<br>{{ hoursLabel }}<br>Pedidos pelo WhatsApp (11) 99934-7715 · @vai.nessa1.0__<br>Venda proibida para menores de 18 anos. Imagens ilustrativas.
     </div>
   </div>
 
