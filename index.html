@@ -191,7 +191,7 @@ a:hover{color:var(--color-accent-300)}
       <button onClick="{{ promoPrev }}" aria-label="Anterior" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">‹</button>
       <button onClick="{{ promoNext }}" aria-label="Próxima" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">›</button>
     </div>
-    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:pan-x">
+    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:none">
       <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
         <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:132px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
           <div style="position:relative">
@@ -544,7 +544,72 @@ class Component extends DCLogic {
   promoTrack = (el) => {
     this._promoTrack = el;
     this._sizePromoSpacer();
+    if (el && !el.__dragBound) { el.__dragBound = true; this._bindPromoDrag(el); }
   };
+
+  /* touch-action + scroll-snap deveriam bastar pro navegador entender "gesto
+     horizontal é meu, vertical eu devolvo pra página" sozinho — mas isso tem
+     bugs conhecidos e antigos em navegadores móveis (sobretudo Safari/iOS)
+     que travam o gesto no scroller horizontal de qualquer forma, mesmo com
+     tudo configurado certo. Aqui a decisão deixa de ser do navegador: com
+     touch-action:none no trilho, ele nunca rola nada sozinho, e este código
+     decide na mão se o arrasto é horizontal (rola o carrossel) ou vertical
+     (rola a página) a partir da direção real do primeiro movimento. */
+  _bindPromoDrag(el) {
+    var startX = 0, startY = 0, startScrollLeft = 0, startWinY = 0, axis = null, dragged = false;
+    var THRESHOLD = 8;
+
+    var onMove = (e) => {
+      var dx = e.clientX - startX, dy = e.clientY - startY;
+      if (axis === null) {
+        if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
+        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        dragged = true;
+      }
+      if (axis === 'x') {
+        el.scrollLeft = startScrollLeft - dx;
+      } else {
+        window.scrollTo(0, startWinY - dy);
+      }
+    };
+
+    var onUp = () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+      if (axis === 'x') {
+        // Encaixa no card mais próximo de onde soltou, como o scroll-snap faria.
+        var closest = 0, min = Infinity;
+        Array.from(el.children).forEach((c, i) => {
+          var d = Math.abs(c.offsetLeft - 18 - el.scrollLeft);
+          if (d < min) { min = d; closest = i; }
+        });
+        this._scrollPromoTo(closest);
+      }
+      if (dragged) {
+        // Um arrasto de verdade não deve também abrir a ficha do produto —
+        // engole só o próximo clique, que é o que o soltar do dedo dispara.
+        // O timeout é a rede de segurança: se nenhum clique vier (o mais
+        // comum depois de um arrasto), o listener não pode ficar pendurado
+        // pra sempre e engolir um clique de outra hora sem relação nenhuma.
+        var swallow = (e) => { e.stopPropagation(); e.preventDefault(); cleanup(); };
+        var cleanup = () => { el.removeEventListener('click', swallow, true); clearTimeout(swallowTimer); };
+        var swallowTimer = setTimeout(cleanup, 400);
+        el.addEventListener('click', swallow, true);
+      }
+    };
+
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      cancelAnimationFrame(this._promoAnimId);
+      startX = e.clientX; startY = e.clientY;
+      startScrollLeft = el.scrollLeft; startWinY = window.scrollY;
+      axis = null; dragged = false;
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    });
+  }
 
   promoSpacer = (el) => {
     this._promoSpacer = el;
