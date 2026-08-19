@@ -193,34 +193,23 @@ a:hover{color:var(--color-accent-300)}
 
   <sc-if value="{{ showFeatured }}" hint-placeholder-val="{{ false }}">
   <div style="padding:4px 0 0">
-    <div style="display:flex;align-items:center;gap:8px;padding:0 18px 8px">
+    <div style="display:flex;align-items:center;gap:8px;padding:0 18px 10px">
       <h6 class="sect" style="margin:0;font-size:10.5px;color:var(--brand-2-text)">Promoções da semana</h6>
       <span style="flex:1;height:1px;background:linear-gradient(to right, var(--line), transparent)"></span>
-      <button onClick="{{ promoPrev }}" aria-label="Anterior" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">‹</button>
-      <button onClick="{{ promoNext }}" aria-label="Próxima" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">›</button>
     </div>
-    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:none">
+    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:9px;padding:0 18px 8px">
       <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
-        <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:154px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
+        <div onClick="{{ p.onOpen }}" class="card elev-sm" style="padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
           <div style="position:relative">
-            <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;height:114px" placeholder="Foto da promo" src="{{ p.photoUrl }}"></image-slot>
-            <span style="position:absolute;top:6px;left:6px;pointer-events:none;background:var(--brand-2);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:7.5px;letter-spacing:.08em;padding:3px 6px;border-radius:999px">{{ p.tagLabel }}</span>
+            <image-slot id="{{ p.slotId }}" shape="rect" style="width:100%;aspect-ratio:1/1" placeholder="Foto" src="{{ p.photoUrl }}"></image-slot>
+            <span style="position:absolute;top:5px;left:5px;pointer-events:none;background:var(--brand-2);color:#fff;font-family:var(--font-heading);font-weight:600;font-size:7px;letter-spacing:.06em;padding:2.5px 5px;border-radius:999px">{{ p.tagLabel }}</span>
+            <button onClick="{{ p.onAdd }}" aria-label="Adicionar" style="position:absolute;bottom:-11px;right:6px;cursor:pointer;width:24px;height:24px;flex:none;border-radius:50%;display:grid;place-items:center;border:1px solid var(--color-accent);color:var(--color-accent);background:#fff;box-shadow:var(--shadow-sm)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
           </div>
-          <div style="padding:8px 9px 10px;display:flex;flex-direction:column;gap:3px">
-            <div class="itemname" style="font-size:12px;line-height:1.25">{{ p.name }}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:2px">
-              <span class="money" style="font-family:var(--font-heading);font-weight:600;font-size:13px;letter-spacing:-.02em;color:var(--color-accent)">{{ p.priceLabel }}</span>
-              <span style="flex:1"></span>
-              <button onClick="{{ p.onAdd }}" aria-label="Adicionar" style="flex:none;cursor:pointer;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
-            </div>
+          <div style="padding:11px 8px 9px;display:flex;flex-direction:column;gap:3px">
+            <span class="money" style="font-family:var(--font-heading);font-weight:700;font-size:12.5px;letter-spacing:-.02em;color:var(--color-accent)">{{ p.priceLabel }}</span>
+            <div class="itemname" style="font-size:11px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ p.name }}</div>
           </div>
         </div>
-      </sc-for>
-      <div ref="{{ promoSpacer }}" style="flex:none;width:0px"></div>
-    </div>
-    <div style="display:flex;justify-content:center;align-items:center;gap:5px;padding:0 18px 4px">
-      <sc-for list="{{ promoDots }}" as="d" hint-placeholder-count="3">
-        <button onClick="{{ d.onClick }}" aria-label="Ir para promoção" style="{{ d.style }}"></button>
       </sc-for>
     </div>
   </div>
@@ -537,7 +526,7 @@ function loadCart() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', promoIdx: 0 };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle' };
 
   get data() {
     const d = this.state.doc;
@@ -553,101 +542,6 @@ class Component extends DCLogic {
     const d = this.state.doc;
     if (!d) return [];
     return d.products.filter(p => p.featured && !p.out);
-  }
-
-  promoTrack = (el) => {
-    this._promoTrack = el;
-    this._sizePromoSpacer();
-    if (el && !el.__dragBound) { el.__dragBound = true; this._bindPromoDrag(el); }
-  };
-
-  /* touch-action + scroll-snap deveriam bastar pro navegador entender "gesto
-     horizontal é meu, vertical eu devolvo pra página" sozinho — mas isso tem
-     bugs conhecidos e antigos em navegadores móveis (sobretudo Safari/iOS)
-     que travam o gesto no scroller horizontal de qualquer forma, mesmo com
-     tudo configurado certo. Aqui a decisão deixa de ser do navegador: com
-     touch-action:none no trilho, ele nunca rola nada sozinho, e este código
-     decide na mão se o arrasto é horizontal (rola o carrossel) ou vertical
-     (rola a página) a partir da direção real do primeiro movimento. */
-  _bindPromoDrag(el) {
-    var startX = 0, startY = 0, startScrollLeft = 0, startWinY = 0, axis = null, dragged = false;
-    var THRESHOLD = 8;
-
-    var onMove = (e) => {
-      var dx = e.clientX - startX, dy = e.clientY - startY;
-      if (axis === null) {
-        if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) return;
-        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-        dragged = true;
-      }
-      if (axis === 'x') {
-        el.scrollLeft = startScrollLeft - dx;
-      } else {
-        window.scrollTo(0, startWinY - dy);
-      }
-    };
-
-    var onUp = () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-      if (axis === 'x') {
-        // Encaixa no card mais próximo de onde soltou, como o scroll-snap faria.
-        var closest = 0, min = Infinity;
-        Array.from(el.children).forEach((c, i) => {
-          var d = Math.abs(c.offsetLeft - 18 - el.scrollLeft);
-          if (d < min) { min = d; closest = i; }
-        });
-        this._scrollPromoTo(closest);
-      }
-      if (dragged) {
-        // Um arrasto de verdade não deve também abrir a ficha do produto —
-        // engole só o próximo clique, que é o que o soltar do dedo dispara.
-        // O timeout é a rede de segurança: se nenhum clique vier (o mais
-        // comum depois de um arrasto), o listener não pode ficar pendurado
-        // pra sempre e engolir um clique de outra hora sem relação nenhuma.
-        var swallow = (e) => { e.stopPropagation(); e.preventDefault(); cleanup(); };
-        var cleanup = () => { el.removeEventListener('click', swallow, true); clearTimeout(swallowTimer); };
-        var swallowTimer = setTimeout(cleanup, 400);
-        el.addEventListener('click', swallow, true);
-      }
-    };
-
-    el.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse' && e.button !== 0) return;
-      cancelAnimationFrame(this._promoAnimId);
-      startX = e.clientX; startY = e.clientY;
-      startScrollLeft = el.scrollLeft; startWinY = window.scrollY;
-      axis = null; dragged = false;
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
-      window.addEventListener('pointercancel', onUp);
-    });
-  }
-
-  promoSpacer = (el) => {
-    this._promoSpacer = el;
-    this._sizePromoSpacer();
-  };
-
-  /* Com poucos cards (2-4), a largura total do carrossel quase cabe na tela
-     inteira — sobra pouquíssimo espaço de rolagem (scrollWidth-clientWidth),
-     então o scroll-snap trava perto do início: as setas "‹›" e o arrasto com
-     o dedo param de se mover bem antes de conseguir isolar os últimos cards.
-     Este espaçador invisível no fim do trilho garante scroll de sobra pra
-     qualquer card conseguir chegar alinhado ao início da tela, não importa
-     quantos cards existam ou a largura da tela. */
-  _sizePromoSpacer() {
-    /* Os refs de track/spacer disparam durante a criação dos nós, antes de o
-       elemento estar de fato inserido no documento — clientWidth ainda daria
-       0 aqui. requestAnimationFrame adia pro próximo frame, já com o layout
-       real aplicado. */
-    requestAnimationFrame(() => {
-      const track = this._promoTrack, spacer = this._promoSpacer;
-      if (!track || !spacer) return;
-      const CARD_W = 154; // precisa bater com o width do .card no template acima
-      spacer.style.width = Math.max(0, track.clientWidth - CARD_W) + 'px';
-    });
   }
 
   /* Arrastar a alça pra baixo fecha a ficha/carrinho — segue o dedo em tempo
@@ -677,55 +571,6 @@ class Component extends DCLogic {
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
     window.addEventListener('pointercancel', onUp);
-  };
-
-  _scrollPromoTo(i) {
-    const el = this._promoTrack;
-    if (!el || !el.children[i]) return;
-    this._animatePromoScroll(el.children[i].offsetLeft - 18);
-    this.setState({ promoIdx: i });
-  }
-
-  /* Anima o scroll do carrossel de promoções na mão, em vez de
-     scrollTo({behavior:'smooth'}) — chamado de novo antes da animação
-     anterior terminar (clicar em ‹› rápido demais, por exemplo), o smooth
-     nativo simplesmente descarta a chamada nova e o carrossel para de
-     responder. Aqui sempre cancela a animação anterior antes de iniciar a
-     próxima; ease-in-out cúbico pra a transição ficar suave nas duas pontas. */
-  _animatePromoScroll(target) {
-    const el = this._promoTrack;
-    if (!el) return;
-    cancelAnimationFrame(this._promoAnimId);
-    const start = el.scrollLeft, dist = target - start;
-    if (Math.abs(dist) < 1) return;
-    const duration = 420, t0 = performance.now();
-    const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-    const step = (now) => {
-      const t = Math.min(1, (now - t0) / duration);
-      el.scrollLeft = start + dist * ease(t);
-      if (t < 1) this._promoAnimId = requestAnimationFrame(step);
-    };
-    this._promoAnimId = requestAnimationFrame(step);
-  }
-
-  onPromoScroll = (e) => {
-    const el = e.target;
-    let closest = 0, min = Infinity;
-    Array.from(el.children).forEach((c, i) => {
-      const dist = Math.abs(c.offsetLeft - 18 - el.scrollLeft);
-      if (dist < min) { min = dist; closest = i; }
-    });
-    if (closest !== this.state.promoIdx) this.setState({ promoIdx: closest });
-  };
-
-  promoPrev = () => {
-    const n = this.promoItems.length;
-    this._scrollPromoTo((this.state.promoIdx - 1 + n) % n);
-  };
-
-  promoNext = () => {
-    const n = this.promoItems.length;
-    this._scrollPromoTo((this.state.promoIdx + 1) % n);
   };
 
   extrasFor(it) {
@@ -784,8 +629,6 @@ class Component extends DCLogic {
       window.addEventListener('storage', this._storage);
     };
     boot();
-    this._onResize = () => this._sizePromoSpacer();
-    window.addEventListener('resize', this._onResize);
   }
 
 
@@ -824,8 +667,6 @@ class Component extends DCLogic {
     clearInterval(this._poll);
     if (this._vis) document.removeEventListener('visibilitychange', this._vis);
     if (this._storage) window.removeEventListener('storage', this._storage);
-    if (this._onResize) window.removeEventListener('resize', this._onResize);
-    cancelAnimationFrame(this._promoAnimId);
   }
 
   fmt(v) { return 'R$ ' + v.toFixed(2).replace('.', ','); }
@@ -1129,12 +970,6 @@ class Component extends DCLogic {
       onOpen: () => this.openItem(p, (this.data.find(g => g.items.some(it => it.id === p.id)) || {}).name),
       onAdd: e => { e.stopPropagation(); this.quickAdd(p); }
     }));
-    const promoIdx = Math.min(s.promoIdx, Math.max(0, promos.length - 1));
-    const promoDots = promos.map((_, i) => ({
-      onClick: () => this._scrollPromoTo(i),
-      style: 'padding:0;border:none;cursor:pointer;border-radius:999px;transition:width .2s;' +
-        (i === promoIdx ? 'width:16px;height:6px;background:var(--brand-2)' : 'width:6px;height:6px;background:var(--color-neutral-300)')
-    }));
     const extras = open ? this.extrasFor(open) : [];
     const addons = extras.map(a => ({
       name: a.name, priceLabel: '+ ' + fmt(a.price), mark: s.sel[a.name] ? '✓' : '',
@@ -1219,8 +1054,7 @@ class Component extends DCLogic {
       },
       tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle,
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
-      promos: promos, promoDots: promoDots, promoTrack: this.promoTrack, promoSpacer: this.promoSpacer,
-      promoPrev: this.promoPrev, promoNext: this.promoNext, onPromoScroll: this.onPromoScroll,
+      promos: promos,
       opts: opts,
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, photoUrl: open.photo || '' } : null,
       sheetA: !!open && V === 'Compacta', sheetB: !!open && V === 'Foto grande',
