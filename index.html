@@ -191,7 +191,7 @@ a:hover{color:var(--color-accent-300)}
       <button onClick="{{ promoPrev }}" aria-label="Anterior" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">‹</button>
       <button onClick="{{ promoNext }}" aria-label="Próxima" style="width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;line-height:1;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--color-accent)">›</button>
     </div>
-    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:pan-x">
+    <div ref="{{ promoTrack }}" onScroll="{{ onPromoScroll }}" class="noscroll" style="display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 18px 8px;overscroll-behavior-x:contain;touch-action:pan-x">
       <sc-for list="{{ promos }}" as="p" hint-placeholder-count="3">
         <div onClick="{{ p.onOpen }}" class="card elev-sm" style="width:132px;flex:none;scroll-snap-align:start;padding:0;overflow:hidden;cursor:pointer;gap:0;background:var(--color-surface)">
           <div style="position:relative">
