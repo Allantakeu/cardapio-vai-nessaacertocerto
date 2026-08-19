@@ -147,23 +147,25 @@ a:hover{color:var(--color-accent-300)}
         </div>
       </div>
       <div style="min-width:0;flex:1;padding-bottom:2px">
-        <div class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--gold-ink)">
-          <span style="width:5px;height:5px;border-radius:50%;background:var(--gold-ink)"></span>Adega
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="eyebrow" style="display:flex;align-items:center;gap:7px;color:var(--gold-ink)">
+            <span style="width:5px;height:5px;border-radius:50%;background:var(--gold-ink)"></span>Adega
+          </div>
+          <div style="flex:none;display:flex;gap:6px">
+            <a href="{{ mapHref }}" target="_blank" rel="noopener" aria-label="Localização da adega" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            </a>
+            <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+            </a>
+            <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </button>
+          </div>
         </div>
         <div style="font-family:var(--font-heading);font-weight:700;font-size:25px;line-height:1.08;letter-spacing:-.03em;margin-top:11px;color:var(--color-text);text-wrap:balance">
           <span style="color:var(--gold-ink)">{{ storeNamePart1 }}</span> <span style="color:var(--brand-2-text)">{{ storeNamePart2 }}</span>
         </div>
-      </div>
-      <div style="flex:none;display:flex;gap:6px;padding-bottom:4px">
-        <a href="{{ mapHref }}" target="_blank" rel="noopener" aria-label="Localização da adega" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-        </a>
-        <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-        </a>
-        <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
-        </button>
       </div>
     </div>
     <div class="desc" style="margin-top:12px;line-height:1.55">{{ tagline }}</div>
