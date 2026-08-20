@@ -1210,14 +1210,20 @@ class Component extends DCLogic {
         }
         if (missing.length) return this.showToast('Falta preencher ' + missing.join(', ') + '.');
         if (window.VN) {
+          /* Link só pro painel juntar cada linha de venda ("sale") ao pedido
+             ("order") que a gerou — sem isso, cancelar um pedido tirava ele
+             do faturamento mas as vendas dele continuavam contando em
+             "mais vendidos" e no custo da aba Lucro. */
+          const orderKey = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
           VN.track('order', {
             product: null, qty: count, total: subtotal + feeVal,
             detail: {
               nome: s.nome, telefone: s.telefone, endereco: this.fullAddress(), mode: s.mode,
-              itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty }))
+              itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty })),
+              orderKey: orderKey
             }
           });
-          s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty }));
+          s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty, detail: { orderKey: orderKey } }));
         }
         this.setState({ done: true, cartOpen: false, msg: this.buildMsg(subtotal, feeVal) });
       },

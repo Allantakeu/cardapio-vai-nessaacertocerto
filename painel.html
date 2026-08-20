@@ -1404,6 +1404,25 @@ class Component extends DCLogic {
        aparecendo normalmente na lista da aba Pedidos). */
     const orderStatusMap = doc.orderStatus || {};
     const orderKeyOf = (e, i) => e.id != null ? String(e.id) : String(e.ts) + '-' + i;
+    const parseDetail = e => {
+      let det = e.detail;
+      if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
+      return det || {};
+    };
+    /* O evento "sale" (uma linha do carrinho) não tem status próprio — só o
+       evento "order" (o pedido inteiro) tem. Pra excluir os itens de um
+       pedido cancelado também da contagem de unidades/mais vendidos/custo
+       (não só do faturamento do "order"), correlaciona os dois pelo
+       detail.orderKey que o cardápio grava nos dois eventos no mesmo envio.
+       Eventos antigos (de antes dessa correlação existir) não têm orderKey
+       — continuam contados como antes, não dá pra corrigir retroativamente. */
+    const cancelledOrderKeys = {};
+    (s.events || []).forEach((e, i) => {
+      if (e.type !== 'order') return;
+      if (orderStatusMap[orderKeyOf(e, i)] !== 'cancelado') return;
+      const ok = parseDetail(e).orderKey;
+      if (ok) cancelledOrderKeys[ok] = true;
+    });
     const clickBy = {}, saleQty = {}, saleRev = {};
     let totalClicks = 0, totalOrders = 0, totalRevenue = 0, totalUnits = 0;
     const periodPhones = {};
@@ -1422,12 +1441,12 @@ class Component extends DCLogic {
         totalOrders++;
         totalRevenue += Number(e.total) || 0;
         if (b) { b.orders++; b.revenue += Number(e.total) || 0; }
-        let det = e.detail;
-        if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
-        det = det || {};
+        const det = parseDetail(e);
         const digits = String(det.telefone || '').replace(/\D/g, '');
         if (digits.length >= 10) periodPhones[digits] = (periodPhones[digits] || 0) + 1;
       } else if (e.type === 'sale') {
+        const saleOrderKey = parseDetail(e).orderKey;
+        if (saleOrderKey && cancelledOrderKeys[saleOrderKey]) return;
         const n = e.product || '—';
         const q = Number(e.qty) || 1;
         totalUnits += q;
@@ -1716,9 +1735,17 @@ class Component extends DCLogic {
       const base = baseProductName(name);
       saleQtyByProduct[base] = (saleQtyByProduct[base] || 0) + saleQty[name];
     });
+    /* Duas ou mais entradas do catálogo podem ter o mesmo nome de propósito
+       (ex: "Mais vendidos" repete produto de outra coleção) — o evento de
+       venda só grava o nome, não o id, então não dá pra saber de qual
+       entrada exata veio. Usa a média do custo entre as entradas com esse
+       nome em vez de pegar a primeira (que ficaria errada se só uma delas
+       tiver o custo atualizado). */
     const periodCost = Object.keys(saleQtyByProduct).reduce((sum, name) => {
-      const p = doc.products.find(pp => pp.name === name);
-      return sum + (p ? (this.num(p.cost) || 0) * saleQtyByProduct[name] : 0);
+      const matches = doc.products.filter(pp => pp.name === name);
+      const costs = matches.map(pp => this.num(pp.cost)).filter(c => c > 0);
+      const avgCost = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
+      return sum + avgCost * saleQtyByProduct[name];
     }, 0);
     const productsMissingCost = doc.products.filter(p => saleQtyByProduct[p.name] && !this.num(p.cost)).length;
     const periodLucro = totalRevenue - periodCost;
