@@ -850,6 +850,7 @@
             <div class="card">
               <h2 class="h2">Sugestões junto</h2>
               <p style="font-size:12px;color:var(--mut);margin:5px 0 10px">Aparecem na ficha deste produto na vitrine.</p>
+              <input class="fld" value="{{ ed.upsellQ }}" onChange="{{ ed.onUpsellQ }}" placeholder="Buscar produto..." style="margin-bottom:10px">
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <sc-for list="{{ ed.upsellOpts }}" as="u" hint-placeholder-count="4">
                   <button class="pill" onClick="{{ u.onToggle }}" style="{{ u.style }}">{{ u.label }}</button>
@@ -1074,7 +1075,7 @@ const THEMES = {
 class Component extends DCLogic {
   state = {
     locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, doc: null, events: [], theme: 'claro',
-    view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', mobileSearchOpen: false, adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
+    view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', mobileSearchOpen: false, upsellQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
     cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {},
     calcProdId: '', calcQty: 1, calcVenda: 0, calcCusto: 0, calcEmbalagem: 0, calcEntregador: 0, calcOutros: 0
@@ -1210,7 +1211,7 @@ class Component extends DCLogic {
       : '';
   }
 
-  pickProduct(id, catId) { this.setState({ view: 'prod', prodId: id, catId: catId, confirmDel: false, raw: {}, topQ: '' }); }
+  pickProduct(id, catId) { this.setState({ view: 'prod', prodId: id, catId: catId, confirmDel: false, raw: {}, topQ: '', upsellQ: '' }); }
 
   addProduct(catId) {
     const id = VN.uid();
@@ -1601,16 +1602,22 @@ class Component extends DCLogic {
           onRemove: () => set(t => { t.flavors.splice(i, 1); })
         })),
         onAddFlavor: () => set(t => { t.flavors = (t.flavors || []).concat(['']); }),
-        upsellOpts: doc.products.filter(x => x.id !== p.id).slice(0, 40).map(x => {
-          const on = (p.upsell || []).indexOf(x.id) >= 0;
-          return {
-            label: x.name, style: this.chipStyle(on),
-            onToggle: () => set(t => {
-              const list = t.upsell || [];
-              t.upsell = on ? list.filter(id => id !== x.id) : list.concat([x.id]);
-            })
-          };
-        }),
+        upsellQ: s.upsellQ || '',
+        onUpsellQ: e => this.setState({ upsellQ: e.target.value }),
+        upsellOpts: (() => {
+          const q = (s.upsellQ || '').trim().toLowerCase();
+          const pool = doc.products.filter(x => x.id !== p.id && (!q || x.name.toLowerCase().includes(q)));
+          return pool.slice(0, q ? 60 : 40).map(x => {
+            const on = (p.upsell || []).indexOf(x.id) >= 0;
+            return {
+              label: x.name, style: this.chipStyle(on),
+              onToggle: () => set(t => {
+                const list = t.upsell || [];
+                t.upsell = on ? list.filter(id => id !== x.id) : list.concat([x.id]);
+              })
+            };
+          });
+        })(),
         outStyle: this.chipStyle(p.out), featStyle: this.chipStyle(p.featured),
         onToggleOut: () => set(t => { t.out = !t.out; }),
         onToggleFeatured: () => set(t => { t.featured = !t.featured; }),
