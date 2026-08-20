@@ -707,7 +707,9 @@
       <div>
         <div style="display:flex;align-items:center;gap:12px">
           <div style="flex:1;min-width:0">
-            <p style="font-size:12px;color:var(--mut);margin:0">Coleção</p>
+            <button onClick="{{ onOpenColecoes }}" style="display:flex;align-items:center;gap:4px;cursor:pointer;background:transparent;border:0;padding:0;font-size:12px;color:var(--mut)">
+              <span>← Coleções</span>
+            </button>
             <input value="{{ catName }}" onChange="{{ onRenameCat }}" class="inline" style="margin-top:2px;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-.015em">
           </div>
           <button class="btnp" onClick="{{ onAddHere }}" style="flex:none">+ Produto</button>
@@ -1379,8 +1381,7 @@ class Component extends DCLogic {
     const orderKeyOf = (e, i) => e.id != null ? String(e.id) : String(e.ts) + '-' + i;
     const clickBy = {}, saleQty = {}, saleRev = {};
     let totalClicks = 0, totalOrders = 0, totalRevenue = 0, totalUnits = 0;
-    let entregaCount = 0, retiradaCount = 0;
-    const periodPhones = {}, hourCounts = {};
+    const periodPhones = {};
     (s.events || []).forEach((e, i) => {
       const t = new Date(e.ts).getTime();
       if (!t || t < cutoff) return;
@@ -1399,11 +1400,8 @@ class Component extends DCLogic {
         let det = e.detail;
         if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
         det = det || {};
-        if ((det.mode || 'entrega') === 'entrega') entregaCount++; else retiradaCount++;
         const digits = String(det.telefone || '').replace(/\D/g, '');
         if (digits.length >= 10) periodPhones[digits] = (periodPhones[digits] || 0) + 1;
-        const hr = new Date(t).getHours();
-        hourCounts[hr] = (hourCounts[hr] || 0) + 1;
       } else if (e.type === 'sale') {
         const n = e.product || '—';
         const q = Number(e.qty) || 1;
@@ -1414,11 +1412,6 @@ class Component extends DCLogic {
     });
     const ticketMedio = totalOrders ? totalRevenue / totalOrders : 0;
     const recurringCount = Object.values(periodPhones).filter(n => n > 1).length;
-    let peakHour = null, peakHourCount = 0;
-    Object.keys(hourCounts).forEach(h => { if (hourCounts[h] > peakHourCount) { peakHourCount = hourCounts[h]; peakHour = Number(h); } });
-    const peakHourLabel = peakHour != null ? (String(peakHour).padStart(2, '0') + 'h–' + String((peakHour + 1) % 24).padStart(2, '0') + 'h') : '—';
-    const entregaRetiradaTotal = entregaCount + retiradaCount;
-    const entregaPct = entregaRetiradaTotal ? Math.round((entregaCount / entregaRetiradaTotal) * 100) : 0;
 
     const maxClicks = Math.max(1, ...slots.map(x => buckets[x.key].clicks));
     const maxOrders = Math.max(1, ...slots.map(x => buckets[x.key].orders));
@@ -1450,9 +1443,7 @@ class Component extends DCLogic {
       { label: 'Faturamento', value: fmt(totalRevenue), dotStyle: 'display:none' },
       { label: 'Conversão', value: totalClicks ? Math.round((totalOrders / totalClicks) * 100) + '%' : '—', dotStyle: 'display:none' },
       { label: 'Ticket médio', value: totalOrders ? fmt(ticketMedio) : '—', dotStyle: 'display:none' },
-      { label: 'Clientes recorrentes', value: String(recurringCount), dotStyle: 'width:9px;height:9px;border-radius:2px;background:#2fb673' },
-      { label: 'Horário de pico', value: peakHourLabel, dotStyle: 'display:none' },
-      { label: 'Entrega x retirada', value: entregaRetiradaTotal ? entregaPct + '% entrega' : '—', dotStyle: 'display:none' }
+      { label: 'Clientes recorrentes', value: String(recurringCount), dotStyle: 'width:9px;height:9px;border-radius:2px;background:#2fb673' }
     ];
 
     const dt = v => {
@@ -1795,7 +1786,7 @@ class Component extends DCLogic {
       isAjustes: !topQ && s.view === 'ajustes', isConexao: !topQ && s.view === 'conexao',
       isPedidos: !topQ && s.view === 'pedidos', isVitrine: !topQ && s.view === 'vitrine',
       isDisparo: !topQ && s.view === 'disparo', isColecoes: !topQ && s.view === 'colecoes',
-      colecoesStyle: this.navStyle(!topQ && s.view === 'colecoes'),
+      colecoesStyle: this.navStyle(!topQ && (s.view === 'colecoes' || s.view === 'cat' || s.view === 'prod')),
       onOpenColecoes: () => this.setState({ view: 'colecoes', topQ: '', colQ: '' }),
       colQ: s.colQ || '', onColQ: e => this.setState({ colQ: e.target.value }),
       colRows: colRows, noColRows: colRows.length === 0,
