@@ -319,11 +319,15 @@ a:hover{color:var(--color-accent-300)}
         <div style="padding-top:14px">
           <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
           <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
-            <label onClick="{{ ad.onToggle }}" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px">
-              <span style="{{ ad.boxStyle }}">{{ ad.mark }}</span>
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
               <span style="flex:1">{{ ad.name }}</span>
               <span style="color:var(--color-neutral-400);font-size:12.5px">{{ ad.priceLabel }}</span>
-            </label>
+              <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                <button class="btn btn-ghost" onClick="{{ ad.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
+                <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ ad.qty }}</span>
+                <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px">+</button>
+              </div>
+            </div>
           </sc-for>
         </div>
       </sc-if>
@@ -383,11 +387,17 @@ a:hover{color:var(--color-accent-300)}
         <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:18px">
             <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
-            <div style="display:flex;flex-wrap:wrap;gap:8px">
-              <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
-                <button onClick="{{ ad.onToggle }}" style="{{ ad.chipStyle }}">{{ ad.chipLabel }}</button>
-              </sc-for>
-            </div>
+            <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
+                <span style="flex:1">{{ ad.name }}</span>
+                <span style="color:var(--color-neutral-400);font-size:12.5px">{{ ad.priceLabel }}</span>
+                <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                  <button class="btn btn-ghost" onClick="{{ ad.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
+                  <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ ad.qty }}</span>
+                  <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px">+</button>
+                </div>
+              </div>
+            </sc-for>
           </div>
         </sc-if>
         <div class="field" style="padding-top:18px">
@@ -739,7 +749,7 @@ class Component extends DCLogic {
   unitOf(it, sel, opt) {
     const list = this.extrasFor(it);
     const o = this.optsOf(it)[opt] || this.optsOf(it)[0];
-    return o.price + list.reduce((t, a) => t + (sel[a.name] ? a.price : 0), 0);
+    return o.price + list.reduce((t, a) => t + (sel[a.name] || 0) * a.price, 0);
   }
 
   bump(i, d) {
@@ -1003,13 +1013,9 @@ class Component extends DCLogic {
     }));
     const extras = open ? this.extrasFor(open) : [];
     const addons = extras.map(a => ({
-      name: a.name, priceLabel: '+ ' + fmt(a.price), mark: s.sel[a.name] ? '✓' : '',
-      chipLabel: a.name + ' · ' + fmt(a.price),
-      chipStyle: pill + 'font-size:12.5px;' + (s.sel[a.name] ? onSt : offSt),
-      boxStyle: 'width:19px;height:19px;flex:none;border-radius:5px;display:grid;place-items:center;font-size:11px;' + (s.sel[a.name]
-        ? 'border:1px solid var(--color-accent);background:rgba(216,27,132,.16);color:var(--color-accent)'
-        : 'border:1px solid var(--line);color:transparent'),
-      onToggle: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = !sel[a.name]; return { sel: sel }; })
+      name: a.name, priceLabel: '+ ' + fmt(a.price), qty: s.sel[a.name] || 0, hasQty: (s.sel[a.name] || 0) > 0,
+      onInc: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = (sel[a.name] || 0) + 1; return { sel: sel }; }),
+      onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = Math.max(0, (sel[a.name] || 0) - 1); return { sel: sel }; })
     }));
     const optList = open ? this.optsOf(open) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
@@ -1103,7 +1109,7 @@ class Component extends DCLogic {
       inc: () => this.setState(st => ({ qty: st.qty + 1 })),
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
       addToCart: () => this.setState(st => ({
-        cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.name]).map(a => a.name), photo: open.photo || '', pid: open.id }]),
+        cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.name] > 0).map(a => (st.sel[a.name] > 1 ? st.sel[a.name] + 'x ' : '') + a.name), photo: open.photo || '', pid: open.id }]),
         open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name, addedLineIndex: st.cart.length
       })),
       closeSheet: () => this.setState({ open: null, cartOpen: false, added: '' }),
