@@ -688,7 +688,12 @@
                   <svg class="ico" viewBox="0 0 24 24" style="width:15px;height:15px;opacity:.5"><path d="M20.6 13.4 12 22l-9-9V4h9z"></path><circle cx="8" cy="8" r="1.4"></circle></svg>
                 </sc-if>
               </button>
-              <button class="inline" onClick="{{ c.onOpen }}" style="flex:1;min-width:0;text-align:left;cursor:pointer;background:transparent;font-family:var(--font-heading);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</button>
+              <button class="inline" onClick="{{ c.onOpen }}" style="flex:1;min-width:0;text-align:left;cursor:pointer;background:transparent;padding:4px 8px">
+                <span style="display:block;font-family:var(--font-heading);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                <sc-if value="{{ c.matchNote }}" hint-placeholder-val="{{ false }}">
+                  <span style="display:block;font-size:11.5px;color:var(--acc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px">{{ c.matchNote }}</span>
+                </sc-if>
+              </button>
               <span class="num" style="flex:none;font-size:12px;color:var(--mut)">{{ c.countLabel }}</span>
               <div style="display:flex;gap:3px;flex:none">
                 <button class="mini" onClick="{{ c.onUp }}" title="Subir" style="{{ c.upStyle }}">↑</button>
@@ -1341,16 +1346,23 @@ class Component extends DCLogic {
         .map((c, ci) => {
           const items = this.prodsOf(doc, c.id);
           const withPhoto = items.find(p => p.photo);
+          const nameMatch = !q || c.name.toLowerCase().includes(q);
+          /* Busca também pelo produto — não só pelo título da coleção — pra
+             achar "em qual coleção está o produto X" sem precisar abrir uma
+             por uma. */
+          const matchedProduct = !nameMatch && q ? items.find(p => p.name.toLowerCase().includes(q)) : null;
           return {
             id: c.id, name: c.name, countLabel: items.length + (items.length === 1 ? ' produto' : ' produtos'),
             photo: withPhoto ? withPhoto.photo : '', noPhoto: !withPhoto,
+            matched: nameMatch || !!matchedProduct,
+            matchNote: matchedProduct ? 'Contém "' + matchedProduct.name + '"' : '',
             onOpen: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
             upStyle: ci === 0 ? 'opacity:.3;pointer-events:none' : '',
             downStyle: ci === doc.categories.length - 1 ? 'opacity:.3;pointer-events:none' : '',
             onUp: () => this.moveCategory(c.id, -1), onDown: () => this.moveCategory(c.id, 1)
           };
         })
-        .filter(c => !q || c.name.toLowerCase().includes(q));
+        .filter(c => c.matched);
     })();
 
     /* ——— dashboard ——— */
@@ -1521,7 +1533,8 @@ class Component extends DCLogic {
     }).filter(x => x.count > 0);
 
     const byPhone = {};
-    (s.events || []).filter(e => e.type === 'order').forEach(e => {
+    (s.events || []).filter(e => e.type === 'order').forEach((e, i) => {
+      if (orderStatusMap[orderKeyOf(e, i)] === 'cancelado') return;
       let det = e.detail;
       if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
       det = det || {};
