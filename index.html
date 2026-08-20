@@ -894,14 +894,14 @@ class Component extends DCLogic {
     }).catch(() => null);
   }
 
-  /* Arredonda o frete pra um valor redondo em vez de centavos exatos:
-     menos de 25 centavos cai pro real cheio, 25 a 69 vira ",50", 70+ sobe pro próximo real. */
   showToast(msg) {
     clearTimeout(this._toastTimer);
     this.setState({ toast: msg });
     this._toastTimer = setTimeout(() => this.setState({ toast: '' }), 2600);
   }
 
+  /* Arredonda o frete pra um valor redondo em vez de centavos exatos:
+     menos de 25 centavos cai pro real cheio, 25 a 69 vira ",50", 70+ sobe pro próximo real. */
   roundFee(v) {
     const whole = Math.floor(v);
     const cents = Math.round((v - whole) * 100);
