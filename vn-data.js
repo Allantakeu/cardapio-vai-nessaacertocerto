@@ -218,6 +218,18 @@
     });
   }
 
+  /* Pergunta pro banco se esse telefone já usou esse cupom antes — roda numa
+     function do Postgres (security definer) que só devolve true/false, então
+     o cardápio nunca vê pedido/nome/endereço de outro cliente. Se a function
+     ainda não existir (dono não rodou o SQL novo) ou o Supabase não estiver
+     conectado, assume que não foi usado — não trava o checkout por isso. */
+  function couponUsed(phone, code) {
+    if (!connected() || !code || !phone) return Promise.resolve(false);
+    return api('rpc/check_coupon_used', { method: 'POST', body: { p_phone: phone, p_code: code } })
+      .then(function (used) { return !!used; })
+      .catch(function () { return false; });
+  }
+
   function load() {
     if (!connected()) return Promise.resolve({ doc: normalize(localDoc() || seed()), source: 'local' });
     return api('vn_catalog?id=eq.main&select=data')
@@ -378,7 +390,7 @@
   window.VN = {
     cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save,
     seed: seed, uid: uid, fmt: fmt, normalize: normalize, track: track, events: events,
-    uploadPhoto: uploadPhoto,
+    uploadPhoto: uploadPhoto, couponUsed: couponUsed,
     signIn: signIn, signOut: signOut, authed: authed, getSession: getSession,
     sql: [
       '-- Cardápio: leitura pública (só a linha \'main\'), escrita só autenticada.',
@@ -423,7 +435,28 @@
       "create policy vn_photos_public_read on storage.objects for select to anon, authenticated using (bucket_id = 'vn-photos');",
       "create policy vn_photos_owner_insert on storage.objects for insert to authenticated with check (bucket_id = 'vn-photos');",
       "create policy vn_photos_owner_update on storage.objects for update to authenticated using (bucket_id = 'vn-photos') with check (bucket_id = 'vn-photos');",
-      "create policy vn_photos_owner_delete on storage.objects for delete to authenticated using (bucket_id = 'vn-photos');"
+      "create policy vn_photos_owner_delete on storage.objects for delete to authenticated using (bucket_id = 'vn-photos');",
+      '',
+      '-- Cupom de desconto: limita a 1 uso por número de WhatsApp. A checagem',
+      '-- roda no servidor (não dá pra confiar no navegador do cliente) e só',
+      '-- devolve verdadeiro/falso — nunca expõe pedido, nome ou endereço de',
+      '-- ninguém pra quem chama a função.',
+      'create or replace function public.check_coupon_used(p_phone text, p_code text)',
+      'returns boolean',
+      'language sql',
+      'security definer',
+      'set search_path = public',
+      'as $$',
+      '  select exists (',
+      '    select 1 from vn_events',
+      "    where type = 'order'",
+      "      and regexp_replace(coalesce(detail->>'telefone', ''), '\\D', '', 'g') = regexp_replace(coalesce(p_phone, ''), '\\D', '', 'g')",
+      "      and upper(coalesce(detail->>'cupom', '')) = upper(coalesce(p_code, ''))",
+      "      and coalesce(detail->>'telefone', '') <> ''",
+      "      and coalesce(p_code, '') <> ''",
+      '  );',
+      '$$;',
+      'grant execute on function public.check_coupon_used(text, text) to anon, authenticated;'
     ].join('\n')
   };
 })();
