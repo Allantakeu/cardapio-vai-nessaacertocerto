@@ -667,6 +667,31 @@
               </div>
             </div>
 
+            <div class="card">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+                <h2 class="h2">Cupom de desconto</h2>
+                <button class="pill" onClick="{{ onToggleCoupon }}" style="{{ couponActiveStyle }}">{{ couponActiveLabel }}</button>
+              </div>
+              <div class="grid2" style="margin-top:12px">
+                <div>
+                  <span class="lbl">Código</span>
+                  <input class="fld" value="{{ st.couponCode }}" onChange="{{ onCouponCode }}" placeholder="ex: BEMVINDO10" style="text-transform:uppercase">
+                </div>
+                <div>
+                  <span class="lbl">Tipo</span>
+                  <select class="fld" value="{{ st.couponType }}" onChange="{{ onCouponType }}">
+                    <option value="percent">Percentual (%)</option>
+                    <option value="fixed">Valor fixo (R$)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top:12px">
+                <span class="lbl">{{ couponValueLabel }}</span>
+                <input class="fld num" inputmode="decimal" value="{{ st.couponValue }}" onChange="{{ onCouponValue }}" style="max-width:170px">
+              </div>
+              <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:10px 0 0">Só aparece pro cliente no carrinho quando estiver Ativo. Bom pra primeira compra ou indicação de amigo — o desconto entra só nos produtos, não no frete.</p>
+            </div>
+
           </div>
 
           <div class="card vitrinePreview" style="padding:14px;position:sticky;top:60px">
@@ -2041,12 +2066,21 @@ class Component extends DCLogic {
         deliveryFee: this.rawGet('deliveryFee', st.deliveryFee),
         freeAbove: this.rawGet('freeAbove', st.freeAbove || 0),
         kmDelivery: st.kmDelivery !== false,
-        pricePerKm: this.rawGet('pricePerKm', st.pricePerKm != null ? st.pricePerKm : 4)
+        pricePerKm: this.rawGet('pricePerKm', st.pricePerKm != null ? st.pricePerKm : 4),
+        couponActive: !!st.couponActive, couponCode: st.couponCode || '', couponType: st.couponType === 'fixed' ? 'fixed' : 'percent',
+        couponValue: this.rawGet('couponValue', st.couponValue || 0)
       },
       kmLabel: st.kmDelivery !== false ? 'Ativado' : 'Desativado',
       kmStyle: this.chipStyle(st.kmDelivery !== false),
       onToggleKm: () => this.mutate(d => { d.settings.kmDelivery = d.settings.kmDelivery === false; }),
       onPricePerKm: e => this.rawSet('pricePerKm', e.target.value, n => this.mutate(d => { d.settings.pricePerKm = n; })),
+      couponActiveLabel: st.couponActive ? 'Ativo' : 'Inativo',
+      couponActiveStyle: this.chipStyle(!!st.couponActive),
+      onToggleCoupon: () => this.mutate(d => { d.settings.couponActive = !d.settings.couponActive; }),
+      onCouponCode: e => { const v = e.target.value.toUpperCase(); this.mutate(d => { d.settings.couponCode = v; }); },
+      onCouponType: e => { const v = e.target.value; this.mutate(d => { d.settings.couponType = v; }); },
+      onCouponValue: e => this.rawSet('couponValue', e.target.value, n => this.mutate(d => { d.settings.couponValue = n; })),
+      couponValueLabel: st.couponType === 'fixed' ? 'Valor do desconto (R$)' : 'Valor do desconto (%)',
       onWhats: stF('whatsapp'), onAddress: stF('address'), onHours: stF('hours'),
       onMinutes: stF('minutes'), onInsta: stF('instagram'), onPin: stF('pin'),
       onStoreName: stF('storeName'), onLogo: stF('logo'),

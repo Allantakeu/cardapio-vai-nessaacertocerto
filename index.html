@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="./favicon.png" type="image/png">
+<title>Vai Nessa — Adega e bebidas com entrega rápida</title>
+<meta name="description" content="Bebida trincando, combo do jeito que você gosta e entrega rápida pra não deixar o rolê parar. Peça pelo cardápio, receba em casa.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Vai Nessa">
+<meta property="og:title" content="Vai Nessa — Adega e bebidas com entrega rápida">
+<meta property="og:description" content="Bebida trincando, combo do jeito que você gosta e entrega rápida pra não deixar o rolê parar.">
+<meta property="og:image" content="https://tpcpclnrxzpsvrmgvozu.supabase.co/storage/v1/object/public/vn-photos/p1787118580115urlx7i.jpg">
+<meta property="og:url" content="https://www.vainessa.online/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Vai Nessa — Adega e bebidas com entrega rápida">
+<meta name="twitter:description" content="Bebida trincando, combo do jeito que você gosta e entrega rápida pra não deixar o rolê parar.">
+<meta name="twitter:image" content="https://tpcpclnrxzpsvrmgvozu.supabase.co/storage/v1/object/public/vn-photos/p1787118580115urlx7i.jpg">
 <script src="./support.js"></script>
 <script src="./dc-runtime.js"></script>
 </head>
@@ -521,8 +533,21 @@ a:hover{color:var(--color-accent-300)}
         </div>
       </sc-if>
 
+      <sc-if value="{{ hasCoupon }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#fff;border-radius:12px;padding:14px 14px 4px;margin-top:10px;box-shadow:0 0 0 1px rgba(23,23,27,.06)">
+          <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Cupom de desconto</div>
+          <div class="field" style="padding:10px 0 12px"><input class="input" type="text" placeholder="Código do cupom" value="{{ coupon }}" onChange="{{ onCoupon }}" style="text-transform:uppercase"></div>
+          <sc-if value="{{ couponMsg }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:12px;line-height:1.4;margin-bottom:12px;{{ couponMsgStyle }}">{{ couponMsg }}</div>
+          </sc-if>
+        </div>
+      </sc-if>
+
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px;font-size:13px">
         <div style="display:flex;justify-content:space-between;color:var(--color-neutral-400)"><span>Subtotal</span><span class="money">{{ subtotalLabel }}</span></div>
+        <sc-if value="{{ showCouponRow }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;justify-content:space-between;color:#1c8a52"><span>{{ couponRowLabel }}</span><span class="money">{{ couponDiscountLabel }}</span></div>
+        </sc-if>
         <sc-if value="{{ showFeeRow }}" hint-placeholder-val="{{ true }}">
           <div style="{{ feeRowStyle }}"><span>{{ feeName }}</span><span class="money" style="{{ feeValueStyle }}">{{ feeLabel }}</span></div>
         </sc-if>
@@ -577,7 +602,7 @@ function loadCart() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '' };
 
   get data() {
     const d = this.state.doc;
@@ -795,16 +820,19 @@ class Component extends DCLogic {
     });
   }
 
-  buildMsg(subtotal, feeVal) {
+  buildMsg(subtotal, feeVal, couponDiscount, couponCode) {
     const s = this.state, fmt = this.fmt.bind(this);
     const rows = s.cart.map(l => l.qty + 'x ' + l.name + (l.extras.length ? ' (+ ' + l.extras.join(', ') + ')' : '') + (l.obs ? ' — ' + l.obs : '') + '  ' + fmt(l.unit * l.qty));
     const out = ['*Pedido — Vai Nessa Adega*', ''].concat(rows, ['',
-      'Subtotal: ' + fmt(subtotal),
+      'Subtotal: ' + fmt(subtotal)
+    ]);
+    if (couponDiscount > 0) out.push('Cupom (' + couponCode + '): -' + fmt(couponDiscount));
+    out.push(
       (s.mode === 'entrega' ? 'Entrega: ' + fmt(feeVal) : 'Retirada na adega'),
-      'Total: ' + fmt(subtotal + feeVal), '',
+      'Total: ' + fmt(subtotal - couponDiscount + feeVal), '',
       'Nome: ' + (s.nome || '—'),
       'WhatsApp: ' + (s.telefone || '—')
-    ]);
+    );
     if (s.mode === 'entrega') out.push('Endereço: ' + (this.fullAddress() || '—'));
     return out.join('\n');
   }
@@ -1063,6 +1091,23 @@ class Component extends DCLogic {
     const subtotal = s.cart.reduce((t, l) => t + l.unit * l.qty, 0);
     const count = s.cart.reduce((t, l) => t + l.qty, 0);
     const isEntrega = s.mode === 'entrega';
+
+    const couponCode = String(cfg.couponCode || '').trim();
+    const hasCoupon = !!cfg.couponActive && !!couponCode;
+    const couponInput = (s.coupon || '').trim();
+    const couponMatch = hasCoupon && couponInput && couponInput.toUpperCase() === couponCode.toUpperCase();
+    const couponType = cfg.couponType === 'fixed' ? 'fixed' : 'percent';
+    const couponRawValue = Number(cfg.couponValue) || 0;
+    const couponDiscount = couponMatch
+      ? Math.min(subtotal, couponType === 'fixed' ? couponRawValue : subtotal * (couponRawValue / 100))
+      : 0;
+    const couponMsg = !hasCoupon || !couponInput ? ''
+      : couponMatch ? 'Cupom aplicado — ' + (couponType === 'fixed' ? '-' + fmt(couponDiscount) : '-' + couponRawValue + '%') + ' no pedido.'
+      : 'Cupom inválido.';
+    const couponMsgStyle = couponMatch
+      ? 'color:#1c8a52;background:rgba(47,182,115,.1);border-radius:8px;padding:8px 10px'
+      : 'color:var(--color-accent);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px';
+
     const freeOk = freeAbove > 0 && subtotal >= freeAbove;
     const showFeeRow = !isEntrega || s.cep.trim().length > 0;
     const feeVal = isEntrega && !freeOk && showFeeRow ? fee : 0;
@@ -1191,7 +1236,14 @@ class Component extends DCLogic {
       addr1: addrParts[0] || '', addr2: addrParts[1] || '',
       mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(address),
       upsellTitle: cfg.upsellTitle || 'Quer junto?',
-      totalLabel: fmt(subtotal + feeVal),
+      totalLabel: fmt(subtotal - couponDiscount + feeVal),
+      hasCoupon: hasCoupon,
+      coupon: s.coupon,
+      onCoupon: e => this.setState({ coupon: e.target.value }),
+      couponMsg: couponMsg, couponMsgStyle: couponMsgStyle,
+      couponRowLabel: 'Cupom (' + couponCode + ')',
+      couponDiscountLabel: '-' + fmt(couponDiscount),
+      showCouponRow: couponDiscount > 0,
       isEntrega: isEntrega,
       entregaStyle: modeBase + (isEntrega ? modeOn : offSt),
       retiradaStyle: modeBase + (isEntrega ? offSt : modeOn),
@@ -1216,20 +1268,21 @@ class Component extends DCLogic {
              "mais vendidos" e no custo da aba Lucro. */
           const orderKey = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
           VN.track('order', {
-            product: null, qty: count, total: subtotal + feeVal,
+            product: null, qty: count, total: subtotal - couponDiscount + feeVal,
             detail: {
               nome: s.nome, telefone: s.telefone, endereco: this.fullAddress(), mode: s.mode,
               itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty })),
-              orderKey: orderKey
+              orderKey: orderKey,
+              cupom: couponMatch ? couponCode : ''
             }
           });
           s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty, detail: { orderKey: orderKey } }));
         }
-        this.setState({ done: true, cartOpen: false, msg: this.buildMsg(subtotal, feeVal) });
+        this.setState({ done: true, cartOpen: false, msg: this.buildMsg(subtotal, feeVal, couponDiscount, couponCode) });
       },
       done: s.done, waMessage: s.msg,
       waHref: 'https://wa.me/' + phone + '?text=' + encodeURIComponent(s.msg || ''),
-      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '' })
+      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '' })
     };
   }
 }
