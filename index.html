@@ -74,6 +74,10 @@ a:hover{color:var(--color-accent-300)}
 @keyframes skelPulse{0%,100%{opacity:.6}50%{opacity:1}}
 .skel{background:rgba(23,23,27,.09);animation:skelPulse 1.3s ease-in-out infinite}
 @keyframes toastIn{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+@keyframes couponPop{0%{transform:scale(.92);opacity:0}70%{transform:scale(1.02);opacity:1}100%{transform:scale(1);opacity:1}}
+.couponCard{animation:couponPop .7s cubic-bezier(.2,.8,.2,1);transition:max-height .9s cubic-bezier(.4,0,.2,1),opacity .7s ease,margin-top .9s ease,padding .9s ease,transform .7s ease}
+.couponRedeemBtn{transition:transform .15s ease,background-color .15s ease}
+.couponRedeemBtn:active{transform:scale(.93)}
 .noscroll::-webkit-scrollbar{height:0;width:0}
 .clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .itemRow{transition:background-color .15s ease}
@@ -192,9 +196,12 @@ a:hover{color:var(--color-accent-300)}
       <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ minutesLabel }}</span>
     </div>
     <sc-if value="{{ hasCoupon }}" hint-placeholder-val="{{ false }}">
-      <div style="margin-top:10px;display:flex;align-items:center;gap:9px;padding:10px 14px;border-radius:12px;background:var(--brand-2-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--brand-2-text) 25%, transparent)">
-        <span style="flex:none;font-size:17px;line-height:1">🎁</span>
-        <span style="font-size:12.5px;line-height:1.4;color:var(--brand-2-text)">{{ couponBannerText }}</span>
+      <div class="couponCard" style="{{ couponCardStyle }}">
+        <div style="min-width:0">
+          <div style="font-family:var(--font-heading);font-weight:700;font-size:13px;color:var(--brand-2-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ couponBannerTitle }}</div>
+          <div style="font-size:11px;color:var(--brand-2-text);opacity:.75;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ couponBannerSubtitle }}</div>
+        </div>
+        <button class="couponRedeemBtn" onClick="{{ onRedeemCoupon }}" style="flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:9px 16px;border-radius:999px;border:0;background:#fff;color:var(--brand-2-text);box-shadow:0 1px 4px rgba(23,23,27,.12)">{{ couponRedeemLabel }}</button>
       </div>
     </sc-if>
   </div>
@@ -296,6 +303,12 @@ a:hover{color:var(--color-accent-300)}
         <span style="background:rgba(255,255,255,.16);padding:8px 14px;border-radius:10px">{{ cartTotalLabel }}</span>
       </button>
     </div>
+  </sc-if>
+
+  <sc-if value="{{ showScrollTop }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ onScrollTop }}" aria-label="Voltar ao topo" style="{{ scrollTopStyle }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>
+    </button>
   </sc-if>
 
   </sc-if>
@@ -608,7 +621,7 @@ function loadCart() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false };
 
   get data() {
     const d = this.state.doc;
@@ -696,6 +709,13 @@ class Component extends DCLogic {
   extras = {};
 
   componentDidMount() {
+    this._onScroll = () => {
+      const show = (window.scrollY || document.documentElement.scrollTop || 0) > 480;
+      if (show === this._scrollTopShown) return;
+      this._scrollTopShown = show;
+      this.setState({ showScrollTop: show });
+    };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
     const boot = () => {
       if (!window.VN) return setTimeout(boot, 60);
       VN.load().then(r => this.setState({ doc: r.doc }));
@@ -1217,6 +1237,9 @@ class Component extends DCLogic {
       sheetDrag: this.sheetDrag,
       stop: e => e.stopPropagation(),
       hasCart: count > 0, cartOpen: s.cartOpen,
+      showScrollTop: s.showScrollTop,
+      onScrollTop: () => window.scrollTo({ top: 0, behavior: 'smooth' }),
+      scrollTopStyle: 'position:fixed;right:16px;' + (count > 0 ? 'bottom:88px' : 'bottom:20px') + ';z-index:25;width:42px;height:42px;padding:0;border-radius:50%;background:#fff;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--color-accent);box-shadow:0 4px 14px rgba(23,23,27,.18);animation:fadeIn .2s ease',
       added: s.added,
       addedPhoto: (s.cart[s.addedLineIndex] && s.cart[s.addedLineIndex].photo) || '',
       addedSlotId: 'vn-added-' + (s.cart[s.addedLineIndex] ? (s.cart[s.addedLineIndex].pid || s.addedLineIndex) : '0'),
@@ -1277,7 +1300,18 @@ class Component extends DCLogic {
       couponRowLabel: 'Cupom (' + couponCode + ')',
       couponDiscountLabel: '-' + fmt(couponDiscount),
       showCouponRow: couponDiscount > 0,
-      couponBannerText: 'Use o cupom ' + couponCode + ' e ganhe ' + (couponType === 'fixed' ? fmt(couponRawValue) : couponRawValue + '%') + ' de desconto — 1 por cliente.',
+      couponBannerTitle: (couponType === 'fixed' ? fmt(couponRawValue) : couponRawValue + '%') + ' de desconto',
+      couponBannerSubtitle: 'Código ' + couponCode,
+      couponRedeemLabel: s.couponRedeemed ? 'Resgatado ✓' : 'Resgatar',
+      couponCardStyle: 'display:flex;align-items:center;justify-content:space-between;gap:10px;border-radius:14px;background:var(--brand-2-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--brand-2-text) 22%, transparent);overflow:hidden;'
+        + (s.couponRedeemed
+          ? 'max-height:0;opacity:0;margin-top:0;padding:0 14px'
+          : 'max-height:80px;opacity:1;margin-top:10px;padding:12px 14px'),
+      onRedeemCoupon: () => {
+        this.setState({ coupon: couponCode });
+        this.showToast('Cupom pronto — é só finalizar o pedido!');
+        setTimeout(() => this.setState({ couponRedeemed: true }), 1100);
+      },
       isEntrega: isEntrega,
       entregaStyle: modeBase + (isEntrega ? modeOn : offSt),
       retiradaStyle: modeBase + (isEntrega ? offSt : modeOn),
