@@ -618,7 +618,12 @@ class Component extends DCLogic {
       .filter(id => id !== it.id && !seen[id] && (seen[id] = 1))
       .map(id => d.products.find(p => p.id === id))
       .filter(p => p && !p.out)
-      .map(p => ({ name: p.name, price: p.price }));
+      /* Carrega o id: a seleção de adicionais é indexada por ele, não pelo
+         nome — a coleção "Mais vendidos" repete o nome de produtos que já
+         existem em outras coleções, e por nome dois adicionais diferentes
+         viravam a mesma chave (mexer num mexia no outro, e o preço entrava
+         em dobro no total). */
+      .map(p => ({ id: p.id, name: p.name, price: p.price }));
   }
 
   seedData = [
@@ -749,7 +754,7 @@ class Component extends DCLogic {
   unitOf(it, sel, opt) {
     const list = this.extrasFor(it);
     const o = this.optsOf(it)[opt] || this.optsOf(it)[0];
-    return o.price + list.reduce((t, a) => t + (sel[a.name] || 0) * a.price, 0);
+    return o.price + list.reduce((t, a) => t + (sel[a.id] || 0) * a.price, 0);
   }
 
   bump(i, d) {
@@ -1013,9 +1018,9 @@ class Component extends DCLogic {
     }));
     const extras = open ? this.extrasFor(open) : [];
     const addons = extras.map(a => ({
-      name: a.name, priceLabel: '+ ' + fmt(a.price), qty: s.sel[a.name] || 0, hasQty: (s.sel[a.name] || 0) > 0,
-      onInc: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = (sel[a.name] || 0) + 1; return { sel: sel }; }),
-      onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.name] = Math.max(0, (sel[a.name] || 0) - 1); return { sel: sel }; })
+      name: a.name, priceLabel: '+ ' + fmt(a.price), qty: s.sel[a.id] || 0, hasQty: (s.sel[a.id] || 0) > 0,
+      onInc: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = (sel[a.id] || 0) + 1; return { sel: sel }; }),
+      onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = Math.max(0, (sel[a.id] || 0) - 1); return { sel: sel }; })
     }));
     const optList = open ? this.optsOf(open) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
@@ -1109,7 +1114,7 @@ class Component extends DCLogic {
       inc: () => this.setState(st => ({ qty: st.qty + 1 })),
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
       addToCart: () => this.setState(st => ({
-        cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.name] > 0).map(a => (st.sel[a.name] > 1 ? st.sel[a.name] + 'x ' : '') + a.name), photo: open.photo || '', pid: open.id }]),
+        cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.id] > 0).map(a => (st.sel[a.id] > 1 ? st.sel[a.id] + 'x ' : '') + a.name), photo: open.photo || '', pid: open.id }]),
         open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name, addedLineIndex: st.cart.length
       })),
       closeSheet: () => this.setState({ open: null, cartOpen: false, added: '' }),
