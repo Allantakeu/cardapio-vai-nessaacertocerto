@@ -174,14 +174,13 @@
         <span>Vitrine</span>
       </button>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 10px 6px">
-        <button onClick="{{ onOpenColecoes }}" style="display:flex;align-items:center;gap:5px;cursor:pointer;background:transparent;border:0;padding:0;font-size:11.5px;font-weight:500;color:var(--mut)" title="Ver todas as coleções">
-          <span>Coleções</span>
+      <div style="display:flex;align-items:center;gap:2px;margin-top:6px">
+        <button class="nav" onClick="{{ onOpenColecoes }}" style="{{ colecoesStyle }};flex:1">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M20.6 13.4 12 22l-9-9V4h9z"></path><circle cx="8" cy="8" r="1.4"></circle></svg>
+          <span style="flex:1">Coleções</span>
         </button>
-        <div style="display:flex;gap:4px">
-          <button class="mini" onClick="{{ onToggleCollections }}" title="Mostrar/ocultar aqui na barra">{{ collectionsCaret }}</button>
-          <button class="mini" onClick="{{ onNewCatQuick }}" title="Nova coleção">+</button>
-        </div>
+        <button class="mini" onClick="{{ onToggleCollections }}" title="Mostrar/ocultar aqui na barra" style="flex:none">{{ collectionsCaret }}</button>
+        <button class="mini" onClick="{{ onNewCatQuick }}" title="Nova coleção" style="flex:none">+</button>
       </div>
 
       <sc-if value="{{ newCatOpen }}" hint-placeholder-val="{{ false }}">
@@ -668,7 +667,8 @@
 
       <sc-if value="{{ isColecoes }}" hint-placeholder-val="{{ false }}">
       <div>
-        <div style="display:flex;align-items:center;gap:12px">
+        <button class="btns" onClick="{{ onDash }}" style="height:34px">← Voltar</button>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px">
           <h1 class="h1" style="flex:1">Coleções</h1>
           <button class="btnp" onClick="{{ onNewCatQuick }}" style="flex:none">+ Coleção</button>
         </div>
@@ -1795,6 +1795,7 @@ class Component extends DCLogic {
       isAjustes: !topQ && s.view === 'ajustes', isConexao: !topQ && s.view === 'conexao',
       isPedidos: !topQ && s.view === 'pedidos', isVitrine: !topQ && s.view === 'vitrine',
       isDisparo: !topQ && s.view === 'disparo', isColecoes: !topQ && s.view === 'colecoes',
+      colecoesStyle: this.navStyle(!topQ && s.view === 'colecoes'),
       onOpenColecoes: () => this.setState({ view: 'colecoes', topQ: '', colQ: '' }),
       colQ: s.colQ || '', onColQ: e => this.setState({ colQ: e.target.value }),
       colRows: colRows, noColRows: colRows.length === 0,
