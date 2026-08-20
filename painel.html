@@ -175,10 +175,13 @@
       </button>
 
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 10px 6px">
-        <button onClick="{{ onToggleCollections }}" style="display:flex;align-items:center;gap:5px;cursor:pointer;background:transparent;border:0;padding:0;font-size:11.5px;font-weight:500;color:var(--mut)">
-          <span>{{ collectionsCaret }}</span><span>Coleções</span>
+        <button onClick="{{ onOpenColecoes }}" style="display:flex;align-items:center;gap:5px;cursor:pointer;background:transparent;border:0;padding:0;font-size:11.5px;font-weight:500;color:var(--mut)" title="Ver todas as coleções">
+          <span>Coleções</span>
         </button>
-        <button class="mini" onClick="{{ onNewCatQuick }}" title="Nova coleção">+</button>
+        <div style="display:flex;gap:4px">
+          <button class="mini" onClick="{{ onToggleCollections }}" title="Mostrar/ocultar aqui na barra">{{ collectionsCaret }}</button>
+          <button class="mini" onClick="{{ onNewCatQuick }}" title="Nova coleção">+</button>
+        </div>
       </div>
 
       <sc-if value="{{ newCatOpen }}" hint-placeholder-val="{{ false }}">
@@ -663,6 +666,43 @@
       </div>
       </sc-if>
 
+      <sc-if value="{{ isColecoes }}" hint-placeholder-val="{{ false }}">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <h1 class="h1" style="flex:1">Coleções</h1>
+          <button class="btnp" onClick="{{ onNewCatQuick }}" style="flex:none">+ Coleção</button>
+        </div>
+
+        <div class="card" style="margin-top:16px;padding:10px 12px">
+          <input class="fld" placeholder="Pesquisar coleções" value="{{ colQ }}" onChange="{{ onColQ }}">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+          <sc-for list="{{ colRows }}" as="c" hint-placeholder-count="4">
+            <div class="card" style="padding:10px 14px;display:flex;align-items:center;gap:12px">
+              <button onClick="{{ c.onOpen }}" title="Ver produtos" style="flex:none;width:38px;height:38px;border-radius:8px;background:var(--hover);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;padding:0">
+                <sc-if value="{{ c.photo }}" hint-placeholder-val="{{ false }}">
+                  <img src="{{ c.photo }}" loading="lazy" decoding="async" alt="" style="width:100%;height:100%;object-fit:cover">
+                </sc-if>
+                <sc-if value="{{ c.noPhoto }}" hint-placeholder-val="{{ true }}">
+                  <svg class="ico" viewBox="0 0 24 24" style="width:15px;height:15px;opacity:.5"><path d="M20.6 13.4 12 22l-9-9V4h9z"></path><circle cx="8" cy="8" r="1.4"></circle></svg>
+                </sc-if>
+              </button>
+              <button class="inline" onClick="{{ c.onOpen }}" style="flex:1;min-width:0;text-align:left;cursor:pointer;background:transparent;font-family:var(--font-heading);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</button>
+              <span class="num" style="flex:none;font-size:12px;color:var(--mut)">{{ c.countLabel }}</span>
+              <div style="display:flex;gap:3px;flex:none">
+                <button class="mini" onClick="{{ c.onUp }}" title="Subir" style="{{ c.upStyle }}">↑</button>
+                <button class="mini" onClick="{{ c.onDown }}" title="Descer" style="{{ c.downStyle }}">↓</button>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ noColRows }}" hint-placeholder-val="{{ false }}">
+            <div class="card"><p style="font-size:13.5px;color:var(--mut);margin:0">Nenhuma coleção encontrada.</p></div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
       <sc-if value="{{ isCatView }}" hint-placeholder-val="{{ false }}">
       <div>
         <div style="display:flex;align-items:center;gap:12px">
@@ -1075,7 +1115,7 @@ const THEMES = {
 class Component extends DCLogic {
   state = {
     locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, doc: null, events: [], theme: 'claro',
-    view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', mobileSearchOpen: false, upsellQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
+    view: 'dash', days: 'hoje', openOrder: null, msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', mobileSearchOpen: false, upsellQ: '', colQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
     cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {},
     calcProdId: '', calcQty: 1, calcVenda: 0, calcCusto: 0, calcEmbalagem: 0, calcEntregador: 0, calcOutros: 0
@@ -1292,6 +1332,24 @@ class Component extends DCLogic {
         }))
       };
     });
+
+    const colRows = (() => {
+      const q = (s.colQ || '').trim().toLowerCase();
+      return doc.categories
+        .map((c, ci) => {
+          const items = this.prodsOf(doc, c.id);
+          const withPhoto = items.find(p => p.photo);
+          return {
+            id: c.id, name: c.name, countLabel: items.length + (items.length === 1 ? ' produto' : ' produtos'),
+            photo: withPhoto ? withPhoto.photo : '', noPhoto: !withPhoto,
+            onOpen: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
+            upStyle: ci === 0 ? 'opacity:.3;pointer-events:none' : '',
+            downStyle: ci === doc.categories.length - 1 ? 'opacity:.3;pointer-events:none' : '',
+            onUp: () => this.moveCategory(c.id, -1), onDown: () => this.moveCategory(c.id, 1)
+          };
+        })
+        .filter(c => !q || c.name.toLowerCase().includes(q));
+    })();
 
     /* ——— dashboard ——— */
     const isToday = s.days === 'hoje';
@@ -1736,7 +1794,10 @@ class Component extends DCLogic {
       isProdView: !topQ && s.view === 'prod', isLucro: !topQ && s.view === 'lucro',
       isAjustes: !topQ && s.view === 'ajustes', isConexao: !topQ && s.view === 'conexao',
       isPedidos: !topQ && s.view === 'pedidos', isVitrine: !topQ && s.view === 'vitrine',
-      isDisparo: !topQ && s.view === 'disparo',
+      isDisparo: !topQ && s.view === 'disparo', isColecoes: !topQ && s.view === 'colecoes',
+      onOpenColecoes: () => this.setState({ view: 'colecoes', topQ: '', colQ: '' }),
+      colQ: s.colQ || '', onColQ: e => this.setState({ colQ: e.target.value }),
+      colRows: colRows, noColRows: colRows.length === 0,
       onDisparo: () => { this.setState({ view: 'disparo', topQ: '' }); VN.events().then(ev => this.setState({ events: ev || [] })); },
       disparoStyle: this.navStyle(s.view === 'disparo'),
       contactBadge: contacts.length ? String(contacts.length) : '',
