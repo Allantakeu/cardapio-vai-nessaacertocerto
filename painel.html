@@ -802,13 +802,16 @@
             <div class="card">
               <h2 class="h2">Foto</h2>
               <div style="display:flex;gap:14px;align-items:flex-start;margin-top:12px;flex-wrap:wrap">
-                <div style="{{ ed.photoBoxStyle }}">
-                  <sc-if value="{{ ed.photo }}" hint-placeholder-val="{{ false }}">
-                    <img src="{{ ed.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:10px">
-                  </sc-if>
-                  <sc-if value="{{ !ed.photo }}" hint-placeholder-val="{{ true }}">
-                    <span class="num" style="font-size:11px;color:var(--mut)">Sem foto</span>
-                  </sc-if>
+                <div>
+                  <div style="{{ ed.photoBoxStyle }}">
+                    <sc-if value="{{ ed.photo }}" hint-placeholder-val="{{ false }}">
+                      <img src="{{ ed.photo }}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">
+                    </sc-if>
+                    <sc-if value="{{ !ed.photo }}" hint-placeholder-val="{{ true }}">
+                      <span class="num" style="font-size:11px;color:var(--mut)">Sem foto</span>
+                    </sc-if>
+                  </div>
+                  <p style="font-size:10.5px;color:var(--mut);margin:6px 0 0;text-align:center;max-width:148px">Assim ela aparece na vitrine</p>
                 </div>
                 <div style="flex:1;min-width:180px">
                   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1653,7 +1656,7 @@ class Component extends DCLogic {
       return {
         crumb: (pcat ? pcat.name : '') + ' › ' + p.name,
         name: p.name, vol: p.vol || '', photo: p.photo || '', tag: p.tag || '', catId: p.catId,
-        photoBoxStyle: 'flex:none;width:96px;height:96px;border-radius:10px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
+        photoBoxStyle: 'flex:none;width:148px;height:148px;border-radius:12px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
         price: this.rawGet('price', p.price),
         cost: this.rawGet('cost', p.cost),
         compare: this.rawGet('compare', p.compare),
