@@ -206,10 +206,10 @@ a:hover{color:var(--color-accent-300)}
     </sc-if>
   </div>
 
-  <div style="padding:10px 18px 14px;border-bottom:1px solid var(--line)">
+  <div style="position:sticky;top:0;z-index:21;padding:10px 18px 14px;border-bottom:1px solid var(--line);background:#fff">
     <input class="input" type="text" placeholder="Buscar bebida" value="{{ q }}" onChange="{{ onSearch }}" style="height:52px;padding:0 16px;border-radius:13px;font-size:15px">
   </div>
-  <div id="vn-chips-bar" style="position:sticky;top:0;z-index:20;padding:8px 18px 12px;background:#fff;box-shadow:0 1px 0 var(--line)">
+  <div id="vn-chips-bar" style="position:sticky;top:76px;z-index:20;padding:8px 18px 12px;background:#fff;box-shadow:0 1px 0 var(--line)">
     <div style="position:relative">
       <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:2px;touch-action:pan-x">
         <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
