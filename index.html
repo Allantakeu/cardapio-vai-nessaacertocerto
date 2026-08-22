@@ -573,7 +573,10 @@ a:hover{color:var(--color-accent-300)}
         <sc-if value="{{ freeHint }}" hint-placeholder-val="{{ false }}">
           <div style="font-size:12px;line-height:1.45;color:var(--brand-2-text);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px;margin-top:2px">{{ freeHint }}</div>
         </sc-if>
-        <div style="display:flex;justify-content:space-between;font-size:18px;font-family:var(--font-heading);font-weight:600;letter-spacing:-.02em;margin-top:5px"><span>Total</span><span class="money" style="color:var(--color-accent)">{{ totalLabel }}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:18px;font-family:var(--font-heading);font-weight:600;letter-spacing:-.02em;margin-top:5px"><span>{{ totalRowLabel }}</span><span class="money" style="color:var(--color-accent)">{{ totalLabel }}</span></div>
+        <sc-if value="{{ feeUnresolved }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;line-height:1.4;color:var(--color-neutral-500);margin-top:-2px">{{ feeUnresolvedHint }}</div>
+        </sc-if>
       </div>
 
       <div style="display:flex;align-items:flex-start;gap:7px;margin-top:12px;padding:7px 10px;border-radius:8px;background:rgba(245,197,23,.1);box-shadow:inset 0 0 0 1px rgba(156,116,0,.22)">
@@ -1165,8 +1168,15 @@ class Component extends DCLogic {
       : 'color:var(--color-accent);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px';
 
     const freeOk = freeAbove > 0 && subtotal >= freeAbove;
-    const showFeeRow = !isEntrega || s.cep.trim().length > 0;
-    const feeVal = isEntrega && !freeOk && showFeeRow ? fee : 0;
+    const cepDigitsOk = s.cep.replace(/\D/g, '').length === 8;
+    const feeCalculating = isEntrega && kmOn && s.deliveryCalcStatus === 'loading';
+    /* Antes disso ser resolvido (sem CEP ainda, ou frete calculando), o total
+       mostrado não pode ser chamado de "Total" — vira "Total parcial" e o
+       envio fica bloqueado, pra ninguém confirmar um pedido achando que
+       R$0 de frete é o valor final. */
+    const feeUnresolved = isEntrega && !freeOk && (!cepDigitsOk || feeCalculating);
+    const showFeeRow = !isEntrega || cepDigitsOk;
+    const feeVal = isEntrega && !freeOk && showFeeRow && !feeCalculating ? fee : 0;
     const freeHint = (freeAbove > 0 && isEntrega && count)
       ? (freeOk ? 'Frete grátis aplicado.' : 'Faltam ' + fmt(freeAbove - subtotal) + ' pro frete grátis.')
       : '';
@@ -1262,20 +1272,24 @@ class Component extends DCLogic {
       openCart: () => this.setState({ cartOpen: true, open: null, added: '' }),
       lines: lines, subtotalLabel: fmt(subtotal),
       showFeeRow: showFeeRow,
-      feeName: isEntrega
-        ? 'Entrega' + (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryKm != null ? ' (' + s.deliveryKm.toFixed(1) + ' km)' : '')
-        : 'Retirada na adega',
+      feeName: !isEntrega ? 'Retirada na adega'
+        : !cepDigitsOk ? 'Frete'
+        : 'Entrega' + (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryKm != null ? ' (' + s.deliveryKm.toFixed(1) + ' km)' : ''),
       feeRowStyle: 'display:flex;justify-content:space-between;color:var(--color-neutral-400)',
-      feeValueStyle: '',
+      feeValueStyle: feeUnresolved ? 'font-style:italic' : '',
       deliveryCalcHint: !kmOn || !isEntrega ? '' : (
         s.deliveryCalcStatus === 'loading' ? 'Calculando frete pela distância…' :
         s.deliveryCalcStatus === 'error' ? 'Não achamos esse endereço — usando taxa fixa de ' + fmt(flatFee) + '.' :
         ''
       ),
       feeLabel: !isEntrega ? 'grátis'
+        : !cepDigitsOk ? 'informe o CEP'
         : freeOk ? 'grátis'
-        : (kmOn && s.deliveryCalcStatus === 'loading') ? 'calculando…'
+        : feeCalculating ? 'calculando…'
         : fmt(feeVal),
+      feeUnresolved: feeUnresolved,
+      feeUnresolvedHint: !cepDigitsOk ? 'Informe o CEP pra calcular o frete antes de enviar.' : 'Aguardando o cálculo do frete…',
+      totalRowLabel: feeUnresolved ? 'Total parcial' : 'Total',
       freeHint: freeHint,
       accentVars: cfg.accent
         ? '--color-accent:' + cfg.accent
@@ -1336,8 +1350,10 @@ class Component extends DCLogic {
         if (isEntrega) {
           if (!s.rua.trim()) missing.push('a rua');
           if (!s.numero.trim()) missing.push('o número');
+          if (!cepDigitsOk) missing.push('o CEP');
         }
         if (missing.length) return this.showToast('Falta preencher ' + missing.join(', ') + '.');
+        if (feeCalculating) return this.showToast('Aguarde o frete terminar de calcular antes de enviar.');
         if (window.VN) {
           /* Link só pro painel juntar cada linha de venda ("sale") ao pedido
              ("order") que a gerou — sem isso, cancelar um pedido tirava ele
