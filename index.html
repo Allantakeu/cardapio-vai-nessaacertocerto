@@ -954,9 +954,33 @@ class Component extends DCLogic {
       .catch(() => this.setState({ cepStatus: 'error' }));
   }
 
+  /* fetch sem timeout pode ficar pendurado pra sempre se o servidor não responder
+     nem dá erro (trava a tela em "calculando..." indefinidamente). Aborta sozinho
+     depois de alguns segundos pra sempre cair no fallback/erro em vez de travar. */
+  fetchWithTimeout(url, ms) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), ms || 7000);
+    return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+  }
+
+  /* CEP brasileiro já localiza o endereço com bastante precisão sozinho — a BrasilAPI
+     devolve lat/lng calculado a partir do próprio CEP na maioria dos casos, numa única
+     chamada rápida e sem limite de 1 req/s (diferente do Nominatim). Muito mais rápido
+     e mais preciso que tentar geocodificar rua/bairro digitado por texto livre. */
+  geocodeByCep(cep) {
+    const digits = String(cep || '').replace(/\D/g, '');
+    if (digits.length !== 8) return Promise.resolve(null);
+    const url = 'https://brasilapi.com.br/api/cep/v2/' + digits;
+    return this.fetchWithTimeout(url, 6000).then(r => r.ok ? r.json() : null).then(d => {
+      const c = d && d.location && d.location.coordinates;
+      const lat = c && parseFloat(c.latitude), lng = c && parseFloat(c.longitude);
+      return (lat && lng) ? { lat: lat, lng: lng } : null;
+    }).catch(() => null);
+  }
+
   geocode(address) {
     const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=' + encodeURIComponent(address);
-    return fetch(url).then(r => r.ok ? r.json() : []).then(rows => {
+    return this.fetchWithTimeout(url, 7000).then(r => r.ok ? r.json() : []).then(rows => {
       if (!rows || !rows.length) return null;
       return { lat: parseFloat(rows[0].lat), lng: parseFloat(rows[0].lon) };
     }).catch(() => null);
@@ -975,7 +999,7 @@ class Component extends DCLogic {
     params.set('country', 'Brazil');
     if (!street && !digits) return Promise.resolve(null);
     const url = 'https://nominatim.openstreetmap.org/search?' + params.toString();
-    return fetch(url).then(r => r.ok ? r.json() : []).then(rows => {
+    return this.fetchWithTimeout(url, 7000).then(r => r.ok ? r.json() : []).then(rows => {
       if (!rows || !rows.length) return null;
       return { lat: parseFloat(rows[0].lat), lng: parseFloat(rows[0].lon) };
     }).catch(() => null);
@@ -1007,7 +1031,7 @@ class Component extends DCLogic {
 
   routeKm(a, b) {
     const url = 'https://router.project-osrm.org/route/v1/driving/' + a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat + '?overview=false';
-    return fetch(url).then(r => r.ok ? r.json() : null).then(data => {
+    return this.fetchWithTimeout(url, 7000).then(r => r.ok ? r.json() : null).then(data => {
       const route = data && data.routes && data.routes[0];
       return route ? route.distance / 1000 : null;
     }).catch(() => null);
@@ -1072,6 +1096,15 @@ class Component extends DCLogic {
     this._deliveryCalcKey = key;
     this.setState({ deliveryCalcStatus: 'loading' });
     const wait = ms => new Promise(r => setTimeout(r, ms));
+    /* Trava de segurança: se por algum motivo a cadeia de geocoding nunca resolver
+       (rede engasgada, provedor fora do ar sem nem devolver erro), força "erro" depois
+       de um tempo em vez de deixar "calculando..." preso na tela pra sempre. */
+    clearTimeout(this._deliveryWatchdog);
+    this._deliveryWatchdog = setTimeout(() => {
+      if (this._deliveryCalcKey === key && this.state.deliveryCalcStatus === 'loading') {
+        this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+      }
+    }, 16000);
     /* Nominatim pede no máx. ~1 req/s da mesma origem — chamadas em paralelo
        às vezes voltam vazias. Só espera 600ms antes da próxima chamada quando
        a de origem (endereço da loja) realmente acabou de ser feita — se já
@@ -1081,7 +1114,8 @@ class Component extends DCLogic {
     const storeCached = this._storeGeoCache && this._storeGeoAddr === storeAddress;
     const storeGeo = storeCached
       ? Promise.resolve(this._storeGeoCache)
-      : this.geocodeWithFallback(storeAddress).then(g => { this._storeGeoCache = g; this._storeGeoAddr = storeAddress; return g; });
+      : this.geocodeByCep(this._storeCep).then(g => g || this.geocodeWithFallback(storeAddress))
+          .then(g => { this._storeGeoCache = g; this._storeGeoAddr = storeAddress; return g; });
     const destCacheKey = s => s.rua.trim() + '|' + s.numero.trim() + '|' + s.cep.trim();
     storeGeo.then(origin => {
       if (this._deliveryCalcKey !== key) return;
@@ -1089,13 +1123,16 @@ class Component extends DCLogic {
       const s = this.state;
       const dKey = destCacheKey(s);
       const destCached = this._destGeoCache && this._destGeoKey === dKey;
-      const gate = storeCached ? Promise.resolve() : wait(600);
+      /* O CEP brasileiro sozinho já localiza o ponto certo na maioria dos casos —
+         tenta ele primeiro (rápido, sem fila de espera do Nominatim) antes de cair
+         pra busca por texto, que é mais lenta e menos exata. */
       const destGeo = destCached
         ? Promise.resolve(this._destGeoCache)
-        : gate
-          .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
-          .then(dest => dest || wait(600).then(() => this.geocodeWithFallback(custAddress)))
-          .then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
+        : this.geocodeByCep(s.cep).then(dest => dest || (
+            (storeCached ? Promise.resolve() : wait(600))
+              .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
+              .then(d2 => d2 || wait(600).then(() => this.geocodeWithFallback(custAddress)))
+          )).then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
       return destGeo.then(dest => {
         if (this._deliveryCalcKey !== key) return;
         if (!dest) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
@@ -1122,6 +1159,7 @@ class Component extends DCLogic {
     const freeDeliveryMaxKm = Number(cfg.freeDeliveryMaxKm) || 0;
     const address = cfg.address || 'Rua Moacir Dantas Itapicuru, 911 — Cidade Nova São Miguel Paulista';
     const addrParts = address.split(/\s+[—-]\s+/);
+    this._storeCep = cfg.storeCep || '';
 
     const pill = 'flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;padding:9px 16px;border-radius:999px;';
     const onSt = 'border:1px solid var(--color-accent);color:#fff;background:var(--color-accent);box-shadow:0 4px 12px rgba(216,27,132,.28)';
