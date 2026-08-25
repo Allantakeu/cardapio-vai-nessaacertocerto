@@ -1018,18 +1018,30 @@ class Component extends DCLogic {
     this.setState({ deliveryCalcStatus: 'loading' });
     const wait = ms => new Promise(r => setTimeout(r, ms));
     /* Nominatim pede no máx. ~1 req/s da mesma origem — chamadas em paralelo
-       às vezes voltam vazias. Fazendo uma de cada vez, com uma pausa entre elas. */
-    const storeGeo = this._storeGeoCache && this._storeGeoAddr === storeAddress
+       às vezes voltam vazias. Só espera 600ms antes da próxima chamada quando
+       a de origem (endereço da loja) realmente acabou de ser feita — se já
+       veio do cache (o caso comum, depois da primeira vez na sessão), não tem
+       requisição anterior pra espaçar e a pausa só deixava tudo mais lento
+       à toa. */
+    const storeCached = this._storeGeoCache && this._storeGeoAddr === storeAddress;
+    const storeGeo = storeCached
       ? Promise.resolve(this._storeGeoCache)
       : this.geocodeWithFallback(storeAddress).then(g => { this._storeGeoCache = g; this._storeGeoAddr = storeAddress; return g; });
+    const destCacheKey = s => s.rua.trim() + '|' + s.numero.trim() + '|' + s.cep.trim();
     storeGeo.then(origin => {
       if (this._deliveryCalcKey !== key) return;
       if (!origin) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
       const s = this.state;
-      return wait(600)
-        .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
-        .then(dest => dest || wait(600).then(() => this.geocodeWithFallback(custAddress)))
-        .then(dest => {
+      const dKey = destCacheKey(s);
+      const destCached = this._destGeoCache && this._destGeoKey === dKey;
+      const gate = storeCached ? Promise.resolve() : wait(600);
+      const destGeo = destCached
+        ? Promise.resolve(this._destGeoCache)
+        : gate
+          .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
+          .then(dest => dest || wait(600).then(() => this.geocodeWithFallback(custAddress)))
+          .then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
+      return destGeo.then(dest => {
         if (this._deliveryCalcKey !== key) return;
         if (!dest) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
         return this.routeKm(origin, dest).then(km => {
