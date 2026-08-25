@@ -378,8 +378,8 @@ a:hover{color:var(--color-accent-300)}
           <span style="min-width:26px;text-align:center;font-size:15px">{{ qty }}</span>
           <button class="btn btn-ghost" onClick="{{ inc }}" style="width:34px;height:34px;padding:0;font-size:18px">+</button>
         </div>
-        <button class="btn btn-primary" onClick="{{ addToCart }}" style="flex:1;height:46px;font-size:15px;justify-content:space-between;padding:0 16px">
-          <span>Adicionar</span><span>{{ sheetTotalLabel }}</span>
+        <button class="btn btn-primary" onClick="{{ addToCart }}" style="{{ addBtnStyle }};flex:1;height:46px;font-size:15px;justify-content:space-between;padding:0 16px">
+          <span>{{ addBtnLabel }}</span><span>{{ sheetTotalLabel }}</span>
         </button>
       </div>
     </div>
@@ -451,7 +451,7 @@ a:hover{color:var(--color-accent-300)}
           </div>
           <span style="font-size:12.5px;color:var(--color-neutral-500)">Total {{ sheetTotalLabel }}</span>
         </div>
-        <button class="btn btn-primary btn-block" onClick="{{ addToCart }}" style="height:52px;font-size:16px;margin-top:14px;background:rgba(216,27,132,.08)">Adicionar ao pedido</button>
+        <button class="btn btn-primary btn-block" onClick="{{ addToCart }}" style="{{ addBtnStyle }};height:52px;font-size:16px;margin-top:14px;background:rgba(216,27,132,.08)">{{ addBtnLabelLong }}</button>
       </div>
     </div>
   </div>
@@ -801,13 +801,11 @@ class Component extends DCLogic {
   openItem(it, cat) {
     if (window.VN) VN.track('click', { product: it.name, qty: 1, total: it.price });
     if (this.variant() === 'Rápida' && !(it.flavors && it.flavors.length)) return this.quickAdd(it);
-    /* Escolhe o primeiro sabor que NÃO esteja esgotado como padrão — sem
-       isso, um produto cujo primeiro sabor cadastrado tivesse acabado
-       abriria a ficha com um sabor indisponível já selecionado. */
-    const flavors = it.flavors || [];
-    const firstAvailable = flavors.find(f => !(f && typeof f === 'object' && f.out));
-    const defaultFlavor = firstAvailable != null ? (typeof firstAvailable === 'string' ? firstAvailable : firstAvailable.name) : null;
-    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: defaultFlavor, cartOpen: false, added: '', photoZoom: false });
+    /* Não pré-seleciona nenhum sabor — o cliente precisa escolher de
+       propósito. Com um sabor já vindo marcado, dava pra adicionar ao
+       pedido sem perceber que "Melancia" (ou o primeiro da lista) tinha
+       sido escolhido. */
+    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cartOpen: false, added: '', photoZoom: false });
   }
 
   quickAdd(it) {
@@ -1275,6 +1273,9 @@ class Component extends DCLogic {
       promos: promos,
       opts: opts,
       flavorOpts: flavorOpts, hasFlavors: hasFlavors,
+      addBtnStyle: (hasFlavors && !s.flavor) ? 'opacity:.45;cursor:not-allowed' : '',
+      addBtnLabel: (hasFlavors && !s.flavor) ? 'Escolha uma opção' : 'Adicionar',
+      addBtnLabelLong: (hasFlavors && !s.flavor) ? 'Escolha uma opção acima' : 'Adicionar ao pedido',
       variantLabel: (open && open.variantLabel) || 'Escolha o sabor',
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, zoomSlotId: 'vn-zoom-' + open.id, photoUrl: open.photo || '' } : null,
       photoZoom: s.photoZoom && !!open,

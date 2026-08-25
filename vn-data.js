@@ -29,7 +29,7 @@
     return {
       version: 1,
       settings: {
-        whatsapp: '5511999347715', deliveryFee: 8, freeAbove: 0, pin: '1234',
+        whatsapp: '5511999347715', deliveryFee: 8, freeAbove: 0,
         hours: 'Aberto até 23:00', minutes: 'Entrega em 25–40 min',
         address: 'Rua Moacir Dantas Itapicuru, 911 — Cidade Nova São Miguel',
         instagram: '@vai.nessa1.0__',
@@ -221,13 +221,16 @@
   /* Pergunta pro banco se esse telefone já usou esse cupom antes — roda numa
      function do Postgres (security definer) que só devolve true/false, então
      o cardápio nunca vê pedido/nome/endereço de outro cliente. Se a function
-     ainda não existir (dono não rodou o SQL novo) ou o Supabase não estiver
-     conectado, assume que não foi usado — não trava o checkout por isso. */
+     ainda não existir (dono não rodou o SQL novo), o Supabase não estiver
+     conectado, ou a rede do cliente estiver ruim/lenta, assume que não foi
+     usado — a checagem nunca pode travar o checkout de um cliente de verdade. */
   function couponUsed(phone, code) {
     if (!connected() || !code || !phone) return Promise.resolve(false);
-    return api('rpc/check_coupon_used', { method: 'POST', body: { p_phone: phone, p_code: code } })
+    var timeout = new Promise(function (res) { setTimeout(function () { res(false); }, 6000); });
+    var request = api('rpc/check_coupon_used', { method: 'POST', body: { p_phone: phone, p_code: code } })
       .then(function (used) { return !!used; })
       .catch(function () { return false; });
+    return Promise.race([request, timeout]);
   }
 
   function load() {
