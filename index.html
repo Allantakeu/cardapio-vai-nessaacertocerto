@@ -1322,10 +1322,23 @@ class Component extends DCLogic {
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
       addToCart: () => {
         if (hasFlavors && !s.flavor) return this.showToast('Sem sabores disponíveis no momento.');
-        this.setState(st => ({
-          cart: st.cart.concat([{ name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: extras.filter(a => st.sel[a.id] > 0).map(a => (st.sel[a.id] > 1 ? st.sel[a.id] + 'x ' : '') + a.name), photo: open.photo || '', pid: open.id }]),
-          open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name, addedLineIndex: st.cart.length, photoZoom: false
-        }));
+        this.setState(st => {
+          const newExtras = extras.filter(a => st.sel[a.id] > 0).map(a => (st.sel[a.id] > 1 ? st.sel[a.id] + 'x ' : '') + a.name);
+          const line = { name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: newExtras, photo: open.photo || '', pid: open.id };
+          /* Mesmo produto + sabor + fardo/unidade + adicionais + observação
+             de novo vira uma linha só com a quantidade somada, em vez de
+             duas linhas separadas do mesmo item no carrinho. */
+          const sameKey = l => l.pid === line.pid && l.name === line.name && l.unit === line.unit && l.obs === line.obs
+            && l.extras.length === line.extras.length && l.extras.every((e, i) => e === line.extras[i]);
+          const idx = st.cart.findIndex(sameKey);
+          const cart = idx >= 0
+            ? st.cart.map((l, j) => j === idx ? Object.assign({}, l, { qty: l.qty + line.qty }) : l)
+            : st.cart.concat([line]);
+          return {
+            cart: cart,
+            open: null, added: (st.qty > 1 ? st.qty + 'x ' : '') + open.name, addedLineIndex: idx >= 0 ? idx : cart.length - 1, photoZoom: false
+          };
+        });
       },
       closeSheet: () => this.setState({ open: null, cartOpen: false, added: '', photoZoom: false }),
       sheetDrag: this.sheetDrag,
