@@ -874,16 +874,19 @@
               <div style="margin-top:14px"><span class="lbl">Volume / descrição</span><input class="fld" value="{{ ed.vol }}" onChange="{{ ed.onVol }}" placeholder="ex: Garrafa 269ml"></div>
               <div style="margin-top:16px">
                 <span class="lbl">Sabores / variantes</span>
+                <input class="fld" value="{{ ed.variantLabel }}" onChange="{{ ed.onVariantLabel }}" placeholder="Escolha o sabor" style="margin-bottom:10px">
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:-4px 0 10px">Título que aparece na vitrine acima das opções — troque pra "Escolha a cor" em produtos como copos, ou deixe vazio pra usar "Escolha o sabor".</p>
                 <div style="display:flex;flex-direction:column;gap:8px">
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
                     <div style="display:flex;align-items:center;gap:8px">
                       <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
+                      <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
                       <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
                     </div>
                   </sc-for>
                 </div>
                 <button class="btns" onClick="{{ ed.onAddFlavor }}" style="margin-top:10px;height:34px">+ Sabor</button>
-                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Se tiver pelo menos 1 sabor cadastrado, o cliente escolhe um antes de adicionar ao pedido na vitrine. Deixe vazio pra produtos sem variante.</p>
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Se tiver pelo menos 1 sabor cadastrado, o cliente escolhe um antes de adicionar ao pedido na vitrine. Marque "Esgotado" pra tirar só aquele sabor de circulação sem apagar o produto inteiro. Deixe vazio pra produtos sem variante.</p>
               </div>
             </div>
 
@@ -1714,6 +1717,8 @@ class Component extends DCLogic {
       return {
         crumb: (pcat ? pcat.name : '') + ' › ' + p.name,
         name: p.name, vol: p.vol || '', photo: p.photo || '', tag: p.tag || '', catId: p.catId,
+        variantLabel: p.variantLabel || '',
+        onVariantLabel: e => { const v = e.target.value; set(t => { t.variantLabel = v; }); },
         photoBoxStyle: 'flex:none;width:220px;height:220px;border-radius:14px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
         price: this.rawGet('price', p.price),
         cost: this.rawGet('cost', p.cost),
@@ -1751,11 +1756,23 @@ class Component extends DCLogic {
           onRemove: () => { this.setState({ raw: {} }); set(t => { t.fardos.splice(i, 1); }); }
         })),
         onAddFardo: () => { this.setState({ raw: {} }); set(t => { t.fardos = (t.fardos || []).concat([[12, 0]]); }); },
-        flavors: (p.flavors || []).map((fl, i) => ({
-          name: fl,
-          onName: e => { const v = e.target.value; set(t => { t.flavors[i] = v; }); },
-          onRemove: () => set(t => { t.flavors.splice(i, 1); })
-        })),
+        flavors: (p.flavors || []).map((fl, i) => {
+          const isObj = fl && typeof fl === 'object';
+          const out = isObj && !!fl.out;
+          return {
+            name: isObj ? (fl.name || '') : (fl || ''),
+            out: out,
+            outStyle: this.chipStyle(out),
+            onName: e => { const v = e.target.value; set(t => { const cur = t.flavors[i]; const curOut = cur && typeof cur === 'object' && cur.out; t.flavors[i] = curOut ? { name: v, out: true } : v; }); },
+            onToggleOut: () => set(t => {
+              const cur = t.flavors[i];
+              const name = cur && typeof cur === 'object' ? (cur.name || '') : (cur || '');
+              const curOut = cur && typeof cur === 'object' && !!cur.out;
+              t.flavors[i] = { name: name, out: !curOut };
+            }),
+            onRemove: () => set(t => { t.flavors.splice(i, 1); })
+          };
+        }),
         onAddFlavor: () => set(t => { t.flavors = (t.flavors || []).concat(['']); }),
         upsellQ: s.upsellQ || '',
         onUpsellQ: e => this.setState({ upsellQ: e.target.value }),
