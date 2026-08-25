@@ -1111,10 +1111,19 @@ class Component extends DCLogic {
        veio do cache (o caso comum, depois da primeira vez na sessão), não tem
        requisição anterior pra espaçar e a pausa só deixava tudo mais lento
        à toa. */
+    /* O CEP sozinho (BrasilAPI) é rápido mas às vezes só devolve o centro aproximado
+       de uma região inteira — pode errar por vários km num bairro grande ou CEP
+       antigo compartilhado por várias ruas. Rua + número é sempre mais exato porque
+       casa um endereço específico, então vai primeiro; o CEP isolado entra só como
+       atalho de reserva antes da busca por texto livre (mais lenta e menos exata). */
+    const numFrom = addr => { const m = addr.match(/,\s*(\d+)/); return m ? m[1] : ''; };
+    const streetFrom = addr => addr.split(',')[0].trim();
     const storeCached = this._storeGeoCache && this._storeGeoAddr === storeAddress;
     const storeGeo = storeCached
       ? Promise.resolve(this._storeGeoCache)
-      : this.geocodeByCep(this._storeCep).then(g => g || this.geocodeWithFallback(storeAddress))
+      : this.geocodeStructured(streetFrom(storeAddressRaw), numFrom(storeAddressRaw), this._storeCep)
+          .then(g => g || this.geocodeByCep(this._storeCep))
+          .then(g => g || this.geocodeWithFallback(storeAddress))
           .then(g => { this._storeGeoCache = g; this._storeGeoAddr = storeAddress; return g; });
     const destCacheKey = s => s.rua.trim() + '|' + s.numero.trim() + '|' + s.cep.trim();
     storeGeo.then(origin => {
@@ -1123,16 +1132,14 @@ class Component extends DCLogic {
       const s = this.state;
       const dKey = destCacheKey(s);
       const destCached = this._destGeoCache && this._destGeoKey === dKey;
-      /* O CEP brasileiro sozinho já localiza o ponto certo na maioria dos casos —
-         tenta ele primeiro (rápido, sem fila de espera do Nominatim) antes de cair
-         pra busca por texto, que é mais lenta e menos exata. */
+      const gate = storeCached ? Promise.resolve() : wait(600);
       const destGeo = destCached
         ? Promise.resolve(this._destGeoCache)
-        : this.geocodeByCep(s.cep).then(dest => dest || (
-            (storeCached ? Promise.resolve() : wait(600))
-              .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
-              .then(d2 => d2 || wait(600).then(() => this.geocodeWithFallback(custAddress)))
-          )).then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
+        : gate
+          .then(() => this.geocodeStructured(s.rua, s.numero, s.cep))
+          .then(dest => dest || this.geocodeByCep(s.cep))
+          .then(dest => dest || wait(600).then(() => this.geocodeWithFallback(custAddress)))
+          .then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
       return destGeo.then(dest => {
         if (this._deliveryCalcKey !== key) return;
         if (!dest) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
