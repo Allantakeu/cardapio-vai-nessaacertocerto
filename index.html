@@ -469,13 +469,16 @@ a:hover{color:var(--color-accent-300)}
     <div onClick="{{ stop }}" style="width:100%;max-width:440px;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .2s cubic-bezier(.2,.8,.2,1);padding:22px 18px 20px">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="position:relative;flex:none">
-          <image-slot id="{{ addedSlotId }}" shape="rounded" radius="10" style="width:48px;height:48px" placeholder="Foto" src="{{ addedPhoto }}"></image-slot>
-          <span style="position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--color-accent);box-shadow:0 0 0 2px var(--color-surface)">✓</span>
+          <image-slot id="{{ addedSlotId }}" shape="rounded" radius="12" style="width:68px;height:68px" placeholder="Foto" src="{{ addedPhoto }}"></image-slot>
+          <span style="position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;background:var(--color-accent);box-shadow:0 0 0 2px var(--color-surface)">✓</span>
         </div>
         <div style="min-width:0;flex:1">
           <div class="itemname" style="font-size:15px">{{ added }}</div>
           <div style="font-size:12px;color:var(--color-neutral-500);margin-top:2px">no seu pedido · {{ cartTotalLabel }}</div>
         </div>
+        <button onClick="{{ onAddedRemove }}" aria-label="Remover" title="Remover" style="flex:none;width:30px;height:30px;padding:0;border-radius:9px;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;color:var(--color-neutral-500)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>
+        </button>
         <div style="flex:none;display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
           <button class="btn btn-ghost" onClick="{{ onAddedDec }}" style="width:28px;height:28px;padding:0;font-size:16px">−</button>
           <span style="min-width:20px;text-align:center;font-size:13.5px;font-weight:600">{{ addedQty }}</span>
@@ -1155,6 +1158,10 @@ class Component extends DCLogic {
       style: pill + 'font-size:12.5px;' + (f.out ? offSt + ';opacity:.4;cursor:not-allowed;text-decoration:line-through' : (s.flavor === f.name ? onSt : offSt)),
       onPick: f.out ? (e => { if (e && e.stopPropagation) e.stopPropagation(); }) : () => this.setState({ flavor: f.name })
     }));
+    /* hasFlavors precisa existir como variável de verdade (não só como chave
+       do objeto de retorno lá embaixo) — addToCart e sheetA/sheetB
+       referenciam ela diretamente, fora de qualquer objeto literal. */
+    const hasFlavors = flavorOpts.length > 0;
 
     const lines = s.cart.map((l, i) => ({
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
@@ -1267,7 +1274,7 @@ class Component extends DCLogic {
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
       promos: promos,
       opts: opts,
-      flavorOpts: flavorOpts, hasFlavors: flavorOpts.length > 0,
+      flavorOpts: flavorOpts, hasFlavors: hasFlavors,
       variantLabel: (open && open.variantLabel) || 'Escolha o sabor',
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, zoomSlotId: 'vn-zoom-' + open.id, photoUrl: open.photo || '' } : null,
       photoZoom: s.photoZoom && !!open,
@@ -1307,6 +1314,7 @@ class Component extends DCLogic {
       addedQty: s.cart[s.addedLineIndex] ? s.cart[s.addedLineIndex].qty : 1,
       onAddedInc: () => this.bump(s.addedLineIndex, 1),
       onAddedDec: () => this.bump(s.addedLineIndex, -1),
+      onAddedRemove: () => this.setState(st => ({ cart: st.cart.filter((x, j) => j !== st.addedLineIndex), added: '' })),
       goCart: () => this.setState({ added: '', cartOpen: true }),
       keepChoosing: () => this.setState({ added: '' }),
       cartCountLabel: count + (count === 1 ? ' item' : ' itens'), cartCount: count,
