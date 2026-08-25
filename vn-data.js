@@ -105,7 +105,7 @@
     return {
       access_token: tok.access_token,
       refresh_token: tok.refresh_token,
-      expires_at: Date.now() + (Number(tok.expires_in) || 3600) * 1000 - 30000
+      expires_at: Date.now() + (Number.isFinite(Number(tok.expires_in)) ? Number(tok.expires_in) : 3600) * 1000 - 30000
     };
   }
 
@@ -233,6 +233,17 @@
     return Promise.race([request, timeout]);
   }
 
+  /* Só pra descobrir se o catálogo mudou desde a última vez, sem baixar nem
+     serializar o documento inteiro (que já passa fácil de 50-100KB com fotos
+     de 130+ produtos) — usado pelo polling da vitrine, que rodava esse custo
+     inteiro a cada 6 segundos só pra comparar igualdade. */
+  function checkUpdated() {
+    if (!connected()) return Promise.resolve(null);
+    return api('vn_catalog?id=eq.main&select=updated_at')
+      .then(function (rows) { return (rows && rows[0] && rows[0].updated_at) || null; })
+      .catch(function () { return null; });
+  }
+
   function load() {
     if (!connected()) return Promise.resolve({ doc: normalize(localDoc() || seed()), source: 'local' });
     return api('vn_catalog?id=eq.main&select=data')
@@ -248,6 +259,14 @@
       .catch(function (e) { return { doc: normalize(localDoc() || seed()), source: 'local', error: e.message }; });
   }
 
+  /* Encadeia os saves um atrás do outro em vez de deixar rodar em paralelo —
+     dois PATCHs pro mesmo registro em voo ao mesmo tempo podem, numa rede
+     instável, terminar no servidor fora da ordem em que foram chamados, e o
+     mais antigo (com menos alterações) fica valendo por cima do mais novo.
+     Encadear garante que cada save só sai pra rede depois que o anterior
+     terminou, preservando a ordem real das chamadas. */
+  var _saveChain = Promise.resolve();
+
   function save(doc) {
     var storedLocally = setLocalDoc(doc);
     if (!connected()) {
@@ -255,22 +274,27 @@
         ? { source: 'local' }
         : { source: 'local', error: 'Memória do navegador cheia — conecte o Supabase para não perder as alterações.' });
     }
-    return api('vn_catalog?id=eq.main', { method: 'PATCH', body: { data: doc, updated_at: new Date().toISOString() } })
-      .then(function (rows) {
-        if (rows && rows.length) return { source: 'supabase' };
-        return api('vn_catalog', { method: 'POST', body: { id: 'main', data: doc } }).then(function () { return { source: 'supabase' }; });
-      })
-      .catch(function (e) {
-        /* 401/403 aqui significa que a sessão do dono expirou (ou nunca
-           existiu) — a policy de RLS agora exige o papel "authenticated"
-           pra gravar. Derruba a sessão local pra o painel voltar pra tela
-           de login em vez de ficar tentando salvar em loop. O rascunho não
-           se perde: já está em localStorage (setLocalDoc, acima) e em
-           this.state.doc no painel. */
-        var expired = e.status === 401 || e.status === 403;
-        if (expired) setSession(null);
-        return { source: 'local', error: e.message, authExpired: expired };
-      });
+    var run = function () {
+      return api('vn_catalog?id=eq.main', { method: 'PATCH', body: { data: doc, updated_at: new Date().toISOString() } })
+        .then(function (rows) {
+          if (rows && rows.length) return { source: 'supabase' };
+          return api('vn_catalog', { method: 'POST', body: { id: 'main', data: doc } }).then(function () { return { source: 'supabase' }; });
+        })
+        .catch(function (e) {
+          /* 401/403 aqui significa que a sessão do dono expirou (ou nunca
+             existiu) — a policy de RLS agora exige o papel "authenticated"
+             pra gravar. Derruba a sessão local pra o painel voltar pra tela
+             de login em vez de ficar tentando salvar em loop. O rascunho não
+             se perde: já está em localStorage (setLocalDoc, acima) e em
+             this.state.doc no painel. */
+          var expired = e.status === 401 || e.status === 403;
+          if (expired) setSession(null);
+          return { source: 'local', error: e.message, authExpired: expired };
+        });
+    };
+    var result = _saveChain.then(run);
+    _saveChain = result.catch(function () {});
+    return result;
   }
 
   var LS_EV = 'vn.ev';
@@ -391,7 +415,7 @@
   }
 
   window.VN = {
-    cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save,
+    cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save, checkUpdated: checkUpdated,
     seed: seed, uid: uid, fmt: fmt, normalize: normalize, track: track, events: events,
     uploadPhoto: uploadPhoto, couponUsed: couponUsed,
     signIn: signIn, signOut: signOut, authed: authed, getSession: getSession,

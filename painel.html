@@ -814,7 +814,7 @@
 
         <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
           <sc-for list="{{ rows }}" as="it" hint-placeholder-count="3">
-            <div class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+            <div key="{{ it.id }}" class="card" style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">
               <div style="display:flex;align-items:center;gap:10px">
                 <button onClick="{{ it.onEdit }}" title="Abrir ficha completa" style="{{ it.thumbStyle }}">
                   <sc-if value="{{ it.photo }}" hint-placeholder-val="{{ false }}">
@@ -1263,6 +1263,20 @@ class Component extends DCLogic {
     });
   }
 
+  /* Componentes de data no fuso de São Paulo, não no fuso local do
+     dispositivo — sem isso, o dono acessando o painel viajando (ou via VPN)
+     de outro fuso vê o gráfico de vendas agrupado no "dia" errado e o corte
+     de "Hoje" na hora errada. */
+  spParts(date) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo', hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    }).formatToParts(date);
+    const map = {};
+    parts.forEach(p => { map[p.type] = p.value; });
+    return { year: +map.year, month: +map.month, day: +map.day, hour: +map.hour, minute: +map.minute };
+  }
+
   flash(msg) {
     clearTimeout(this._toast);
     this.setState({ toast: msg });
@@ -1299,10 +1313,24 @@ class Component extends DCLogic {
     }, 500);
   }
 
-  num(v) { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+  num(v) {
+    /* Se tem vírgula, ela é o separador decimal (formato BR) — qualquer ponto
+       antes dela é separador de milhar e precisa sumir antes do parseFloat.
+       Sem isso, "1.234,56" virava "1.234.56" e parava no primeiro ponto,
+       lendo só "1.234" (quase 1000x menor que o valor digitado). */
+    let s = String(v).trim();
+    if (s.indexOf(',') !== -1) s = s.replace(/\./g, '').replace(',', '.');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
 
   rawSet(key, val, apply) {
     this.setState(s => ({ raw: Object.assign({}, s.raw, { [key]: val }) }));
+    /* Campo vazio no meio da edição (apagou tudo pra digitar de novo) não
+       grava 0 no documento — só atualiza o texto exibido. Sem isso, uma
+       pausa de meio segundo com o campo em branco (o debounce de queueSave)
+       já mandava um preço R$0,00 de verdade pro Supabase. */
+    if (String(val).trim() === '') return;
     apply(this.num(val));
   }
 
@@ -1467,14 +1495,16 @@ class Component extends DCLogic {
     const isToday = s.days === 'hoje';
     const days = isToday ? 1 : s.days;
     const now = new Date();
-    /* Chave por dia no fuso LOCAL do navegador — não toISOString() (que é sempre
-       UTC). O rótulo do eixo (x.date.getDate()/getMonth(), logo abaixo) e o
-       cutoff de "Hoje" (now.getFullYear()/getMonth()/getDate()) já usam
-       componentes locais; toISOString() aqui deixava as duas metades do
-       gráfico em fusos diferentes — pedidos feitos à noite (Brasil = UTC-3)
-       caíam num "dia" do bucket que nenhum slot representava e simplesmente
-       sumiam da barra, mesmo contando certo nos totais do topo. */
-    const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    /* Chave por dia sempre no fuso de São Paulo (this.spParts), nunca no fuso
+       do navegador nem em toISOString() (sempre UTC) — as duas abordagens
+       antigas causavam o mesmo tipo de bug por motivos opostos: toISOString()
+       jogava pedidos noturnos pro "dia" seguinte (Brasil = UTC-3) e sumiam da
+       barra; o fuso local do navegador funciona certo só enquanto o dono
+       acessa de dentro do Brasil — viajando ou usando VPN, o "Hoje" e o
+       agrupamento do gráfico deslizam pro fuso de onde o dispositivo pensa
+       que está. O rótulo do eixo (logo abaixo) e o formatter de data dos
+       pedidos usam o mesmo this.spParts, pelo mesmo motivo. */
+    const dayKey = d => { const p = this.spParts(d); return p.year + '-' + String(p.month).padStart(2, '0') + '-' + String(p.day).padStart(2, '0'); };
     const buckets = {};
     const slots = [];
     for (let i = days - 1; i >= 0; i--) {
@@ -1483,12 +1513,20 @@ class Component extends DCLogic {
       buckets[k] = { clicks: 0, orders: 0, revenue: 0 };
       slots.push({ key: k, date: d });
     }
-    const cutoff = isToday ? new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() : now.getTime() - days * 86400000;
+    const spNow = this.spParts(now);
+    const cutoff = isToday ? Date.UTC(spNow.year, spNow.month - 1, spNow.day, 3, 0, 0) : now.getTime() - days * 86400000;
     /* Precisa vir antes do loop de totais: um pedido cancelado não deve contar
        em faturamento/pedidos enviados/etc do Dashboard (mas continua
        aparecendo normalmente na lista da aba Pedidos). */
     const orderStatusMap = doc.orderStatus || {};
-    const orderKeyOf = (e, i) => e.id != null ? String(e.id) : String(e.ts) + '-' + i;
+    /* Chave só a partir do próprio evento (nunca da posição num array) —
+       antes, sem e.id (modo local/desconectado), cada trecho do código
+       calculava um índice diferente pro MESMO evento (posição no array bruto
+       de todos os eventos, posição pós-filtro-e-ordenação da lista de
+       pedidos, posição pós-filtro dos contatos), então a chave usada pra
+       marcar "cancelado" não batia com a chave usada pra excluir do
+       faturamento — um pedido cancelado continuava contando no Dashboard. */
+    const orderKeyOf = e => e.id != null ? String(e.id) : String(e.ts);
     const parseDetail = e => {
       let det = e.detail;
       if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
@@ -1504,7 +1542,7 @@ class Component extends DCLogic {
     const cancelledOrderKeys = {};
     (s.events || []).forEach((e, i) => {
       if (e.type !== 'order') return;
-      if (orderStatusMap[orderKeyOf(e, i)] !== 'cancelado') return;
+      if (orderStatusMap[orderKeyOf(e)] !== 'cancelado') return;
       const ok = parseDetail(e).orderKey;
       if (ok) cancelledOrderKeys[ok] = true;
     });
@@ -1522,7 +1560,7 @@ class Component extends DCLogic {
         const n = e.product || '—';
         clickBy[n] = (clickBy[n] || 0) + 1;
       } else if (e.type === 'order') {
-        if (orderStatusMap[orderKeyOf(e, i)] === 'cancelado') return;
+        if (orderStatusMap[orderKeyOf(e)] === 'cancelado') return;
         totalOrders++;
         totalRevenue += Number(e.total) || 0;
         if (b) { b.orders++; b.revenue += Number(e.total) || 0; }
@@ -1548,7 +1586,8 @@ class Component extends DCLogic {
     const barBase = 'width:100%;max-width:14px;border-radius:3px 3px 0 0;min-height:2px;';
     const series = slots.map(x => {
       const b = buckets[x.key];
-      const label = String(x.date.getDate()).padStart(2, '0') + '/' + String(x.date.getMonth() + 1).padStart(2, '0');
+      const xp = this.spParts(x.date);
+      const label = String(xp.day).padStart(2, '0') + '/' + String(xp.month).padStart(2, '0');
       return {
         label: label,
         title: label + ' · ' + b.clicks + ' cliques · ' + b.orders + ' pedidos · ' + fmt(b.revenue),
@@ -1576,9 +1615,9 @@ class Component extends DCLogic {
     ];
 
     const dt = v => {
-      const d = new Date(v);
+      const dp = this.spParts(new Date(v));
       const p = n => String(n).padStart(2, '0');
-      return p(d.getDate()) + '/' + p(d.getMonth() + 1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+      return p(dp.day) + '/' + p(dp.month) + ' ' + p(dp.hour) + ':' + p(dp.minute);
     };
     const STATUS_STEPS = [
       { id: 'novo', label: 'Novo', dot: '●' },
@@ -1606,7 +1645,7 @@ class Component extends DCLogic {
         det = det || {};
         const isEnt = (det.mode || 'entrega') === 'entrega';
         const addr = isEnt ? String(det.endereco || '').trim() : '';
-        const key = e.id != null ? String(e.id) : String(e.ts) + '-' + i;
+        const key = orderKeyOf(e);
         const items = (det.itens || []);
         const qEnc = encodeURIComponent(addr + (addr ? ' — São Miguel Paulista, São Paulo' : ''));
         const statusId = orderStatusMap[key] || 'novo';
@@ -1659,8 +1698,8 @@ class Component extends DCLogic {
     const filteredOrders = orderFilter === 'todos' ? orders : orders.filter(o => o.statusId === orderFilter);
 
     const byPhone = {};
-    (s.events || []).filter(e => e.type === 'order').forEach((e, i) => {
-      if (orderStatusMap[orderKeyOf(e, i)] === 'cancelado') return;
+    (s.events || []).filter(e => e.type === 'order').forEach(e => {
+      if (orderStatusMap[orderKeyOf(e)] === 'cancelado') return;
       let det = e.detail;
       if (typeof det === 'string') { try { det = JSON.parse(det); } catch (x) { det = null; } }
       det = det || {};
@@ -1696,6 +1735,7 @@ class Component extends DCLogic {
     /* ——— coleção ——— */
     const q = s.q.trim().toLowerCase();
     const rowOf = (p, cid) => ({
+      id: p.id,
       name: p.name, vol: p.vol || '',
       price: this.rawGet('row' + p.id, p.price),
       photo: p.photo || '', noPhoto: !p.photo,
@@ -1766,7 +1806,13 @@ class Component extends DCLogic {
           if (!file) return;
           if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
           this.flash('Enviando foto…');
+          /* Contador de geração por produto — se o admin trocar a foto de novo
+             antes do primeiro upload terminar, a resposta que demorar mais
+             não pode "ganhar" só por ter chegado depois. */
+          this._photoGen = this._photoGen || {};
+          const gen = (this._photoGen[p.id] = (this._photoGen[p.id] || 0) + 1);
           VN.uploadPhoto(file).then(url => {
+            if (this._photoGen[p.id] !== gen) return;
             set(t => { t.photo = url; });
             this.flash(VN.connected() ? 'Foto enviada' : 'Foto salva neste aparelho (conecte o Supabase para hospedar de verdade)');
           }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a foto'));
@@ -2064,7 +2110,7 @@ class Component extends DCLogic {
         ? 'Somando os acessos de todos os clientes, direto do banco.'
         : 'Sem Supabase conectado, o dashboard conta apenas os acessos feitos neste aparelho.',
 
-      outOfStock: doc.products.filter(p => p.out).map(p => ({
+      outOfStock: doc.products.filter(p => p.out || (Array.isArray(p.flavors) && p.flavors.length > 0 && p.flavors.every(f => f && typeof f === 'object' && f.out))).map(p => ({
         name: p.name,
         catName: (doc.categories.find(c => c.id === p.catId) || {}).name || '',
         onEdit: () => this.pickProduct(p.id, p.catId)
@@ -2073,7 +2119,6 @@ class Component extends DCLogic {
       catName: cat ? cat.name : '',
       onRenameCat: e => { const v = e.target.value; this.mutate(d => { const x = d.categories.find(y => y.id === catId); if (x) x.name = v; }); },
       onAddHere: () => this.addProduct(catId),
-      onNewFirst: () => this.addProduct(doc.categories[0].id),
       deleteCatLabel: s.confirmCat ? 'Confirmar' : 'Apagar coleção',
       onDeleteCat: () => {
         if (doc.categories.length < 2) return this.flash('Deixe pelo menos uma coleção');
@@ -2159,7 +2204,9 @@ class Component extends DCLogic {
         if (!file) return;
         if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
         this.flash('Enviando logo…');
+        const gen = (this._logoGen = (this._logoGen || 0) + 1);
         VN.uploadPhoto(file).then(url => {
+          if (this._logoGen !== gen) return;
           this.mutate(d => { d.settings.logo = url; });
           this.flash(VN.connected() ? 'Logo enviada' : 'Logo salva neste aparelho (conecte o Supabase para hospedar de verdade)');
         }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a logo'));
@@ -2172,7 +2219,9 @@ class Component extends DCLogic {
         if (!file) return;
         if (file.size > 8000000) return this.flash('Imagem muito grande (máx. 8MB)');
         this.flash('Enviando capa…');
+        const gen = (this._coverGen = (this._coverGen || 0) + 1);
         VN.uploadPhoto(file).then(url => {
+          if (this._coverGen !== gen) return;
           this.mutate(d => { d.settings.cover = url; });
           this.flash(VN.connected() ? 'Capa enviada' : 'Capa salva neste aparelho (conecte o Supabase para hospedar de verdade)');
         }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a capa'));
@@ -2189,16 +2238,23 @@ class Component extends DCLogic {
       onSidebarNav: e => { if (e.target.closest('button')) this.setState({ navOpen: false }); },
       navInlineStyle: s.navOpen ? 'transform:translateX(0)' : '',
       backdropStyle: s.navOpen ? 'display:block;position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:90' : 'display:none',
-      onGoConn: () => this.setState({ view: 'conexao', topQ: '' }),
       cfgUrl: s.cfgUrl, cfgKey: s.cfgKey, connMsg: s.connMsg, sql: VN.sql,
       onCfgUrl: e => this.setState({ cfgUrl: e.target.value }),
       onCfgKey: e => this.setState({ cfgKey: e.target.value }),
       onConnect: () => {
         VN.setCfg({ url: s.cfgUrl.trim(), key: s.cfgKey.trim() });
         this.setState({ connMsg: 'testando…' });
-        VN.save(this.state.doc).then(r => {
-          if (r.error) return this.setState({ connMsg: 'Falhou: ' + r.error, source: 'local' });
-          VN.load().then(x => this.setState({ doc: x.doc, source: x.source, connMsg: 'Conectado. A vitrine já lê daqui.' }));
+        /* Lê ANTES de qualquer coisa — nunca grava por cima do que já existe
+           no Supabase. VN.load() já é seguro: só semeia o servidor a partir
+           do catálogo local quando a tabela está genuinamente vazia (linha
+           ~236-249 de vn-data.js). O bug antigo aqui chamava VN.save() com o
+           doc local primeiro, sobrescrevendo o catálogo real do servidor
+           sempre que o dono clicasse em "Conectar e testar". */
+        VN.load().then(x => {
+          if (x.source !== 'supabase') {
+            return this.setState({ connMsg: 'Falhou: ' + (x.error || 'não foi possível conectar.'), source: 'local' });
+          }
+          this.setState({ doc: x.doc, source: x.source, connMsg: 'Conectado. A vitrine já lê daqui.' });
           VN.events().then(ev => this.setState({ events: ev || [] }));
         });
       },

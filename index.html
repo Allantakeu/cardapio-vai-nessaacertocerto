@@ -175,7 +175,7 @@ a:hover{color:var(--color-accent-300)}
             <a href="{{ mapHref }}" target="_blank" rel="noopener" aria-label="Localização da adega" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             </a>
-            <a href="https://www.instagram.com/vai.nessa1.0__/" target="_blank" rel="noopener" aria-label="Instagram" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
+            <a href="{{ instagramHref }}" target="_blank" rel="noopener" aria-label="Instagram" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
             </a>
             <button onClick="{{ onShare }}" aria-label="Compartilhar" style="width:28px;height:28px;flex:none;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:var(--shadow-sm);color:var(--color-text);cursor:pointer;border:0">
@@ -302,7 +302,7 @@ a:hover{color:var(--color-accent-300)}
     </sc-if>
 
     <div style="padding:8px 0 20px;font-size:11.5px;line-height:1.65;letter-spacing:.005em;color:var(--color-neutral-600)">
-      {{ addr1 }} · {{ addr2 }}<br>{{ hoursLabel }}<br>Pedidos pelo WhatsApp (11) 99934-7715 · @vai.nessa1.0__<br>Venda proibida para menores de 18 anos. Imagens ilustrativas.
+      {{ addr1 }} · {{ addr2 }}<br>{{ hoursLabel }}<br>{{ footerContactLabel }}<sc-if value="{{ hasPayments }}" hint-placeholder-val="{{ false }}"><br>{{ paymentsLabel }}</sc-if><br>Venda proibida para menores de 18 anos. Imagens ilustrativas.
     </div>
   </div>
 
@@ -591,6 +591,9 @@ a:hover{color:var(--color-accent-300)}
         <sc-if value="{{ showFeeRow }}" hint-placeholder-val="{{ true }}">
           <div style="{{ feeRowStyle }}"><span>{{ feeName }}</span><span class="money" style="{{ feeValueStyle }}">{{ feeLabel }}</span></div>
         </sc-if>
+        <sc-if value="{{ deliveryCalcHint }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:11px;line-height:1.4;color:var(--color-neutral-500);margin-top:-2px">{{ deliveryCalcHint }}</div>
+        </sc-if>
         <sc-if value="{{ freeHint }}" hint-placeholder-val="{{ false }}">
           <div style="font-size:12px;line-height:1.45;color:var(--brand-2-text);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px;margin-top:2px">{{ freeHint }}</div>
         </sc-if>
@@ -650,12 +653,18 @@ class Component extends DCLogic {
   get data() {
     const d = this.state.doc;
     if (!d) return [];
-    return d.categories
+    /* d só é substituído por inteiro (nunca mutado no lugar) em cada
+       VN.load()/setState({doc}) — então cachear pela referência do doc evita
+       reagrupar ~130+ produtos em ~27 categorias de novo a cada leitura
+       (chamado 2x por render) quando nada no catálogo mudou. */
+    if (this._dataCache && this._dataCacheDoc === d) return this._dataCache;
+    const result = d.categories
       .map(c => ({ name: c.name, items: d.products.filter(p => p.catId === c.id && !p.out) }))
       .filter(g => g.items.length);
+    this._dataCacheDoc = d;
+    this._dataCache = result;
+    return result;
   }
-
-  get extras() { return {}; }
 
   get promoItems() {
     const d = this.state.doc;
@@ -747,12 +756,16 @@ class Component extends DCLogic {
        fechava o site inteiro em vez de só a ficha (não tinha nada no histórico do
        navegador pra "voltar" — o "voltar" saía direto da página). Escuta o evento
        de navegação e fecha a ficha aberta em vez de deixar o navegador sair. */
+    this._histDepth = 0;
     this._onPopState = () => {
-      if (!this._histOpen) return;
-      this._histOpen = false;
+      if (this._histDepth <= 0) return;
+      this._histDepth--;
       this._closingFromPopstate = true;
       const s = this.state;
-      if (s.done) {
+      if (s.photoZoom) {
+        this.setState({ photoZoom: false });
+      } else if (s.done) {
+        this._waTracking = false;
         this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false });
       } else {
         this.setState({ open: null, cartOpen: false, added: '', photoZoom: false });
@@ -761,12 +774,27 @@ class Component extends DCLogic {
     window.addEventListener('popstate', this._onPopState);
     const boot = () => {
       if (!window.VN) return setTimeout(boot, 60);
-      VN.load().then(r => this.setState({ doc: r.doc }));
+      VN.load().then(r => {
+        this.setState({ doc: r.doc });
+        if (VN.checkUpdated) VN.checkUpdated().then(u => { this._lastUpdatedAt = u; });
+      });
+      /* Antes, cada tick baixava o catálogo inteiro (fácil 50-100KB com fotos
+         de 130+ produtos) e serializava (JSON.stringify) o doc novo E o velho
+         só pra comparar igualdade — a cada 6s, pra sempre. Agora só pergunta
+         o "updated_at" (resposta minúscula) e só baixa/serializa o documento
+         de verdade quando ele realmente mudou. */
       this._poll = setInterval(() => {
         if (document.hidden) return;
-        VN.load().then(r => {
-          const a = JSON.stringify(r.doc), b = JSON.stringify(this.state.doc);
-          if (a !== b) this.setState({ doc: r.doc });
+        if (!VN.checkUpdated) {
+          return VN.load().then(r => {
+            const a = JSON.stringify(r.doc), b = JSON.stringify(this.state.doc);
+            if (a !== b) this.setState({ doc: r.doc });
+          });
+        }
+        VN.checkUpdated().then(u => {
+          if (u === null || u === this._lastUpdatedAt) return;
+          this._lastUpdatedAt = u;
+          VN.load().then(r => this.setState({ doc: r.doc }));
         });
       }, 6000);
       this._vis = () => {
@@ -791,16 +819,20 @@ class Component extends DCLogic {
     const anyOpen = !!s.open || s.cartOpen || !!s.added || s.done;
     /* Empurra uma entrada no histórico assim que alguma ficha abre — é o que dá
        ao "voltar" do celular algo pra consumir em vez de sair da página direto.
-       Se a ficha foi fechada pelo próprio app (botão "Fechar"/"Remover" etc, não
-       pelo botão físico de voltar), consome essa entrada puxando history.back()
-       sozinho, senão o histórico ficava desalinhado e o próximo "voltar" não
-       fazia nada visível. */
-    if (anyOpen && !this._histOpen) {
-      this._histOpen = true;
-      history.pushState({ vnSheet: true }, '');
-    } else if (!anyOpen && this._histOpen && !this._closingFromPopstate) {
-      this._histOpen = false;
-      history.back();
+       O zoom da foto ganha uma segunda camada própria (abre por cima de uma
+       ficha já aberta) pra o primeiro "voltar" fechar só o zoom, não tudo de
+       uma vez. Se a ficha foi fechada pelo próprio app (botão "Fechar" etc,
+       não pelo botão físico de voltar), consome as entradas puxando
+       history.go() sozinho, senão o histórico ficava desalinhado e o próximo
+       "voltar" não fazia nada visível. */
+    const desiredHistDepth = anyOpen ? (s.photoZoom ? 2 : 1) : 0;
+    if (desiredHistDepth > this._histDepth) {
+      for (let i = this._histDepth; i < desiredHistDepth; i++) history.pushState({ vnSheet: true }, '');
+      this._histDepth = desiredHistDepth;
+    } else if (desiredHistDepth < this._histDepth && !this._closingFromPopstate) {
+      const diff = this._histDepth - desiredHistDepth;
+      this._histDepth = desiredHistDepth;
+      history.go(-diff);
     }
     this._closingFromPopstate = false;
     if (anyOpen && !this._scrollLocked) {
@@ -831,9 +863,11 @@ class Component extends DCLogic {
     clearInterval(this._poll);
     if (this._vis) document.removeEventListener('visibilitychange', this._vis);
     if (this._storage) window.removeEventListener('storage', this._storage);
+    if (this._onScroll) window.removeEventListener('scroll', this._onScroll);
+    if (this._onPopState) window.removeEventListener('popstate', this._onPopState);
   }
 
-  fmt(v) { return 'R$ ' + v.toFixed(2).replace('.', ','); }
+  fmt(v) { return 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ','); }
 
   optsOf(it) {
     const list = [{ label: 'Unidade', price: it.price, each: '' }];
@@ -886,6 +920,19 @@ class Component extends DCLogic {
 
   bump(i, d) {
     this.setState(st => ({ cart: st.cart.map((l, j) => j === i ? Object.assign({}, l, { qty: Math.max(1, l.qty + d) }) : l) }));
+  }
+
+  /* Igual ao "−/+" da lista principal (bumpSimple): chegar a 0 remove a linha
+     em vez de travar em 1 — antes só o carrinho tinha esse comportamento
+     diferente do resto do app, obrigando a usar "Remover" à parte. */
+  bumpLine(i, d) {
+    this.setState(st => {
+      const l = st.cart[i];
+      if (!l) return null;
+      const qty = l.qty + d;
+      if (qty <= 0) return { cart: st.cart.filter((x, j) => j !== i) };
+      return { cart: st.cart.map((x, j) => j === i ? Object.assign({}, x, { qty: qty }) : x) };
+    });
   }
 
   /* Stepper direto na lista: só mexe na linha "unidade" simples (sem fardo,
@@ -1094,7 +1141,12 @@ class Component extends DCLogic {
     const openMin = toMin(openT);
     let closeMin = toMin(closeT);
     if (closeMin <= openMin) closeMin += 1440;
-    const nowMin = (parseInt(map.hour, 10) || 0) * 60 + (parseInt(map.minute, 10) || 0);
+    const nowMinRaw = (parseInt(map.hour, 10) || 0) * 60 + (parseInt(map.minute, 10) || 0);
+    /* Quando o fechamento vira o dia (ex: abre 18h, fecha 2h), a madrugada
+       (00:00–02:00) tem um horário "pequeno" que já é o dia seguinte — sem
+       esse ajuste, comparar direto com openMin/closeMin dava "fechado" a
+       noite inteira depois da meia-noite mesmo com a loja aberta. */
+    const nowMin = (closeMin > 1440 && nowMinRaw < openMin) ? nowMinRaw + 1440 : nowMinRaw;
     const isOpen = nowMin >= openMin && nowMin < closeMin;
     const fmtT = t => t.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
     return {
@@ -1122,8 +1174,17 @@ class Component extends DCLogic {
     const storeAddress = this.normalizeForGeocode(storeAddressRaw);
     const custAddress = this.normalizeForGeocode(custAddressRaw);
     const key = storeAddress + '|' + custAddress;
-    if (this._deliveryCalcKey === key) return;
+    if (this._deliveryCalcKey === key) {
+      /* Mesmo endereço de uma chamada anterior que já terminou — quem chamou
+         (scheduleDeliveryCalc) já marcou "loading" de novo antes de chegar
+         aqui; sem restaurar o resultado conhecido, a tela ficava presa em
+         "calculando..." pra sempre porque nada mais ia rodar pra essa key. */
+      if (this._deliveryCalcResult) this.setState(this._deliveryCalcResult);
+      return;
+    }
     this._deliveryCalcKey = key;
+    this._deliveryCalcResult = null;
+    const setDeliveryState = patch => { this._deliveryCalcResult = patch; this.setState(patch); };
     this.setState({ deliveryCalcStatus: 'loading' });
     const wait = ms => new Promise(r => setTimeout(r, ms));
     /* Trava de segurança: se por algum motivo a cadeia de geocoding nunca resolver
@@ -1132,7 +1193,7 @@ class Component extends DCLogic {
     clearTimeout(this._deliveryWatchdog);
     this._deliveryWatchdog = setTimeout(() => {
       if (this._deliveryCalcKey === key && this.state.deliveryCalcStatus === 'loading') {
-        this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+        setDeliveryState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
       }
     }, 16000);
     /* Nominatim pede no máx. ~1 req/s da mesma origem — chamadas em paralelo
@@ -1158,7 +1219,7 @@ class Component extends DCLogic {
     const destCacheKey = s => s.rua.trim() + '|' + s.numero.trim() + '|' + s.cep.trim();
     storeGeo.then(origin => {
       if (this._deliveryCalcKey !== key) return;
-      if (!origin) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+      if (!origin) return setDeliveryState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
       const s = this.state;
       const dKey = destCacheKey(s);
       const destCached = this._destGeoCache && this._destGeoKey === dKey;
@@ -1172,11 +1233,11 @@ class Component extends DCLogic {
           .then(dest => { if (dest) { this._destGeoCache = dest; this._destGeoKey = dKey; } return dest; });
       return destGeo.then(dest => {
         if (this._deliveryCalcKey !== key) return;
-        if (!dest) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+        if (!dest) return setDeliveryState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
         return this.routeKm(origin, dest).then(km => {
           if (this._deliveryCalcKey !== key) return;
-          if (km == null) return this.setState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
-          this.setState({ deliveryCalcStatus: 'ok', deliveryKm: km, deliveryFeeCalc: this.roundFee(km * pricePerKm) });
+          if (km == null) return setDeliveryState({ deliveryCalcStatus: 'error', deliveryKm: null, deliveryFeeCalc: null });
+          setDeliveryState({ deliveryCalcStatus: 'ok', deliveryKm: km, deliveryFeeCalc: this.roundFee(km * pricePerKm) });
         });
       });
     });
@@ -1187,10 +1248,21 @@ class Component extends DCLogic {
     const cfg = (s.doc && s.doc.settings) || {};
     const openStatus = this.computeOpenStatus(cfg);
     const flatFee = cfg.deliveryFee != null ? cfg.deliveryFee : (this.props.deliveryFee != null ? this.props.deliveryFee : 8);
-    const pricePerKm = Number(cfg.pricePerKm) || 4;
+    const pricePerKm = cfg.pricePerKm != null ? Number(cfg.pricePerKm) || 0 : 4;
     const kmOn = cfg.kmDelivery !== false;
     const fee = (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryFeeCalc != null) ? s.deliveryFeeCalc : flatFee;
     const phone = cfg.whatsapp || this.props.whatsapp || '5511999347715';
+    const formatBrPhone = raw => {
+      const d = String(raw || '').replace(/\D/g, '').slice(-11);
+      if (d.length === 11) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
+      if (d.length === 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+      return raw;
+    };
+    const instaRaw = (cfg.instagram || '@vai.nessa1.0__').trim();
+    const instagramHref = /^https?:\/\//i.test(instaRaw) ? instaRaw : 'https://www.instagram.com/' + instaRaw.replace(/^@/, '') + '/';
+    const instaDisplay = /^https?:\/\//i.test(instaRaw)
+      ? instaRaw.replace(/^https?:\/\/(www\.)?instagram\.com\//i, '@').replace(/\/$/, '')
+      : (instaRaw.startsWith('@') ? instaRaw : '@' + instaRaw);
     const freeAbove = Number(cfg.freeAbove) || 0;
     const maxDeliveryKm = Number(cfg.maxDeliveryKm) || 0;
     const freeDeliveryMaxKm = Number(cfg.freeDeliveryMaxKm) || 0;
@@ -1221,18 +1293,25 @@ class Component extends DCLogic {
     const plusStyle = 'width:34px;height:34px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:16px;line-height:1;margin-top:29px;' + (quick
       ? 'border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)'
       : 'border:1px solid var(--line);color:var(--color-accent)');
+    /* Monta o mapa pid+preço→qtd uma vez só em vez de rodar cart.findIndex()
+       (percorrendo o carrinho inteiro) pra cada um dos 130+ produtos — era
+       O(produtos × itens no carrinho) a cada render, agora é uma leitura O(1)
+       por produto. */
+    const simpleCartQty = new Map();
+    s.cart.forEach(l => {
+      if (!l.extras.length && !l.obs) simpleCartQty.set(l.pid + '|' + l.unit, l.qty);
+    });
     const groups = this.data
       .filter(g => s.cat === 'Todos' || g.name === s.cat)
       .map(g => {
         const items = g.items.filter(match).map(it => {
-          const li = this.simpleLineIndex(s.cart, it);
           return {
             name: it.name, tag: it.tag,
             desc: [it.vol].concat((it.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
             priceLabel: fmt(it.price) + ' un',
             slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
             onOpen: () => this.openItem(it, g.name),
-            rowQty: (it.flavors && it.flavors.length) ? 0 : (li >= 0 ? s.cart[li].qty : 0),
+            rowQty: (it.flavors && it.flavors.length) ? 0 : (simpleCartQty.get(it.id + '|' + it.price) || 0),
             /* onQuickAdd é só pro primeiro toque (ainda não tá no carrinho) —
                usa quickAdd (mostra o toast de confirmação). Depois que já tem
                uma linha, os toques no stepper usam bumpSimple, sem toast:
@@ -1286,7 +1365,7 @@ class Component extends DCLogic {
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
       photoUrl: l.photo || '', slotId: 'vn-cart-' + (l.pid || i) + '-' + i,
       detail: [l.extras.length ? '+ ' + l.extras.join(', ') : null, l.obs ? '“' + l.obs + '”' : null, fmt(l.unit) + ' cada'].filter(Boolean).join(' · '),
-      onInc: () => this.bump(i, 1), onDec: () => this.bump(i, -1),
+      onInc: () => this.bumpLine(i, 1), onDec: () => this.bumpLine(i, -1),
       onRemove: () => this.setState(st => ({ cart: st.cart.filter((x, j) => j !== i) }))
     }));
     const subtotal = s.cart.reduce((t, l) => t + l.unit * l.qty, 0);
@@ -1389,7 +1468,7 @@ class Component extends DCLogic {
             : (d.length > 2 ? '(' + d.slice(0, 2) + ') ' + d.slice(2) : d));
         this.setState({ telefone: v });
       },
-      tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle,
+      tabs: tabs, groups: groups, empty: groups.length === 0, groupsAnimStyle: groupsAnimStyle, cat: s.cat,
       showFeatured: promos.length > 0 && s.cat === 'Todos' && !q,
       promos: promos,
       opts: opts,
@@ -1496,7 +1575,9 @@ class Component extends DCLogic {
       storeNamePart1: (cfg.storeName || 'Vai Nessa').split(' ')[0],
       storeNamePart2: (cfg.storeName || 'Vai Nessa').split(' ').slice(1).join(' '),
       logoUrl: cfg.logo || '', coverUrl: cfg.cover || '',
-      paymentsLabel: cfg.payments || 'Pix · cartão · dinheiro',
+      paymentsLabel: cfg.payments || 'Pix · cartão · dinheiro', hasPayments: true,
+      instagramHref: instagramHref,
+      footerContactLabel: 'Pedidos pelo WhatsApp ' + formatBrPhone(phone) + ' · ' + instaDisplay,
       hoursLabel: cfg.hours || 'Aberto até 23:00',
       openStatusLabel: openStatus ? openStatus.label : (cfg.hours || 'Aberto até 23:00'),
       openStatusDotStyle: 'width:6px;height:6px;border-radius:50%;background:' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a') + ';box-shadow:0 0 8px ' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a'),
@@ -1535,6 +1616,7 @@ class Component extends DCLogic {
       },
       setRetirada: () => this.setState({ mode: 'retirada' }),
       send: () => {
+        if (!s.cart.length) return this.showToast('Seu carrinho está vazio.');
         const missing = [];
         if (!s.nome.trim()) missing.push('seu nome');
         if (isEntrega && s.telefone.replace(/\D/g, '').length < 10) missing.push('seu WhatsApp');
@@ -1555,7 +1637,12 @@ class Component extends DCLogic {
       done: s.done, waMessage: s.msg,
       waHref: 'https://wa.me/' + phone + '?text=' + encodeURIComponent(s.msg || ''),
       onOpenWhatsApp: () => {
-        if (s.waTracked || !window.VN) return;
+        /* Guarda numa prop de instância (não no state) porque o clique duplo
+           pode acontecer antes do re-render que traria s.waTracked=true de
+           volta pra essa closure — sem isso, dois toques rápidos registram
+           o pedido/venda duas vezes. */
+        if (this._waTracking || s.waTracked || !window.VN) return;
+        this._waTracking = true;
         this.setState({ waTracked: true });
         const orderKey = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         VN.track('order', {
@@ -1569,7 +1656,7 @@ class Component extends DCLogic {
         });
         s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty, detail: { orderKey: orderKey } }));
       },
-      reset: () => this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false })
+      reset: () => { this._waTracking = false; this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false }); }
     };
   }
 }
