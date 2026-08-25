@@ -1052,12 +1052,24 @@
                 <span class="lbl">Valor por km</span>
                 <input class="fld num" inputmode="decimal" value="{{ st.pricePerKm }}" onChange="{{ onPricePerKm }}" style="max-width:170px">
               </div>
+              <div style="margin-top:12px">
+                <span class="lbl">Distância máxima de entrega (km)</span>
+                <input class="fld num" inputmode="decimal" value="{{ st.maxDeliveryKm }}" onChange="{{ onMaxDeliveryKm }}" style="max-width:170px" placeholder="0 = sem limite">
+                <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:8px 0 0">Bloqueia o pedido se o endereço calculado estiver mais longe que isso. 0 desliga (entrega qualquer distância).</p>
+              </div>
             </sc-if>
           </div>
           <div class="card">
             <span class="lbl">Frete grátis acima de</span>
             <input class="fld num" inputmode="decimal" value="{{ st.freeAbove }}" onChange="{{ onFreeAbove }}" style="max-width:170px">
             <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:8px 0 0">O carrinho mostra quanto falta pro frete sair de graça. 0 desliga. Sugestão: 1,5× seu ticket médio.</p>
+            <sc-if value="{{ st.kmDelivery }}" hint-placeholder-val="{{ true }}">
+              <div style="margin-top:12px">
+                <span class="lbl">Frete grátis vale só até (km)</span>
+                <input class="fld num" inputmode="decimal" value="{{ st.freeDeliveryMaxKm }}" onChange="{{ onFreeDeliveryMaxKm }}" style="max-width:170px" placeholder="0 = sem limite">
+                <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:8px 0 0">Sem isso, "frete grátis" valia até pra endereços bem longe. Deixe menor que a distância máxima de entrega.</p>
+              </div>
+            </sc-if>
           </div>
           <div class="card">
             <span class="lbl">Título do bloco de sugestões</span>
@@ -2067,6 +2079,8 @@ class Component extends DCLogic {
         freeAbove: this.rawGet('freeAbove', st.freeAbove || 0),
         kmDelivery: st.kmDelivery !== false,
         pricePerKm: this.rawGet('pricePerKm', st.pricePerKm != null ? st.pricePerKm : 4),
+        maxDeliveryKm: this.rawGet('maxDeliveryKm', st.maxDeliveryKm || 0),
+        freeDeliveryMaxKm: this.rawGet('freeDeliveryMaxKm', st.freeDeliveryMaxKm || 0),
         couponActive: !!st.couponActive, couponCode: st.couponCode || '', couponType: st.couponType === 'fixed' ? 'fixed' : 'percent',
         couponValue: this.rawGet('couponValue', st.couponValue || 0)
       },
@@ -2074,6 +2088,8 @@ class Component extends DCLogic {
       kmStyle: this.chipStyle(st.kmDelivery !== false),
       onToggleKm: () => this.mutate(d => { d.settings.kmDelivery = d.settings.kmDelivery === false; }),
       onPricePerKm: e => this.rawSet('pricePerKm', e.target.value, n => this.mutate(d => { d.settings.pricePerKm = n; })),
+      onMaxDeliveryKm: e => this.rawSet('maxDeliveryKm', e.target.value, n => this.mutate(d => { d.settings.maxDeliveryKm = n; })),
+      onFreeDeliveryMaxKm: e => this.rawSet('freeDeliveryMaxKm', e.target.value, n => this.mutate(d => { d.settings.freeDeliveryMaxKm = n; })),
       couponActiveLabel: st.couponActive ? 'Ativo' : 'Inativo',
       couponActiveStyle: this.chipStyle(!!st.couponActive),
       onToggleCoupon: () => this.mutate(d => { d.settings.couponActive = !d.settings.couponActive; }),

@@ -562,6 +562,9 @@ a:hover{color:var(--color-accent-300)}
         </div>
       </sc-if>
 
+      <sc-if value="{{ outOfRange }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:14px;padding:10px 12px;border-radius:10px;color:var(--color-accent);background:var(--brand-2-soft);font-size:12.5px;line-height:1.5">{{ outOfRangeMsg }}</div>
+      </sc-if>
       <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:7px;font-size:13px">
         <div style="display:flex;justify-content:space-between;color:var(--color-neutral-400)"><span>Subtotal</span><span class="money">{{ subtotalLabel }}</span></div>
         <sc-if value="{{ showCouponRow }}" hint-placeholder-val="{{ false }}">
@@ -1062,6 +1065,8 @@ class Component extends DCLogic {
     const fee = (kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryFeeCalc != null) ? s.deliveryFeeCalc : flatFee;
     const phone = cfg.whatsapp || this.props.whatsapp || '5511999347715';
     const freeAbove = Number(cfg.freeAbove) || 0;
+    const maxDeliveryKm = Number(cfg.maxDeliveryKm) || 0;
+    const freeDeliveryMaxKm = Number(cfg.freeDeliveryMaxKm) || 0;
     const address = cfg.address || 'Rua Moacir Dantas Itapicuru, 911 — Cidade Nova São Miguel Paulista';
     const addrParts = address.split(/\s+[—-]\s+/);
 
@@ -1179,18 +1184,32 @@ class Component extends DCLogic {
       ? 'color:#1c8a52;background:rgba(47,182,115,.1);border-radius:8px;padding:8px 10px'
       : 'color:var(--color-accent);background:var(--brand-2-soft);border-radius:8px;padding:8px 10px';
 
-    const freeOk = freeAbove > 0 && subtotal >= freeAbove;
     const cepDigitsOk = s.cep.replace(/\D/g, '').length === 8;
     const feeCalculating = isEntrega && kmOn && s.deliveryCalcStatus === 'loading';
+    const kmKnown = kmOn && s.deliveryCalcStatus === 'ok' && s.deliveryKm != null;
+    /* Fora do raio máximo de entrega — bloqueia mesmo se o subtotal bateria
+       o frete grátis. Sem isso, "frete grátis acima de X" valia pra
+       qualquer distância, inclusive alguém a 30km de carro. */
+    const outOfRange = isEntrega && kmKnown && maxDeliveryKm > 0 && s.deliveryKm > maxDeliveryKm;
+    /* Frete grátis por valor também precisa respeitar uma distância máxima
+       própria (normalmente menor que o raio de entrega) — "grátis" não pode
+       significar "grátis não importa a distância". Só entra em ação quando
+       a distância já foi calculada; sem km conhecido (modo taxa fixa, ou
+       ainda calculando) cai no comportamento antigo, só por valor. */
+    const withinFreeKm = freeDeliveryMaxKm <= 0 || !kmKnown || s.deliveryKm <= freeDeliveryMaxKm;
+    const freeOk = freeAbove > 0 && subtotal >= freeAbove && withinFreeKm && !outOfRange;
     /* Antes disso ser resolvido (sem CEP ainda, ou frete calculando), o total
        mostrado não pode ser chamado de "Total" — vira "Total parcial" e o
        envio fica bloqueado, pra ninguém confirmar um pedido achando que
        R$0 de frete é o valor final. */
-    const feeUnresolved = isEntrega && !freeOk && (!cepDigitsOk || feeCalculating);
+    const feeUnresolved = isEntrega && !freeOk && (!cepDigitsOk || feeCalculating) && !outOfRange;
     const showFeeRow = !isEntrega || cepDigitsOk;
     const feeVal = isEntrega && !freeOk && showFeeRow && !feeCalculating ? fee : 0;
-    const freeHint = (freeAbove > 0 && isEntrega && count)
-      ? (freeOk ? 'Frete grátis aplicado.' : 'Faltam ' + fmt(freeAbove - subtotal) + ' pro frete grátis.')
+    const freeHint = outOfRange ? ''
+      : (freeAbove > 0 && isEntrega && count)
+      ? (freeOk ? 'Frete grátis aplicado.'
+        : !withinFreeKm ? 'Frete grátis vale só até ' + freeDeliveryMaxKm + ' km — esse endereço está fora do alcance.'
+        : 'Faltam ' + fmt(freeAbove - subtotal) + ' pro frete grátis.')
       : '';
     const modeBase = 'flex:1;cursor:pointer;font-family:var(--font-heading);font-weight:500;font-size:13px;padding:11px 8px;border-radius:10px;background:transparent;';
     const modeOn = 'border:1px solid var(--color-accent);color:var(--color-accent);background:rgba(216,27,132,.08)';
@@ -1302,6 +1321,8 @@ class Component extends DCLogic {
       feeUnresolved: feeUnresolved,
       feeUnresolvedHint: !cepDigitsOk ? 'Informe o CEP pra calcular o frete antes de enviar.' : 'Aguardando o cálculo do frete…',
       totalRowLabel: feeUnresolved ? 'Total parcial' : 'Total',
+      outOfRange: outOfRange,
+      outOfRangeMsg: 'Esse endereço está a ' + (s.deliveryKm != null ? s.deliveryKm.toFixed(1) : '?') + ' km — não entregamos além de ' + maxDeliveryKm + ' km. Retire na adega ou escolha outro endereço.',
       freeHint: freeHint,
       accentVars: cfg.accent
         ? '--color-accent:' + cfg.accent
@@ -1366,6 +1387,7 @@ class Component extends DCLogic {
         }
         if (missing.length) return this.showToast('Falta preencher ' + missing.join(', ') + '.');
         if (feeCalculating) return this.showToast('Aguarde o frete terminar de calcular antes de enviar.');
+        if (outOfRange) return this.showToast('Esse endereço está fora da nossa área de entrega.');
         if (window.VN) {
           /* Link só pro painel juntar cada linha de venda ("sale") ao pedido
              ("order") que a gerou — sem isso, cancelar um pedido tirava ele
