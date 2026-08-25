@@ -603,6 +603,8 @@
               </div>
               <div>
                 <span class="lbl">Horário de funcionamento (pra calcular aberto/fechado de verdade)</span>
+                <span class="lbl" style="font-size:10.5px;margin-top:6px;display:block">Dias que funciona (texto exibido fixo no cardápio)</span>
+                <input class="fld" value="{{ st.workDays }}" onChange="{{ onWorkDays }}" placeholder="Seg a sáb">
                 <div class="grid2" style="margin-top:6px">
                   <div>
                     <span class="lbl" style="font-size:10.5px">Seg a sex — abre</span>
@@ -2112,6 +2114,7 @@ class Component extends DCLogic {
       ed: ed, globalUpsell: globalUpsell, margins: margins, calc: calc, periodSummary: periodSummary,
       st: {
         whatsapp: st.whatsapp || '', address: st.address || '', hours: st.hours || '',
+        workDays: st.workDays || '',
         openWeekday: st.openWeekday || '', closeWeekday: st.closeWeekday || '',
         openWeekend: st.openWeekend || '', closeWeekend: st.closeWeekend || '',
         minutes: st.minutes || '', instagram: st.instagram || '',
@@ -2141,6 +2144,7 @@ class Component extends DCLogic {
       onCouponValue: e => this.rawSet('couponValue', e.target.value, n => this.mutate(d => { d.settings.couponValue = n; })),
       couponValueLabel: st.couponType === 'fixed' ? 'Valor do desconto (R$)' : 'Valor do desconto (%)',
       onWhats: stF('whatsapp'), onAddress: stF('address'), onHours: stF('hours'),
+      onWorkDays: stF('workDays'),
       onOpenWeekday: stF('openWeekday'), onCloseWeekday: stF('closeWeekday'),
       onOpenWeekend: stF('openWeekend'), onCloseWeekend: stF('closeWeekend'),
       onMinutes: stF('minutes'), onInsta: stF('instagram'),

@@ -194,6 +194,9 @@ a:hover{color:var(--color-accent-300)}
         <span style="{{ openStatusDotStyle }}"></span>{{ openStatusLabel }}
       </span>
       <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ minutesLabel }}</span>
+      <sc-if value="{{ hasWorkDays }}" hint-placeholder-val="{{ false }}">
+        <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ workDaysLabel }}</span>
+      </sc-if>
     </div>
     <sc-if value="{{ hasCoupon }}" hint-placeholder-val="{{ false }}">
       <div class="couponCard" style="{{ couponCardStyle }}">
@@ -1414,6 +1417,8 @@ class Component extends DCLogic {
       openStatusLabel: openStatus ? openStatus.label : (cfg.hours || 'Aberto até 23:00'),
       openStatusDotStyle: 'width:6px;height:6px;border-radius:50%;background:' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a') + ';box-shadow:0 0 8px ' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a'),
       minutesLabel: cfg.minutes || 'Entrega 20–40 min',
+      hasWorkDays: !!(cfg.workDays || '').trim(),
+      workDaysLabel: cfg.workDays || '',
       addr1: addrParts[0] || '', addr2: addrParts[1] || '',
       mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(address),
       upsellTitle: cfg.upsellTitle || 'Quer junto?',
