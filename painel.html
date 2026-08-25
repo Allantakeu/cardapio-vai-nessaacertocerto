@@ -598,8 +598,32 @@
               </div>
               <div><span class="lbl">Frase abaixo do nome</span><input class="fld" value="{{ st.tagline }}" onChange="{{ onTagline }}" placeholder="Bebida gelada, combo montado e entrega no bairro."></div>
               <div style="display:flex;gap:12px;flex-wrap:wrap">
-                <div style="flex:1;min-width:150px"><span class="lbl">Horário</span><input class="fld" value="{{ st.hours }}" onChange="{{ onHours }}"></div>
+                <div style="flex:1;min-width:150px"><span class="lbl">Horário (texto exibido)</span><input class="fld" value="{{ st.hours }}" onChange="{{ onHours }}"></div>
                 <div style="flex:1;min-width:150px"><span class="lbl">Tempo de entrega</span><input class="fld" value="{{ st.minutes }}" onChange="{{ onMinutes }}"></div>
+              </div>
+              <div>
+                <span class="lbl">Horário de funcionamento (pra calcular aberto/fechado de verdade)</span>
+                <div class="grid2" style="margin-top:6px">
+                  <div>
+                    <span class="lbl" style="font-size:10.5px">Seg a sex — abre</span>
+                    <input class="fld" type="time" value="{{ st.openWeekday }}" onChange="{{ onOpenWeekday }}">
+                  </div>
+                  <div>
+                    <span class="lbl" style="font-size:10.5px">Seg a sex — fecha</span>
+                    <input class="fld" type="time" value="{{ st.closeWeekday }}" onChange="{{ onCloseWeekday }}">
+                  </div>
+                </div>
+                <div class="grid2" style="margin-top:8px">
+                  <div>
+                    <span class="lbl" style="font-size:10.5px">Sáb e dom — abre</span>
+                    <input class="fld" type="time" value="{{ st.openWeekend }}" onChange="{{ onOpenWeekend }}">
+                  </div>
+                  <div>
+                    <span class="lbl" style="font-size:10.5px">Sáb e dom — fecha</span>
+                    <input class="fld" type="time" value="{{ st.closeWeekend }}" onChange="{{ onCloseWeekend }}">
+                  </div>
+                </div>
+                <p style="font-size:11.5px;line-height:1.6;color:var(--mut);margin:8px 0 0">Pra "fecha à meia-noite" use 00:00. Isso é só pra decidir a bolinha "Aberto agora"/"Fechado" — o texto acima é o que aparece escrito.</p>
               </div>
               <div><span class="lbl">Formas de pagamento</span><input class="fld" value="{{ st.payments }}" onChange="{{ onPayments }}" placeholder="Pix · cartão · dinheiro"></div>
               <div><span class="lbl">Endereço</span><input class="fld" value="{{ st.address }}" onChange="{{ onAddress }}"></div>
@@ -2088,6 +2112,8 @@ class Component extends DCLogic {
       ed: ed, globalUpsell: globalUpsell, margins: margins, calc: calc, periodSummary: periodSummary,
       st: {
         whatsapp: st.whatsapp || '', address: st.address || '', hours: st.hours || '',
+        openWeekday: st.openWeekday || '', closeWeekday: st.closeWeekday || '',
+        openWeekend: st.openWeekend || '', closeWeekend: st.closeWeekend || '',
         minutes: st.minutes || '', instagram: st.instagram || '',
         upsellTitle: st.upsellTitle || '',
         tagline: st.tagline || '', payments: st.payments || '',
@@ -2115,6 +2141,8 @@ class Component extends DCLogic {
       onCouponValue: e => this.rawSet('couponValue', e.target.value, n => this.mutate(d => { d.settings.couponValue = n; })),
       couponValueLabel: st.couponType === 'fixed' ? 'Valor do desconto (R$)' : 'Valor do desconto (%)',
       onWhats: stF('whatsapp'), onAddress: stF('address'), onHours: stF('hours'),
+      onOpenWeekday: stF('openWeekday'), onCloseWeekday: stF('closeWeekday'),
+      onOpenWeekend: stF('openWeekend'), onCloseWeekend: stF('closeWeekend'),
       onMinutes: stF('minutes'), onInsta: stF('instagram'),
       onStoreName: stF('storeName'), onLogo: stF('logo'),
       onLogoFile: e => {

@@ -191,7 +191,7 @@ a:hover{color:var(--color-accent-300)}
     <div class="desc" style="margin-top:12px;line-height:1.55">{{ tagline }}</div>
     <div style="position:relative;display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
       <span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">
-        <span style="width:6px;height:6px;border-radius:50%;background:#39d98a;box-shadow:0 0 8px #39d98a"></span>{{ hoursLabel }}
+        <span style="{{ openStatusDotStyle }}"></span>{{ openStatusLabel }}
       </span>
       <span style="border-radius:999px;padding:7px 12px;font-size:11.5px;color:#3a3a42;background:#fff;box-shadow:var(--shadow-sm)">{{ minutesLabel }}</span>
     </div>
@@ -1004,6 +1004,36 @@ class Component extends DCLogic {
     this._toastTimer = setTimeout(() => this.setState({ toast: '' }), 2600);
   }
 
+  /* Aberto/fechado de verdade, calculado no fuso de São Paulo — antes a
+     bolinha verde era só decoração, sempre acesa, mesmo fora do horário.
+     Sem os campos novos configurados (openWeekday etc.), volta pro texto
+     fixo de sempre em vez de quebrar. */
+  computeOpenStatus(cfg) {
+    const openStr = s => (s || '').trim();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo', hour12: false, weekday: 'short', hour: '2-digit', minute: '2-digit'
+    }).formatToParts(new Date());
+    const map = {};
+    parts.forEach(p => { map[p.type] = p.value; });
+    const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = weekdayMap[map.weekday];
+    const isWeekend = day === 0 || day === 6;
+    const openT = openStr(isWeekend ? cfg.openWeekend : cfg.openWeekday);
+    const closeT = openStr(isWeekend ? cfg.closeWeekend : cfg.closeWeekday);
+    if (!openT || !closeT) return null;
+    const toMin = t => { const bits = t.split(':'); return (parseInt(bits[0], 10) || 0) * 60 + (parseInt(bits[1], 10) || 0); };
+    const openMin = toMin(openT);
+    let closeMin = toMin(closeT);
+    if (closeMin <= openMin) closeMin += 1440;
+    const nowMin = (parseInt(map.hour, 10) || 0) * 60 + (parseInt(map.minute, 10) || 0);
+    const isOpen = nowMin >= openMin && nowMin < closeMin;
+    const fmtT = t => t.replace(/^0/, '').replace(':00', 'h').replace(':', 'h');
+    return {
+      isOpen: isOpen,
+      label: isOpen ? ('Aberto agora · fecha às ' + fmtT(closeT)) : ('Fechado agora · abre às ' + fmtT(openT))
+    };
+  }
+
   /* Arredonda o frete pra um valor redondo em vez de centavos exatos:
      menos de 25 centavos cai pro real cheio, 25 a 69 vira ",50", 70+ sobe pro próximo real. */
   roundFee(v) {
@@ -1066,6 +1096,7 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state, fmt = this.fmt.bind(this), V = this.variant();
     const cfg = (s.doc && s.doc.settings) || {};
+    const openStatus = this.computeOpenStatus(cfg);
     const flatFee = cfg.deliveryFee != null ? cfg.deliveryFee : (this.props.deliveryFee != null ? this.props.deliveryFee : 8);
     const pricePerKm = Number(cfg.pricePerKm) || 4;
     const kmOn = cfg.kmDelivery !== false;
@@ -1364,6 +1395,8 @@ class Component extends DCLogic {
       logoUrl: cfg.logo || '', coverUrl: cfg.cover || '',
       paymentsLabel: cfg.payments || 'Pix · cartão · dinheiro',
       hoursLabel: cfg.hours || 'Aberto até 23:00',
+      openStatusLabel: openStatus ? openStatus.label : (cfg.hours || 'Aberto até 23:00'),
+      openStatusDotStyle: 'width:6px;height:6px;border-radius:50%;background:' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a') + ';box-shadow:0 0 8px ' + (openStatus && !openStatus.isOpen ? '#e0524f' : '#39d98a'),
       minutesLabel: cfg.minutes || 'Entrega 20–40 min',
       addr1: addrParts[0] || '', addr2: addrParts[1] || '',
       mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(address),
