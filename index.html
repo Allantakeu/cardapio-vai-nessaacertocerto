@@ -1519,13 +1519,12 @@ class Component extends DCLogic {
        com valores diferentes) — quando não definido, cai no preço base do
        produto, então isso não muda nada pra sabor que é só sabor mesmo. */
     const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string'
-      ? { name: f, out: false, price: null, max: null, group: '', groupMax: null }
+      ? { name: f, out: false, price: null, max: null, group: '' }
       : {
         name: (f && f.name) || '', out: !!(f && f.out),
         price: (f && f.price != null && f.price !== '') ? Number(f.price) : null,
         max: (f && f.max != null && f.max !== '') ? Math.round(Number(f.max)) : null,
-        group: (f && f.group) || '',
-        groupMax: (f && f.groupMax != null && f.groupMax !== '') ? Math.round(Number(f.groupMax)) : null
+        group: (f && f.group) || ''
       });
     /* Combo com quantidade fixa (ex: "5 latas, escolha os sabores de cada")
        — em vez de escolher UM sabor pro produto inteiro, o cliente distribui
@@ -1540,9 +1539,29 @@ class Component extends DCLogic {
        R$12+ (o preço base virou só um valor de cadastro, nunca vendido). */
     const flavorPricesConfigured = flavorList.filter(f => f.price != null).map(f => f.price);
     const minFlavorPrice = flavorPricesConfigured.length ? Math.min.apply(null, flavorPricesConfigured) : null;
-    const flavorPriceOverride = isCombo ? null : (selectedFlavorObj && selectedFlavorObj.price != null
-      ? selectedFlavorObj.price
-      : (!s.flavor && minFlavorPrice != null ? minFlavorPrice : null));
+    /* Segundo grupo de variante, independente do primeiro (ex: produto tem
+       SABOR e também COR pra escolher, cada um com seu próprio título) —
+       sempre escolha única e sem modo combo, pra manter simples (isso é o
+       "sabor"/"cor" clássico, não o combo de quantidade), mas também pode
+       ter preço próprio igual o primeiro grupo (ex: sabores de whisky com
+       preços diferentes entre si). */
+    const flavorList2 = ((open && open.flavors2) || []).map(f => typeof f === 'string'
+      ? { name: f, out: false, price: null }
+      : {
+        name: (f && f.name) || '', out: !!(f && f.out),
+        price: (f && f.price != null && f.price !== '') ? Number(f.price) : null
+      });
+    const selectedFlavorObj2 = flavorList2.find(f => f.name === s.flavor2);
+    const flavor2PricesConfigured = flavorList2.filter(f => f.price != null).map(f => f.price);
+    const minFlavor2Price = flavor2PricesConfigured.length ? Math.min.apply(null, flavor2PricesConfigured) : null;
+    /* Quando os dois grupos têm preço próprio, o segundo (escolhido por
+       último, geralmente a variante mais específica) manda no preço final. */
+    const flavorPriceOverride = isCombo ? null : (
+      (selectedFlavorObj2 && selectedFlavorObj2.price != null) ? selectedFlavorObj2.price
+      : (!s.flavor2 && minFlavor2Price != null) ? minFlavor2Price
+      : (selectedFlavorObj && selectedFlavorObj.price != null) ? selectedFlavorObj.price
+      : (!s.flavor && minFlavorPrice != null) ? minFlavorPrice
+      : null);
     const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({
@@ -1564,15 +1583,8 @@ class Component extends DCLogic {
     const hasFlavors = flavorOpts.length > 0;
     const isSingleFlavorMode = hasFlavors && !isCombo;
 
-    /* Segundo grupo de variante, independente do primeiro (ex: produto tem
-       SABOR e também COR pra escolher, cada um com seu próprio título) —
-       sempre escolha única, sem preço próprio nem modo combo, pra manter
-       simples (isso é o "sabor"/"cor" clássico, não o combo de quantidade). */
-    const flavorList2 = ((open && open.flavors2) || []).map(f => typeof f === 'string'
-      ? { name: f, out: false }
-      : { name: (f && f.name) || '', out: !!(f && f.out) });
     const flavorOpts2 = flavorList2.map(f => ({
-      name: f.name + (f.out ? ' (esgotado)' : ''),
+      name: f.name + (f.price != null ? ' · ' + fmt(f.price) : '') + (f.out ? ' (esgotado)' : ''),
       style: pill + 'font-size:12.5px;' + (f.out ? offSt + ';opacity:.4;cursor:not-allowed;text-decoration:line-through' : (s.flavor2 === f.name ? onSt : offSt)),
       onPick: f.out ? (e => { if (e && e.stopPropagation) e.stopPropagation(); }) : () => this.setState({ flavor2: f.name })
     }));
@@ -1584,14 +1596,12 @@ class Component extends DCLogic {
     const comboRemaining = comboQty - comboTotal;
     const comboHint = isCombo ? ('Escolha ' + comboQty + ' no total (' + comboTotal + ' de ' + comboQty + ')') : '';
     /* "Grupo" junta vários sabores numa cota comum (ex: todo sabor de whisky
-       leva group:"Whisky" e pelo menos um deles tem groupMax:1) — o efetivo
-       é o MENOR groupMax cadastrado no grupo, então o admin só precisa
-       preencher em um sabor pra travar o grupo inteiro. */
+       leva group:"Whisky") — o máximo do grupo vem da lista comboGroups do
+       produto (cadastrada uma vez só, não repetida em cada sabor). */
+    const comboGroups = (open && open.comboGroups) || [];
     const groupCaps = {};
-    flavorList.forEach(f => {
-      if (f.group && f.groupMax != null) {
-        groupCaps[f.group] = groupCaps[f.group] != null ? Math.min(groupCaps[f.group], f.groupMax) : f.groupMax;
-      }
+    comboGroups.forEach(g => {
+      if (g && g.name && g.max != null && g.max !== '') groupCaps[g.name] = Math.round(Number(g.max));
     });
     const groupSums = {};
     flavorList.forEach(f => {
