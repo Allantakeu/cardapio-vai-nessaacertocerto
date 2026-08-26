@@ -1058,6 +1058,13 @@
             <div class="card">
               <h2 class="h2">Sugestões junto</h2>
               <p style="font-size:12px;color:var(--mut);margin:5px 0 10px">Aparecem na ficha deste produto na vitrine.</p>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <div style="flex:1;max-width:160px">
+                  <span class="lbl">Limite de adicionais</span>
+                  <input class="fld num" inputmode="numeric" value="{{ ed.maxExtras }}" onChange="{{ ed.onMaxExtras }}" placeholder="0 = sem limite">
+                </div>
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:14px 0 0">Deixe em 0 pra não limitar. Com um número, o cliente pode escolher até essa quantidade de adicionais DIFERENTES nesse produto (a quantidade de cada um não conta pro limite).</p>
+              </div>
               <input class="fld" value="{{ ed.upsellQ }}" onChange="{{ ed.onUpsellQ }}" placeholder="Buscar produto..." style="margin-bottom:10px">
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <sc-for list="{{ ed.upsellOpts }}" as="u" hint-placeholder-count="4">
@@ -1940,6 +1947,8 @@ class Component extends DCLogic {
         onVariantLabel: e => { const v = e.target.value; set(t => { t.variantLabel = v; }); },
         photoBoxStyle: 'flex:none;width:220px;height:220px;border-radius:14px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
         price: this.rawGet('price', p.price),
+        maxExtras: this.rawGet('maxExtras', p.maxExtras || 0),
+        onMaxExtras: e => this.rawSet('maxExtras', e.target.value, n => set(t => { t.maxExtras = Math.max(0, Math.round(n)); })),
         cost: this.rawGet('cost', p.cost),
         compare: this.rawGet('compare', p.compare),
         marginNote: pct === null

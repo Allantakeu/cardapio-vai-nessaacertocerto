@@ -374,6 +374,9 @@ a:hover{color:var(--color-accent-300)}
       <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
         <div style="padding-top:14px">
           <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
+          <sc-if value="{{ extrasLimitHint }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11.5px;color:var(--color-neutral-500);margin:-4px 0 8px">{{ extrasLimitHint }}</div>
+          </sc-if>
           <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
             <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
               <span style="flex:1">{{ ad.name }}</span>
@@ -381,7 +384,7 @@ a:hover{color:var(--color-accent-300)}
               <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
                 <button class="btn btn-ghost" onClick="{{ ad.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
                 <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ ad.qty }}</span>
-                <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px">+</button>
+                <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px;{{ ad.incStyle }}">+</button>
               </div>
             </div>
           </sc-for>
@@ -445,6 +448,9 @@ a:hover{color:var(--color-accent-300)}
         <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:18px">
             <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
+            <sc-if value="{{ extrasLimitHint }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11.5px;color:var(--color-neutral-500);margin:-6px 0 10px">{{ extrasLimitHint }}</div>
+            </sc-if>
             <sc-for list="{{ addons }}" as="ad" hint-placeholder-count="3">
               <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
                 <span style="flex:1">{{ ad.name }}</span>
@@ -1413,11 +1419,27 @@ class Component extends DCLogic {
       onAdd: e => { e.stopPropagation(); this.quickAdd(p); }
     }));
     const extras = open ? this.extrasFor(open) : [];
-    const addons = extras.map(a => ({
-      name: a.name, priceLabel: '+ ' + fmt(a.price), qty: s.sel[a.id] || 0, hasQty: (s.sel[a.id] || 0) > 0,
-      onInc: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = (sel[a.id] || 0) + 1; return { sel: sel }; }),
-      onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = Math.max(0, (sel[a.id] || 0) - 1); return { sel: sel }; })
-    }));
+    /* Limite de adicionais é por produto e conta TIPOS diferentes escolhidos,
+       não a quantidade de cada um — "até 2" deixa escolher 2x do mesmo
+       adicional, só não deixa somar um terceiro tipo diferente. Aumentar a
+       quantidade de um adicional já escolhido continua liberado mesmo no
+       limite, só bloqueia começar um tipo novo. */
+    const maxExtras = Number(open && open.maxExtras) || 0;
+    const distinctExtrasSelected = extras.filter(a => (s.sel[a.id] || 0) > 0).length;
+    const extrasLimitReached = maxExtras > 0 && distinctExtrasSelected >= maxExtras;
+    const extrasLimitHint = maxExtras > 0 ? ('Escolha até ' + maxExtras + ' (' + distinctExtrasSelected + ' de ' + maxExtras + ')') : '';
+    const addons = extras.map(a => {
+      const hasQty = (s.sel[a.id] || 0) > 0;
+      const blocked = extrasLimitReached && !hasQty;
+      return {
+        name: a.name, priceLabel: '+ ' + fmt(a.price), qty: s.sel[a.id] || 0, hasQty: hasQty,
+        incStyle: blocked ? 'opacity:.35;cursor:not-allowed' : '',
+        onInc: blocked
+          ? () => this.showToast('Escolha até ' + maxExtras + ' adicionais nesse produto.')
+          : () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = (sel[a.id] || 0) + 1; return { sel: sel }; }),
+        onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = Math.max(0, (sel[a.id] || 0) - 1); return { sel: sel }; })
+      };
+    });
     /* Sabor/variante pode ter um preço próprio (ex: "Copo 500ml"/"770ml"/"1L"
        com valores diferentes) — quando não definido, cai no preço base do
        produto, então isso não muda nada pra sabor que é só sabor mesmo. */
@@ -1583,7 +1605,7 @@ class Component extends DCLogic {
          quick-add) — mas um produto com sabores precisa de uma escolha
          explícita, então cai pra ficha compacta mesmo nesse modo. */
       sheetA: !!open && (V === 'Compacta' || (V === 'Rápida' && hasFlavors)), sheetB: !!open && V === 'Foto grande',
-      addons: addons, hasAddons: addons.length > 0,
+      addons: addons, hasAddons: addons.length > 0, extrasLimitHint: extrasLimitHint,
       sheetTotalLabel: fmt(unit * s.qty),
       inc: () => this.setState(st => ({ qty: st.qty + 1 })),
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
