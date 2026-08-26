@@ -1554,14 +1554,21 @@ class Component extends DCLogic {
     const selectedFlavorObj2 = flavorList2.find(f => f.name === s.flavor2);
     const flavor2PricesConfigured = flavorList2.filter(f => f.price != null).map(f => f.price);
     const minFlavor2Price = flavor2PricesConfigured.length ? Math.min.apply(null, flavor2PricesConfigured) : null;
-    /* Quando os dois grupos têm preço próprio, o segundo (escolhido por
-       último, geralmente a variante mais específica) manda no preço final. */
-    const flavorPriceOverride = isCombo ? null : (
-      (selectedFlavorObj2 && selectedFlavorObj2.price != null) ? selectedFlavorObj2.price
-      : (!s.flavor2 && minFlavor2Price != null) ? minFlavor2Price
-      : (selectedFlavorObj && selectedFlavorObj.price != null) ? selectedFlavorObj.price
-      : (!s.flavor && minFlavorPrice != null) ? minFlavorPrice
-      : null);
+    /* No modo combo o preço já é fixo (o combo inteiro), então o preço da
+       2ª variante entra como ACRÉSCIMO em cima dele (ex: combo R$180 + R$5
+       por escolher um whisky específico) em vez de substituir o preço todo
+       — substituir faria o combo de R$180 "virar" R$5 ao escolher um sabor
+       com preço próprio pequeno, o que não faz sentido. Fora do combo, os
+       dois grupos continuam substituindo o preço normalmente (o segundo,
+       escolhido por último, manda quando os dois têm preço próprio). */
+    const flavorPriceOverride = isCombo
+      ? (selectedFlavorObj2 && selectedFlavorObj2.price != null ? (Number(open.price) + selectedFlavorObj2.price) : null)
+      : (
+        (selectedFlavorObj2 && selectedFlavorObj2.price != null) ? selectedFlavorObj2.price
+        : (!s.flavor2 && minFlavor2Price != null) ? minFlavor2Price
+        : (selectedFlavorObj && selectedFlavorObj.price != null) ? selectedFlavorObj.price
+        : (!s.flavor && minFlavorPrice != null) ? minFlavorPrice
+        : null);
     const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({
