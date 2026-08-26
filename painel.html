@@ -996,25 +996,35 @@
                     <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:14px 0 0">Só preencha se esse produto for um combo de várias unidades (ex: "5 latas de Red Bull") onde o cliente distribui a quantidade entre os sabores, em vez de escolher um só. Com um número aqui, o preço de cada sabor acima é ignorado — o combo inteiro tem um preço só.</p>
                   </div>
                 </sc-if>
-                <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;flex-direction:column;gap:10px">
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
-                    <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--line)">
+                    <div style="border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:10px">
                       <div style="display:flex;align-items:center;gap:8px">
-                        <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
-                        <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
-                          <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
-                          <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" style="width:70px" placeholder="máx">
-                        </sc-if>
+                        <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1;font-weight:600" placeholder="ex: Morango">
                         <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
                         <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
                       </div>
                       <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
-                        <sc-if value="{{ ed.isCombo }}" hint-placeholder-val="{{ false }}">
-                          <div style="display:flex;align-items:center;gap:8px;padding-left:0">
-                            <input class="fld" value="{{ fl.group }}" onChange="{{ fl.onGroup }}" style="flex:1" placeholder="grupo (ex: Whisky) — opcional">
-                            <input class="fld num" inputmode="numeric" value="{{ fl.groupMax }}" onChange="{{ fl.onGroupMax }}" style="width:110px" placeholder="máx do grupo">
+                        <div style="display:flex;gap:12px;flex-wrap:wrap">
+                          <div style="width:100px">
+                            <span class="lbl">Preço próprio</span>
+                            <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" placeholder="0,00">
                           </div>
-                        </sc-if>
+                          <div style="width:90px">
+                            <span class="lbl">Máx no combo</span>
+                            <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" placeholder="sem limite">
+                          </div>
+                          <sc-if value="{{ ed.isCombo }}" hint-placeholder-val="{{ false }}">
+                            <div style="flex:1;min-width:110px">
+                              <span class="lbl">Grupo</span>
+                              <input class="fld" value="{{ fl.group }}" onChange="{{ fl.onGroup }}" placeholder="ex: Whisky">
+                            </div>
+                            <div style="width:100px">
+                              <span class="lbl">Máx do grupo</span>
+                              <input class="fld num" inputmode="numeric" value="{{ fl.groupMax }}" onChange="{{ fl.onGroupMax }}" placeholder="sem limite">
+                            </div>
+                          </sc-if>
+                        </div>
                       </sc-if>
                     </div>
                   </sc-for>
@@ -1022,10 +1032,9 @@
                 <button class="btns" onClick="{{ ed.onAddFlavor }}" style="margin-top:10px;height:34px">+ Sabor</button>
                 <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">O cliente escolhe um sabor antes de adicionar ao pedido. Marque "Esgotado" pra tirar só aquele sabor de circulação. Deixe vazio pra produtos sem variante.</p>
                 <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
-                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
-                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O "máx" é só pra combo — limita quantas unidades desse sabor específico o cliente pode colocar dentro do combo. Vazio = sem limite individual (só o total do combo continua valendo).</p>
+                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">"Preço próprio" substitui o preço da unidade só quando esse sabor é escolhido (ex: tamanhos de copo) — vazio usa o preço normal. "Máx no combo" limita quantas unidades desse sabor específico cabem dentro do combo — vazio é sem limite individual.</p>
                   <sc-if value="{{ ed.isCombo }}" hint-placeholder-val="{{ false }}">
-                    <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">"Grupo" junta vários sabores numa mesma cota — ex: coloque "Whisky" em todos os sabores de whisky e "máx do grupo" 1 em pelo menos um deles, pra travar em só 1 whisky no total (de qualquer sabor), liberando o resto do combo pros outros sabores.</p>
+                    <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">"Grupo" junta vários sabores numa cota só — ex: coloque "Whisky" em todos os sabores de whisky e "Máx do grupo" 1 em pelo menos um deles, pra travar em só 1 whisky no total (de qualquer sabor), liberando o resto do combo pros outros sabores.</p>
                   </sc-if>
                 </sc-if>
                 <button class="btns" onClick="{{ ed.onToggleAdvanced }}" style="margin-top:14px;height:34px;font-size:12px">{{ ed.advancedLabel }}</button>
