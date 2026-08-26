@@ -374,6 +374,7 @@ a:hover{color:var(--color-accent-300)}
           </sc-for>
         </div>
       </sc-if>
+      <sc-if value="{{ showDeliveryOpts }}" hint-placeholder-val="{{ true }}">
       <div>
         <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">Como quer levar?</h6>
         <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
@@ -387,6 +388,7 @@ a:hover{color:var(--color-accent-300)}
           </label>
         </sc-for>
       </div>
+      </sc-if>
       <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
         <div style="padding-top:14px">
           <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
@@ -464,6 +466,7 @@ a:hover{color:var(--color-accent-300)}
             </sc-for>
           </div>
         </sc-if>
+        <sc-if value="{{ showDeliveryOpts }}" hint-placeholder-val="{{ true }}">
         <div style="margin-top:18px">
           <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">Como quer levar?</h6>
           <sc-for list="{{ opts }}" as="op" hint-placeholder-count="2">
@@ -477,6 +480,7 @@ a:hover{color:var(--color-accent-300)}
             </label>
           </sc-for>
         </div>
+        </sc-if>
         <sc-if value="{{ hasAddons }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:18px">
             <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ upsellTitle }}</h6>
@@ -490,7 +494,7 @@ a:hover{color:var(--color-accent-300)}
                 <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
                   <button class="btn btn-ghost" onClick="{{ ad.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
                   <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ ad.qty }}</span>
-                  <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px">+</button>
+                  <button class="btn btn-ghost" onClick="{{ ad.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px;{{ ad.incStyle }}">+</button>
                 </div>
               </div>
             </sc-for>
@@ -743,7 +747,7 @@ function captureRef() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cart: loadCart(), confirmedTotal: null, cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
 
   get data() {
     const d = this.state.doc;
@@ -862,7 +866,7 @@ class Component extends DCLogic {
         this.setState({ photoZoom: false });
       } else if (s.done) {
         this._waTracking = false;
-        this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false });
+        this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', couponRedeemed: false, waTracked: false, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', confirmedTotal: null });
       } else {
         this.setState({ open: null, cartOpen: false, added: '', photoZoom: false, referralOpen: false });
       }
@@ -970,6 +974,10 @@ class Component extends DCLogic {
      produto — senão o cliente via um valor que nunca é realmente vendido
      (ex: R$1,00 de cadastro num produto cujas variantes custam R$12+). */
   minVariantPrice(it) {
+    /* Combo (comboQty>0) tem UM preço fixo só — preço por sabor cadastrado
+       nesse modo é ignorado (a ficha nem usa), então não faz sentido puxar
+       ele aqui também. */
+    if (Math.round(Number(it.comboQty) || 0) > 0) return it.price;
     const prices = (it.flavors || [])
       .map(f => (f && typeof f === 'object' && f.price != null && f.price !== '') ? Number(f.price) : null)
       .filter(v => v != null);
@@ -1120,7 +1128,11 @@ class Component extends DCLogic {
     this._refCountKey = digits;
     clearTimeout(this._refCountTimer);
     if (digits.length < 10) { this.setState({ referralCounting: false, referralCount: 0 }); return; }
-    this.setState({ referralCounting: true });
+    /* Zera o contador junto (não só marca "carregando") — senão, ao trocar
+       de telefone, os selos de prêmio ficavam mostrando o progresso do
+       número anterior por baixo do texto "Verificando…" até a resposta
+       nova chegar. */
+    this.setState({ referralCounting: true, referralCount: 0 });
     this._refCountTimer = setTimeout(() => {
       (window.VN ? VN.countReferrals(digits) : Promise.resolve(0)).then(n => {
         if (this._refCountKey !== digits) return;
@@ -1493,7 +1505,7 @@ class Component extends DCLogic {
        — em vez de escolher UM sabor pro produto inteiro, o cliente distribui
        uma quantidade fixa entre vários sabores diferentes. Só existe um
        preço pro combo inteiro, então não usa preço por sabor nesse modo. */
-    const comboQty = Number(open && open.comboQty) || 0;
+    const comboQty = Math.round(Number(open && open.comboQty) || 0);
     const isCombo = flavorList.length > 0 && comboQty > 0;
     const selectedFlavorObj = flavorList.find(f => f.name === s.flavor);
     /* Antes de escolher um sabor, se pelo menos um tiver preço próprio, mostra
@@ -1545,7 +1557,10 @@ class Component extends DCLogic {
     });
     /* Um só booleano cobre as duas travas do botão "Adicionar": sabor único
        sem nada escolhido, ou combo sem bater a quantidade exata. */
-    const flavorIncomplete = isCombo ? (comboTotal !== comboQty) : (hasFlavors && !s.flavor);
+    /* s.flavor === '' (sabor cadastrado sem nome) é uma escolha válida — só
+       null conta como "nada escolhido ainda". Comparar com !s.flavor travava
+       o botão pra sempre se um sabor ficasse sem nome no painel. */
+    const flavorIncomplete = isCombo ? (comboTotal !== comboQty) : (hasFlavors && s.flavor == null);
 
     const lines = s.cart.map((l, i) => ({
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
@@ -1673,6 +1688,7 @@ class Component extends DCLogic {
       opts: opts,
       flavorOpts: flavorOpts, hasFlavors: hasFlavors,
       isCombo: isCombo, isSingleFlavorMode: isSingleFlavorMode, comboRows: comboRows, comboHint: comboHint,
+      showDeliveryOpts: !isCombo,
       addBtnStyle: flavorIncomplete ? 'opacity:.45;cursor:not-allowed' : '',
       addBtnLabel: flavorIncomplete ? (isCombo ? 'Falta escolher' : 'Escolha uma opção') : 'Adicionar',
       addBtnLabelLong: flavorIncomplete ? (isCombo ? 'Falta escolher os sabores' : 'Escolha uma opção acima') : 'Adicionar ao pedido',
@@ -1858,7 +1874,12 @@ class Component extends DCLogic {
            pedido/venda ainda. Quem conta como pedido é só quem realmente
            tocar em "Abrir WhatsApp" (onOpenWhatsApp), senão quem desistia
            nessa tela intermediária já entrava como venda no relatório. */
-        this.setState({ done: true, cartOpen: false, waTracked: false, msg: this.buildMsg(subtotal, feeVal, couponDiscount, couponCode) });
+        /* Trava o total junto com a mensagem — se o dono mudar frete/cupom
+           no painel enquanto o cliente está parado nessa tela (o cardápio
+           confere mudança a cada 6s), o valor registrado como venda tem que
+           bater com o que a mensagem do WhatsApp realmente mostra, não ser
+           recalculado na hora de abrir o WhatsApp com config já diferente. */
+        this.setState({ done: true, cartOpen: false, waTracked: false, msg: this.buildMsg(subtotal, feeVal, couponDiscount, couponCode), confirmedTotal: subtotal - couponDiscount + feeVal });
       },
       done: s.done, waMessage: s.msg,
       waHref: 'https://wa.me/' + phone + '?text=' + encodeURIComponent(s.msg || ''),
@@ -1882,7 +1903,7 @@ class Component extends DCLogic {
         const validRef = (refDigits && refDigits !== myDigits) ? refDigits : '';
         if (refDigits) { try { localStorage.removeItem('vn.ref'); } catch (e) {} }
         VN.track('order', {
-          product: null, qty: count, total: subtotal - couponDiscount + feeVal,
+          product: null, qty: count, total: s.confirmedTotal != null ? s.confirmedTotal : (subtotal - couponDiscount + feeVal),
           detail: {
             nome: s.nome, telefone: s.telefone, endereco: this.fullAddress(), mode: s.mode,
             itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty })),
@@ -1893,7 +1914,7 @@ class Component extends DCLogic {
         });
         s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty, detail: { orderKey: orderKey } }));
       },
-      reset: () => { this._waTracking = false; this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false }); }
+      reset: () => { this._waTracking = false; this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', couponRedeemed: false, waTracked: false, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', confirmedTotal: null }); }
     };
   }
 }

@@ -101,6 +101,10 @@
 <div style="{{ themeVars }}">
 <div style="min-height:100vh;background:var(--bg);color:var(--ink)">
 
+<sc-if value="{{ initialLoading }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13.5px">Carregando…</div>
+</sc-if>
+
 <sc-if value="{{ locked }}" hint-placeholder-val="{{ false }}">
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(120% 90% at 50% -10%, color-mix(in oklch, var(--acc) 14%, var(--bg)), var(--bg) 60%)">
     <div class="card" style="width:100%;max-width:360px;padding:30px 26px;box-shadow:0 20px 50px rgba(16,16,24,.10)">
@@ -1504,7 +1508,7 @@ class Component extends DCLogic {
     if (!name) return;
     const id = VN.uid('c');
     this.mutate(d => { d.categories.push({ id: id, name: name }); });
-    this.setState({ catId: id, view: 'cat', topQ: '', newCatOpen: false, newCatName: '' });
+    this.setState({ catId: id, view: 'cat', topQ: '', newCatOpen: false, newCatName: '', adjust: '', confirmAdj: false });
   }
 
   navStyle(on) {
@@ -1519,6 +1523,7 @@ class Component extends DCLogic {
 
     const base = {
       themeVars: Object.keys(vars).map(k => k + ':' + vars[k]).join(';'),
+      initialLoading: !doc,
       locked: !!doc && s.locked,
       unlocked: !!doc && !s.locked,
       toast: s.toast,
@@ -1556,7 +1561,7 @@ class Component extends DCLogic {
         downStyle: ci === doc.categories.length - 1 ? 'opacity:.3;pointer-events:none' : '',
         onUp: () => this.moveCategory(c.id, -1),
         onDown: () => this.moveCategory(c.id, 1),
-        onPick: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
+        onPick: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false, adjust: '', confirmAdj: false }),
         onToggle: () => this.setState(x => ({ expanded: Object.assign({}, x.expanded, { [c.id]: !x.expanded[c.id] }) })),
         onAdd: () => this.addProduct(c.id),
         items: items.map(p => ({
@@ -1585,7 +1590,7 @@ class Component extends DCLogic {
             photo: withPhoto ? withPhoto.photo : '', noPhoto: !withPhoto,
             matched: nameMatch || !!matchedProduct,
             matchNote: matchedProduct ? 'Contém "' + matchedProduct.name + '"' : '',
-            onOpen: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false }),
+            onOpen: () => this.setState({ view: 'cat', catId: c.id, q: '', topQ: '', confirmCat: false, adjust: '', confirmAdj: false }),
             upStyle: ci === 0 ? 'opacity:.3;pointer-events:none' : '',
             downStyle: ci === doc.categories.length - 1 ? 'opacity:.3;pointer-events:none' : '',
             onUp: () => this.moveCategory(c.id, -1), onDown: () => this.moveCategory(c.id, 1)
@@ -1963,7 +1968,7 @@ class Component extends DCLogic {
         marginNote: pct === null
           ? 'Sem fardo cadastrado: o cliente só consegue comprar unidade.'
           : 'Vendendo ' + f[0] + ' unidades soltas você faz ' + fmt(p.price * f[0]) + ', contra ' + fmt(f[1]) + ' no fardo — diferença de ' + pct + '%.',
-        onBack: () => this.setState({ view: 'cat', catId: p.catId, confirmDel: false }),
+        onBack: () => this.setState({ view: 'cat', catId: p.catId, confirmDel: false, adjust: '', confirmAdj: false }),
         onName: e => { const v = e.target.value; set(t => { t.name = v; }); },
         onVol: e => { const v = e.target.value; set(t => { t.vol = v; }); },
         onPhoto: e => { const v = e.target.value; set(t => { t.photo = v; }); },
@@ -2184,7 +2189,7 @@ class Component extends DCLogic {
       isPedidos: !topQ && s.view === 'pedidos', isVitrine: !topQ && s.view === 'vitrine',
       isDisparo: !topQ && s.view === 'disparo', isColecoes: !topQ && s.view === 'colecoes',
       colecoesStyle: this.navStyle(!topQ && (s.view === 'colecoes' || s.view === 'cat' || s.view === 'prod')),
-      onOpenColecoes: () => this.setState({ view: 'colecoes', topQ: '', colQ: '' }),
+      onOpenColecoes: () => this.setState({ view: 'colecoes', topQ: '', colQ: '', adjust: '', confirmAdj: false }),
       colQ: s.colQ || '', onColQ: e => this.setState({ colQ: e.target.value }),
       colRows: colRows, noColRows: colRows.length === 0,
       colSub: doc.categories.length + (doc.categories.length === 1 ? ' coleção · ' : ' coleções · ') + doc.products.length + (doc.products.length === 1 ? ' produto' : ' produtos'),
@@ -2243,7 +2248,10 @@ class Component extends DCLogic {
       noFilteredOrders: orders.length > 0 && filteredOrders.length === 0,
       orderFilterChips: orderFilterChips,
       ordersSub: orders.length
-        ? orders.length + (orders.length === 1 ? ' pedido registrado' : ' pedidos registrados') + ' · ' + fmt(orders.reduce((t, o) => t + o.raw, 0))
+        /* Soma só os não-cancelados — antes somava tudo, então cancelar um
+           pedido aqui deixava esse total pra sempre diferente do Faturamento
+           do Dashboard (que já exclui cancelado). */
+        ? orders.length + (orders.length === 1 ? ' pedido registrado' : ' pedidos registrados') + ' · ' + fmt(orders.filter(o => o.statusId !== 'cancelado').reduce((t, o) => t + o.raw, 0))
         : 'Nenhum pedido ainda',
       onReloadOrders: () => VN.events().then(ev => { this.setState({ events: ev || [] }); this.flash('Pedidos atualizados'); }),
       promoAdmin: (() => {
