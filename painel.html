@@ -778,6 +778,25 @@
                 <span class="lbl">Mensagem exibida pro cliente</span>
                 <textarea class="fld" value="{{ st.referralReward }}" onChange="{{ onReferralReward }}" rows="3" style="resize:vertical;line-height:1.5" placeholder="Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp."></textarea>
               </div>
+              <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:16px 0 8px">Prêmio por quantidade de indicações — o cliente vê o progresso dele em tempo real na ficha de indicação. Deixe em branco pra não mostrar aquele degrau.</p>
+              <div class="grid2">
+                <div>
+                  <span class="lbl">Prêmio de 1 indicação</span>
+                  <input class="fld" value="{{ st.referralMilestone1 }}" onChange="{{ onReferralMilestone1 }}" placeholder="ex: 1 Coca-Cola grátis">
+                </div>
+                <div>
+                  <span class="lbl">Prêmio de 5 indicações</span>
+                  <input class="fld" value="{{ st.referralMilestone5 }}" onChange="{{ onReferralMilestone5 }}" placeholder="ex: R$ 20 de desconto">
+                </div>
+                <div>
+                  <span class="lbl">Prêmio de 10 indicações</span>
+                  <input class="fld" value="{{ st.referralMilestone10 }}" onChange="{{ onReferralMilestone10 }}" placeholder="ex: um combo grátis">
+                </div>
+                <div>
+                  <span class="lbl">Prêmio de 25 indicações</span>
+                  <input class="fld" value="{{ st.referralMilestone25 }}" onChange="{{ onReferralMilestone25 }}" placeholder="ex: fardo grátis por 1 mês">
+                </div>
+              </div>
             </div>
 
           </div>
@@ -2317,7 +2336,9 @@ class Component extends DCLogic {
         freeDeliveryMaxKm: this.rawGet('freeDeliveryMaxKm', st.freeDeliveryMaxKm || 0),
         couponActive: !!st.couponActive, couponCode: st.couponCode || '', couponType: st.couponType === 'fixed' ? 'fixed' : 'percent',
         couponValue: this.rawGet('couponValue', st.couponValue || 0),
-        referralReward: st.referralReward || ''
+        referralReward: st.referralReward || '',
+        referralMilestone1: st.referralMilestone1 || '', referralMilestone5: st.referralMilestone5 || '',
+        referralMilestone10: st.referralMilestone10 || '', referralMilestone25: st.referralMilestone25 || ''
       },
       kmLabel: st.kmDelivery !== false ? 'Ativado' : 'Desativado',
       kmStyle: this.chipStyle(st.kmDelivery !== false),
@@ -2368,6 +2389,8 @@ class Component extends DCLogic {
       },
       onUpsellTitle: stF('upsellTitle'), onFee: stN('deliveryFee'), onFreeAbove: stN('freeAbove'),
       onReferralReward: stF('referralReward'),
+      onReferralMilestone1: stF('referralMilestone1'), onReferralMilestone5: stF('referralMilestone5'),
+      onReferralMilestone10: stF('referralMilestone10'), onReferralMilestone25: stF('referralMilestone25'),
       statusLabel: s.source === 'supabase' ? 'Ao vivo' : 'Neste aparelho',
       statusStyle: 'display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;'
         + (s.source === 'supabase'

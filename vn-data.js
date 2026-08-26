@@ -233,6 +233,21 @@
     return Promise.race([request, timeout]);
   }
 
+  /* Conta quantos amigos diferentes esse telefone já indicou (pra mostrar o
+     progresso "1/5/10/25 indicações" em tempo real no cardápio) sem o
+     cliente conseguir ler pedido/nome/endereço de ninguém — roda numa
+     function do Postgres que só devolve um número. Se a function ainda não
+     existir, o Supabase não estiver conectado, ou a rede estiver ruim,
+     assume 0 — nunca pode travar a tela do cliente. */
+  function countReferrals(phone) {
+    if (!connected() || !phone) return Promise.resolve(0);
+    var timeout = new Promise(function (res) { setTimeout(function () { res(0); }, 6000); });
+    var request = api('rpc/count_referrals', { method: 'POST', body: { p_phone: phone } })
+      .then(function (n) { return Number(n) || 0; })
+      .catch(function () { return 0; });
+    return Promise.race([request, timeout]);
+  }
+
   /* Só pra descobrir se o catálogo mudou desde a última vez, sem baixar nem
      serializar o documento inteiro (que já passa fácil de 50-100KB com fotos
      de 130+ produtos) — usado pelo polling da vitrine, que rodava esse custo
@@ -417,7 +432,7 @@
   window.VN = {
     cfg: cfg, setCfg: setCfg, connected: connected, load: load, save: save, checkUpdated: checkUpdated,
     seed: seed, uid: uid, fmt: fmt, normalize: normalize, track: track, events: events,
-    uploadPhoto: uploadPhoto, couponUsed: couponUsed,
+    uploadPhoto: uploadPhoto, couponUsed: couponUsed, countReferrals: countReferrals,
     signIn: signIn, signOut: signOut, authed: authed, getSession: getSession,
     sql: [
       '-- Cardápio: leitura pública (só a linha \'main\'), escrita só autenticada.',
@@ -483,7 +498,26 @@
       "      and coalesce(p_code, '') <> ''",
       '  );',
       '$$;',
-      'grant execute on function public.check_coupon_used(text, text) to anon, authenticated;'
+      'grant execute on function public.check_coupon_used(text, text) to anon, authenticated;',
+      '',
+      '-- Indicação de amigos: conta quantos amigos DIFERENTES esse WhatsApp já',
+      '-- indicou (pra mostrar "1/5/10/25 indicações" em tempo real pro próprio',
+      '-- cliente). Mesma lógica do cupom acima — roda no servidor e só devolve',
+      '-- um número, nunca pedido/nome/endereço de quem foi indicado.',
+      'create or replace function public.count_referrals(p_phone text)',
+      'returns integer',
+      'language sql',
+      'security definer',
+      'set search_path = public',
+      'as $$',
+      "  select count(distinct regexp_replace(coalesce(detail->>'telefone', ''), '\\D', '', 'g'))::int",
+      '  from vn_events',
+      "  where type = 'order'",
+      "    and regexp_replace(coalesce(detail->>'indicadoPor', ''), '\\D', '', 'g') = regexp_replace(coalesce(p_phone, ''), '\\D', '', 'g')",
+      "    and coalesce(detail->>'indicadoPor', '') <> ''",
+      "    and coalesce(p_phone, '') <> '';",
+      '$$;',
+      'grant execute on function public.count_referrals(text) to anon, authenticated;'
     ].join('\n')
   };
 })();

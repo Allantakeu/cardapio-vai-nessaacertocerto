@@ -635,7 +635,21 @@ a:hover{color:var(--color-accent-300)}
         <label>Seu WhatsApp</label>
         <input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}">
       </div>
+      <sc-if value="{{ referralCountLabel }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:12px;color:var(--color-neutral-500);margin-top:6px">{{ referralCountLabel }}</div>
+      </sc-if>
       <button class="btn btn-primary btn-block" onClick="{{ onShareReferral }}" style="height:48px;font-size:15px;margin-top:18px;background:rgba(216,27,132,.08)">Compartilhar meu link</button>
+      <sc-if value="{{ hasReferralMilestones }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:20px">
+          <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Prêmios por quantidade</div>
+          <sc-for list="{{ referralMilestones }}" as="m" hint-placeholder-count="4">
+            <div style="{{ m.style }}">
+              <span style="{{ m.dotStyle }}">{{ m.dotIcon }}</span>
+              <span style="flex:1;font-size:12.5px"><strong>{{ m.label }}</strong> — {{ m.reward }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
     </div>
   </div>
 </sc-if>
@@ -691,7 +705,7 @@ function captureRef() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
 
   get data() {
     const d = this.state.doc;
@@ -1042,6 +1056,25 @@ class Component extends DCLogic {
       (window.VN ? VN.couponUsed(digits, code) : Promise.resolve(false)).then(used => {
         if (this._couponCheckKey !== key) return;
         this.setState({ couponChecking: false, couponCheckUsed: used });
+      });
+    }, 450);
+  }
+
+  /* Conta em tempo real quantos amigos esse WhatsApp já indicou, pra mostrar
+     o progresso "1/5/10/25 indicações" na própria ficha — mesma lógica de
+     memoização do cupom acima, só dispara de novo quando o telefone muda
+     de verdade. */
+  scheduleReferralCount(phone) {
+    const digits = String(phone || '').replace(/\D/g, '').slice(-11);
+    if (this._refCountKey === digits) return;
+    this._refCountKey = digits;
+    clearTimeout(this._refCountTimer);
+    if (digits.length < 10) { this.setState({ referralCounting: false, referralCount: 0 }); return; }
+    this.setState({ referralCounting: true });
+    this._refCountTimer = setTimeout(() => {
+      (window.VN ? VN.countReferrals(digits) : Promise.resolve(0)).then(n => {
+        if (this._refCountKey !== digits) return;
+        this.setState({ referralCounting: false, referralCount: n || 0 });
       });
     }, 450);
   }
@@ -1423,6 +1456,19 @@ class Component extends DCLogic {
     const couponPhoneDigits = s.telefone.replace(/\D/g, '');
     const couponNeedsPhone = couponMatch && couponPhoneDigits.length < 10;
     if (couponMatch && !couponNeedsPhone) this.scheduleCouponCheck(s.telefone, couponCode);
+    if (s.referralOpen) this.scheduleReferralCount(s.telefone);
+    const referralMilestones = [1, 5, 10, 25]
+      .map(n => ({ n: n, reward: (cfg['referralMilestone' + n] || '').trim() }))
+      .filter(m => m.reward)
+      .map(m => ({
+        label: m.n + (m.n === 1 ? ' indicação' : ' indicações'),
+        reward: m.reward,
+        dotIcon: s.referralCount >= m.n ? '✓' : String(m.n),
+        style: 'display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)'
+          + (s.referralCount >= m.n ? ';opacity:1' : ';opacity:.55'),
+        dotStyle: 'flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;'
+          + (s.referralCount >= m.n ? 'background:#2fb673;color:#fff' : 'background:rgba(23,23,27,.08);color:var(--color-neutral-500)')
+      }));
     const couponAlreadyUsed = couponMatch && !couponNeedsPhone && !s.couponChecking && s.couponCheckUsed;
     const couponOk = couponMatch && !couponNeedsPhone && !couponAlreadyUsed && !s.couponChecking;
     const couponType = cfg.couponType === 'fixed' ? 'fixed' : 'percent';
@@ -1617,6 +1663,10 @@ class Component extends DCLogic {
       hasReferralPitch: true,
       referralOpen: s.referralOpen,
       onOpenReferral: () => this.setState({ referralOpen: true }),
+      referralCountLabel: s.referralOpen && s.telefone.replace(/\D/g, '').length >= 10
+        ? (s.referralCounting ? 'Verificando…' : 'Você já indicou ' + s.referralCount + (s.referralCount === 1 ? ' amigo' : ' amigos') + '.')
+        : '',
+      referralMilestones: referralMilestones, hasReferralMilestones: referralMilestones.length > 0,
       referralPitchText: cfg.referralReward || 'Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp.',
       onShareReferral: () => {
         const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
