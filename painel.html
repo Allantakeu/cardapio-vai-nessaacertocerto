@@ -998,14 +998,24 @@
                 </sc-if>
                 <div style="display:flex;flex-direction:column;gap:8px">
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
-                    <div style="display:flex;align-items:center;gap:8px">
-                      <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
+                    <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:6px;border-bottom:1px solid var(--line)">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
+                        <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
+                          <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
+                          <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" style="width:70px" placeholder="máx">
+                        </sc-if>
+                        <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
+                        <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
+                      </div>
                       <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
-                        <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
-                        <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" style="width:70px" placeholder="máx">
+                        <sc-if value="{{ ed.isCombo }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;align-items:center;gap:8px;padding-left:0">
+                            <input class="fld" value="{{ fl.group }}" onChange="{{ fl.onGroup }}" style="flex:1" placeholder="grupo (ex: Whisky) — opcional">
+                            <input class="fld num" inputmode="numeric" value="{{ fl.groupMax }}" onChange="{{ fl.onGroupMax }}" style="width:110px" placeholder="máx do grupo">
+                          </div>
+                        </sc-if>
                       </sc-if>
-                      <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
-                      <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
                     </div>
                   </sc-for>
                 </div>
@@ -1014,6 +1024,9 @@
                 <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
                   <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
                   <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O "máx" é só pra combo — limita quantas unidades desse sabor específico o cliente pode colocar dentro do combo. Vazio = sem limite individual (só o total do combo continua valendo).</p>
+                  <sc-if value="{{ ed.isCombo }}" hint-placeholder-val="{{ false }}">
+                    <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">"Grupo" junta vários sabores numa mesma cota — ex: coloque "Whisky" em todos os sabores de whisky e "máx do grupo" 1 em pelo menos um deles, pra travar em só 1 whisky no total (de qualquer sabor), liberando o resto do combo pros outros sabores.</p>
+                  </sc-if>
                 </sc-if>
                 <button class="btns" onClick="{{ ed.onToggleAdvanced }}" style="margin-top:14px;height:34px;font-size:12px">{{ ed.advancedLabel }}</button>
               </div>
@@ -1999,6 +2012,7 @@ class Component extends DCLogic {
         onMaxExtras: e => this.rawSet('maxExtras', e.target.value, n => set(t => { t.maxExtras = Math.max(0, Math.round(n)); })),
         comboQty: this.rawGet('comboQty', p.comboQty || 0),
         onComboQty: e => this.rawSet('comboQty', e.target.value, n => set(t => { t.comboQty = Math.max(0, Math.round(n)); })),
+        isCombo: (p.comboQty || 0) > 0,
         cost: this.rawGet('cost', p.cost),
         compare: this.rawGet('compare', p.compare),
         marginNote: pct === null
@@ -2041,55 +2055,47 @@ class Component extends DCLogic {
         })),
         onAddFardo: () => { this.setState({ raw: {} }); set(t => { t.fardos = (t.fardos || []).concat([[12, 0]]); }); },
         flavors: (p.flavors || []).map((fl, i) => {
-          const isObj = fl && typeof fl === 'object';
-          const out = isObj && !!fl.out;
-          const price = isObj && fl.price != null && fl.price !== '' ? fl.price : null;
-          const max = isObj && fl.max != null && fl.max !== '' ? fl.max : null;
+          /* Sabor pode ter preço próprio, máx individual e grupo (com máx do
+             grupo) — só vira objeto (em vez de string simples) quando algum
+             desses estiver preenchido, pra não incomodar quem só usa sabor
+             como nome mesmo. flavorFields()/buildFlavor() normalizam essa
+             leitura/escrita em todos os handlers pra nenhum campo se perder
+             quando só um deles muda. */
+          const flavorFields = fl2 => {
+            const isObj = fl2 && typeof fl2 === 'object';
+            return {
+              name: isObj ? (fl2.name || '') : (fl2 || ''),
+              out: isObj && !!fl2.out,
+              price: isObj && fl2.price != null && fl2.price !== '' ? fl2.price : null,
+              max: isObj && fl2.max != null && fl2.max !== '' ? fl2.max : null,
+              group: isObj && fl2.group ? fl2.group : '',
+              groupMax: isObj && fl2.groupMax != null && fl2.groupMax !== '' ? fl2.groupMax : null
+            };
+          };
+          const buildFlavor = fd => {
+            if (!fd.out && fd.price == null && fd.max == null && !fd.group && fd.groupMax == null) return fd.name;
+            const obj = { name: fd.name, out: fd.out };
+            if (fd.price != null) obj.price = fd.price;
+            if (fd.max != null) obj.max = fd.max;
+            if (fd.group) obj.group = fd.group;
+            if (fd.groupMax != null) obj.groupMax = fd.groupMax;
+            return obj;
+          };
+          const cur = flavorFields(fl);
           return {
-            name: isObj ? (fl.name || '') : (fl || ''),
-            out: out,
-            outStyle: this.chipStyle(out),
-            price: this.rawGet('flp' + i, price != null ? price : ''),
-            max: this.rawGet('flm' + i, max != null ? max : ''),
-            /* Sabor pode ter preço próprio (ex: tamanhos de copo com valores
-               diferentes) — só vira objeto (em vez de string simples) quando
-               tem "Esgotado" marcado ou um preço/máx definido, pra não incomodar
-               quem só usa sabor como nome mesmo. */
-            onName: e => { const v = e.target.value; set(t => {
-              const cur = t.flavors[i];
-              const curIsObj = cur && typeof cur === 'object';
-              const curOut = curIsObj && !!cur.out;
-              const curPrice = curIsObj && cur.price != null ? cur.price : null;
-              const curMax = curIsObj && cur.max != null ? cur.max : null;
-              t.flavors[i] = (curOut || curPrice != null || curMax != null)
-                ? Object.assign({ name: v, out: curOut }, curPrice != null ? { price: curPrice } : {}, curMax != null ? { max: curMax } : {})
-                : v;
-            }); },
-            onToggleOut: () => set(t => {
-              const cur = t.flavors[i];
-              const curIsObj = cur && typeof cur === 'object';
-              const name = curIsObj ? (cur.name || '') : (cur || '');
-              const curOut = curIsObj && !!cur.out;
-              const curPrice = curIsObj && cur.price != null ? cur.price : null;
-              const curMax = curIsObj && cur.max != null ? cur.max : null;
-              t.flavors[i] = Object.assign({ name: name, out: !curOut }, curPrice != null ? { price: curPrice } : {}, curMax != null ? { max: curMax } : {});
-            }),
-            onPrice: e => this.rawSet('flp' + i, e.target.value, n => set(t => {
-              const cur = t.flavors[i];
-              const curIsObj = cur && typeof cur === 'object';
-              const name = curIsObj ? (cur.name || '') : (cur || '');
-              const curOut = curIsObj && !!cur.out;
-              const curMax = curIsObj && cur.max != null ? cur.max : null;
-              t.flavors[i] = Object.assign({ name: name, out: curOut }, n ? { price: n } : {}, curMax != null ? { max: curMax } : {});
-            })),
-            onMax: e => this.rawSet('flm' + i, e.target.value, n => set(t => {
-              const cur = t.flavors[i];
-              const curIsObj = cur && typeof cur === 'object';
-              const name = curIsObj ? (cur.name || '') : (cur || '');
-              const curOut = curIsObj && !!cur.out;
-              const curPrice = curIsObj && cur.price != null ? cur.price : null;
-              t.flavors[i] = Object.assign({ name: name, out: curOut }, curPrice != null ? { price: curPrice } : {}, n ? { max: Math.round(n) } : {});
-            })),
+            name: cur.name,
+            out: cur.out,
+            outStyle: this.chipStyle(cur.out),
+            price: this.rawGet('flp' + i, cur.price != null ? cur.price : ''),
+            max: this.rawGet('flm' + i, cur.max != null ? cur.max : ''),
+            group: cur.group,
+            groupMax: this.rawGet('flgm' + i, cur.groupMax != null ? cur.groupMax : ''),
+            onName: e => { const v = e.target.value; set(t => { const fd = flavorFields(t.flavors[i]); fd.name = v; t.flavors[i] = buildFlavor(fd); }); },
+            onToggleOut: () => set(t => { const fd = flavorFields(t.flavors[i]); fd.out = !fd.out; t.flavors[i] = buildFlavor(fd); }),
+            onPrice: e => this.rawSet('flp' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.price = n || null; t.flavors[i] = buildFlavor(fd); })),
+            onMax: e => this.rawSet('flm' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.max = n ? Math.round(n) : null; t.flavors[i] = buildFlavor(fd); })),
+            onGroup: e => { const v = e.target.value; set(t => { const fd = flavorFields(t.flavors[i]); fd.group = v; t.flavors[i] = buildFlavor(fd); }); },
+            onGroupMax: e => this.rawSet('flgm' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.groupMax = n ? Math.round(n) : null; t.flavors[i] = buildFlavor(fd); })),
             onRemove: () => { this.setState({ raw: {} }); set(t => { t.flavors.splice(i, 1); }); }
           };
         }),

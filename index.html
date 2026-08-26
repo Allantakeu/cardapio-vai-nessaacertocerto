@@ -1519,11 +1519,13 @@ class Component extends DCLogic {
        com valores diferentes) — quando não definido, cai no preço base do
        produto, então isso não muda nada pra sabor que é só sabor mesmo. */
     const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string'
-      ? { name: f, out: false, price: null, max: null }
+      ? { name: f, out: false, price: null, max: null, group: '', groupMax: null }
       : {
         name: (f && f.name) || '', out: !!(f && f.out),
         price: (f && f.price != null && f.price !== '') ? Number(f.price) : null,
-        max: (f && f.max != null && f.max !== '') ? Math.round(Number(f.max)) : null
+        max: (f && f.max != null && f.max !== '') ? Math.round(Number(f.max)) : null,
+        group: (f && f.group) || '',
+        groupMax: (f && f.groupMax != null && f.groupMax !== '') ? Math.round(Number(f.groupMax)) : null
       });
     /* Combo com quantidade fixa (ex: "5 latas, escolha os sabores de cada")
        — em vez de escolher UM sabor pro produto inteiro, o cliente distribui
@@ -1581,16 +1583,35 @@ class Component extends DCLogic {
     const comboTotal = flavorList.reduce((t, f) => t + (flavorMix[f.name] || 0), 0);
     const comboRemaining = comboQty - comboTotal;
     const comboHint = isCombo ? ('Escolha ' + comboQty + ' no total (' + comboTotal + ' de ' + comboQty + ')') : '';
+    /* "Grupo" junta vários sabores numa cota comum (ex: todo sabor de whisky
+       leva group:"Whisky" e pelo menos um deles tem groupMax:1) — o efetivo
+       é o MENOR groupMax cadastrado no grupo, então o admin só precisa
+       preencher em um sabor pra travar o grupo inteiro. */
+    const groupCaps = {};
+    flavorList.forEach(f => {
+      if (f.group && f.groupMax != null) {
+        groupCaps[f.group] = groupCaps[f.group] != null ? Math.min(groupCaps[f.group], f.groupMax) : f.groupMax;
+      }
+    });
+    const groupSums = {};
+    flavorList.forEach(f => {
+      if (f.group) groupSums[f.group] = (groupSums[f.group] || 0) + (flavorMix[f.name] || 0);
+    });
     const comboRows = flavorList.map(f => {
       const qty = flavorMix[f.name] || 0;
       const perFlavorCapped = f.max != null && qty >= f.max;
-      const incBlocked = f.out || comboRemaining <= 0 || perFlavorCapped;
+      const groupCap = f.group ? groupCaps[f.group] : null;
+      const groupCapped = groupCap != null && (groupSums[f.group] || 0) >= groupCap;
+      const incBlocked = f.out || comboRemaining <= 0 || perFlavorCapped || groupCapped;
       return {
         name: f.name + (f.max != null ? ' (máx ' + f.max + ')' : '') + (f.out ? ' (esgotado)' : ''),
         qty: qty,
         incStyle: incBlocked ? 'opacity:.35;cursor:not-allowed' : '',
         onInc: incBlocked
-          ? () => this.showToast(f.out ? 'Esse sabor está esgotado.' : perFlavorCapped ? ('Esse sabor só pode até ' + f.max + ' nesse combo.') : ('Esse combo já tem os ' + comboQty + ' escolhidos — tire de um sabor pra trocar por outro.'))
+          ? () => this.showToast(f.out ? 'Esse sabor está esgotado.'
+              : perFlavorCapped ? ('Esse sabor só pode até ' + f.max + ' nesse combo.')
+              : groupCapped ? ('Só pode até ' + groupCap + ' de ' + f.group + ' no total nesse combo.')
+              : ('Esse combo já tem os ' + comboQty + ' escolhidos — tire de um sabor pra trocar por outro.'))
           : () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = (mix[f.name] || 0) + 1; return { flavorMix: mix }; }),
         onDec: () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = Math.max(0, (mix[f.name] || 0) - 1); return { flavorMix: mix }; })
       };
