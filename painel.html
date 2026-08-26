@@ -1249,11 +1249,21 @@ class Component extends DCLogic {
         });
       });
       VN.events().then(ev => this.setState({ events: ev || [] }));
+      /* Antes, um pedido novo só aparecia na aba Pedidos (ou nos números do
+         Dashboard/Lucro) quando o dono trocava de aba ou clicava em
+         "Atualizar" — se ele já estivesse parado ali olhando, o pedido não
+         chegava sozinho. Agora reconsulta sozinho de tempos em tempos
+         enquanto uma dessas abas estiver aberta e a janela estiver visível. */
+      this._eventsPoll = setInterval(() => {
+        if (document.hidden) return;
+        if (!/^(dash|pedidos|lucro)$/.test(this.state.view)) return;
+        VN.events().then(ev => this.setState({ events: ev || [] }));
+      }, 8000);
     };
     boot();
   }
 
-  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._toast); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._toast); clearInterval(this._eventsPoll); }
 
   markSent(digits) {
     this.setState(s => {
