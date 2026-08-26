@@ -623,6 +623,13 @@ a:hover{color:var(--color-accent-300)}
       <div style="font-size:13.5px;color:var(--color-neutral-500);margin-top:8px;line-height:1.5;max-width:320px">Toque abaixo para abrir a conversa com o resumo já escrito.</div>
       <pre style="margin:22px 0 0;padding:16px;width:100%;box-sizing:border-box;text-align:left;background:var(--color-surface);border-radius:14px;box-shadow:var(--shadow-sm);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.65;white-space:pre-wrap;color:#3a3a42">{{ waMessage }}</pre>
       <a class="btn btn-primary btn-block" href="{{ waHref }}" target="_blank" onClick="{{ onOpenWhatsApp }}" style="height:48px;font-size:15px;margin-top:20px;background:rgba(216,27,132,.08)">Abrir WhatsApp</a>
+      <sc-if value="{{ hasReferralPitch }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:14px;padding:16px;width:100%;box-sizing:border-box;text-align:left;background:var(--color-surface);border-radius:14px;box-shadow:var(--shadow-sm)">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:14px">Indique e ganhe</div>
+          <p style="font-size:12.5px;line-height:1.5;color:var(--color-neutral-500);margin:6px 0 0">{{ referralPitchText }}</p>
+          <button class="btn btn-secondary btn-block" onClick="{{ onShareReferral }}" style="height:42px;font-size:13.5px;margin-top:12px">Compartilhar meu link</button>
+        </div>
+      </sc-if>
       <button class="btn btn-secondary btn-block" onClick="{{ reset }}" style="height:42px;font-size:13.5px;margin-top:8px">Voltar ao cardápio</button>
     </div>
   </div>
@@ -645,6 +652,22 @@ function loadCart() {
     const saved = JSON.parse(localStorage.getItem('vn.cart'));
     return Array.isArray(saved) ? saved : [];
   } catch (e) { return []; }
+}
+
+/* Indicação de amigo: o "código" é o próprio WhatsApp de quem indicou, sem
+   cadastro nem código gerado. Chega pela URL (?ref=) e fica guardado até
+   virar um pedido de verdade — só grava se ainda não tiver um pendente, pra
+   abrir o mesmo link de novo (ou o de outra pessoa) no meio do caminho não
+   trocar quem vai ganhar a indicação. */
+function captureRef() {
+  try {
+    const params = new URLSearchParams(location.search);
+    const raw = params.get('ref');
+    if (!raw) return;
+    const digits = raw.replace(/\D/g, '').slice(-11);
+    if (digits.length < 10) return;
+    if (!localStorage.getItem('vn.ref')) localStorage.setItem('vn.ref', digits);
+  } catch (e) {}
 }
 
 class Component extends DCLogic {
@@ -742,6 +765,7 @@ class Component extends DCLogic {
   extras = {};
 
   componentDidMount() {
+    captureRef();
     this._onScroll = () => {
       const y = window.scrollY || document.documentElement.scrollTop || 0;
       const show = y > 480;
@@ -1570,6 +1594,16 @@ class Component extends DCLogic {
         if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
         this.showToast(url);
       },
+      hasReferralPitch: s.telefone.replace(/\D/g, '').length >= 10,
+      referralPitchText: cfg.referralReward || 'Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp.',
+      onShareReferral: () => {
+        const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
+        const url = 'https://www.vainessa.online/?ref=' + myDigits;
+        const data = { title: 'Vai Nessa', text: 'Peço aqui na Vai Nessa — usa meu link: ' + url, url: url };
+        if (navigator.share) { navigator.share(data).catch(() => {}); return; }
+        if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
+        this.showToast(url);
+      },
       showSwitcher: !!cfg.showSwitcher,
       tagline: cfg.tagline || 'Sua bebida gelada, com entrega rápida até você.',
       storeNamePart1: (cfg.storeName || 'Vai Nessa').split(' ')[0],
@@ -1645,13 +1679,24 @@ class Component extends DCLogic {
         this._waTracking = true;
         this.setState({ waTracked: true });
         const orderKey = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        /* indicadoPor só entra quando existe um ?ref= pendente e ele não é o
+           próprio número de quem está comprando (senão dava pra qualquer um
+           se autoindicar abrindo o próprio link). Consome o localStorage
+           aqui mesmo, dê certo ou não o pedido, pra um pedido futuro sem
+           relação nenhuma não herdar o mesmo link antigo clicado uma vez. */
+        let refDigits = '';
+        try { refDigits = (localStorage.getItem('vn.ref') || '').replace(/\D/g, '').slice(-11); } catch (e) {}
+        const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
+        const validRef = (refDigits && refDigits !== myDigits) ? refDigits : '';
+        if (refDigits) { try { localStorage.removeItem('vn.ref'); } catch (e) {} }
         VN.track('order', {
           product: null, qty: count, total: subtotal - couponDiscount + feeVal,
           detail: {
             nome: s.nome, telefone: s.telefone, endereco: this.fullAddress(), mode: s.mode,
             itens: s.cart.map(l => ({ name: l.name, qty: l.qty, total: l.unit * l.qty })),
             orderKey: orderKey,
-            cupom: couponMatch ? couponCode : ''
+            cupom: couponMatch ? couponCode : '',
+            indicadoPor: validRef
           }
         });
         s.cart.forEach(l => VN.track('sale', { product: l.name, qty: l.qty, total: l.unit * l.qty, detail: { orderKey: orderKey } }));

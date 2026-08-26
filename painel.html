@@ -182,6 +182,11 @@
         <span style="flex:1">Disparo</span>
         <span class="num" style="{{ contactBadgeStyle }}">{{ contactBadge }}</span>
       </button>
+      <button class="nav" onClick="{{ onIndicacoes }}" style="{{ indicacoesStyle }}">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"></path><circle cx="10" cy="7" r="4"></circle><path d="M19 8v6M22 11h-6"></path></svg>
+        <span style="flex:1">Indicações</span>
+        <span class="num" style="{{ referralBadgeStyle }}">{{ referralBadge }}</span>
+      </button>
       <button class="nav" onClick="{{ onVitrine }}" style="{{ vitrineStyle }}">
         <svg class="ico" viewBox="0 0 24 24"><path d="M3 9h18"></path><path d="M4 9V5.5h16V9"></path><path d="M5 9v10h14V9"></path><path d="M9.5 19v-5h5v5"></path></svg>
         <span>Vitrine</span>
@@ -547,6 +552,50 @@
       </div>
       </sc-if>
 
+      <sc-if value="{{ isIndicacoes }}" hint-placeholder-val="{{ false }}">
+      <div style="max-width:900px">
+        <h1 class="h1">Indicações</h1>
+        <p style="font-size:13.5px;color:var(--mut);margin:6px 0 0">{{ indicacoesSub }}</p>
+
+        <div class="tblwrap" style="margin-top:18px">
+          <table style="width:100%;border-collapse:collapse;min-width:560px">
+            <thead>
+              <tr>
+                <th class="th" style="min-width:170px">Quem indicou</th>
+                <th class="th" style="width:150px">WhatsApp</th>
+                <th class="th" style="width:110px">Indicações válidas</th>
+                <th class="th" style="width:110px">Já recompensadas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr dc-for="referrerSummary" dc-as="r">
+                <td class="cell" style="font-weight:500;font-size:13.5px">{{ r.name }}</td>
+                <td class="cell num" style="font-size:13px;color:var(--mut)">{{ r.phone }}</td>
+                <td class="cell num" style="font-size:13px">{{ r.validCount }}</td>
+                <td class="cell num" style="font-size:13px">{{ r.rewardedCount }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <sc-if value="{{ noReferrers }}" hint-placeholder-val="{{ false }}">
+            <p style="font-size:13.5px;line-height:1.6;color:var(--mut);padding:14px 8px">Nenhuma indicação ainda. Aparecem aqui pedidos feitos por quem abriu o link de indicação de outro cliente.</p>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
+          <sc-for list="{{ referralRows }}" as="rr" hint-placeholder-count="3">
+            <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px">
+              <span style="flex:none;font-size:12px;color:var(--mut)" class="num">{{ rr.when }}</span>
+              <span style="flex:1;min-width:180px;font-size:13.5px">
+                <strong>{{ rr.referredName }}</strong> ({{ rr.referredPhone }}) — indicado por <strong>{{ rr.referrerName }}</strong> ({{ rr.referrerPhone }})
+              </span>
+              <span class="pill" style="{{ rr.flagStyle }}">{{ rr.flagLabel }}</span>
+              <button class="pill" onClick="{{ rr.onToggleRewarded }}" style="{{ rr.rewardedStyle }}">{{ rr.rewardedLabel }}</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
       <sc-if value="{{ isVitrine }}" hint-placeholder-val="{{ false }}">
       <div style="max-width:1040px">
         <h1 class="h1">Vitrine</h1>
@@ -720,6 +769,15 @@
                 <input class="fld num" inputmode="decimal" value="{{ st.couponValue }}" onChange="{{ onCouponValue }}" style="max-width:170px">
               </div>
               <p style="font-size:12.5px;line-height:1.6;color:var(--mut);margin:10px 0 0">Só aparece pro cliente no carrinho quando estiver Ativo. Bom pra primeira compra ou indicação de amigo — o desconto entra só nos produtos, não no frete.</p>
+            </div>
+
+            <div class="card">
+              <h2 class="h2">Indicação de amigos</h2>
+              <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:6px 0 12px">Depois de finalizar o pedido, o cliente vê essa mensagem com um botão pra compartilhar o link dele. A recompensa é combinada por você — o sistema só avisa quem indicou quem, na aba Indicações.</p>
+              <div>
+                <span class="lbl">Mensagem exibida pro cliente</span>
+                <textarea class="fld" value="{{ st.referralReward }}" onChange="{{ onReferralReward }}" rows="3" style="resize:vertical;line-height:1.5" placeholder="Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp."></textarea>
+              </div>
             </div>
 
           </div>
@@ -1256,7 +1314,7 @@ class Component extends DCLogic {
          enquanto uma dessas abas estiver aberta e a janela estiver visível. */
       this._eventsPoll = setInterval(() => {
         if (document.hidden) return;
-        if (!/^(dash|pedidos|lucro)$/.test(this.state.view)) return;
+        if (!/^(dash|pedidos|lucro|indicacoes)$/.test(this.state.view)) return;
         VN.events().then(ev => this.setState({ events: ev || [] }));
       }, 8000);
     };
@@ -1723,6 +1781,66 @@ class Component extends DCLogic {
       byPhone[digits] = c;
     });
     const contactList = Object.keys(byPhone).map(k => byPhone[k]).sort((a, b) => b.last - a.last);
+
+    /* ——— indicações ——— */
+    /* Primeiro pedido de verdade de cada telefone (excluindo cancelados) —
+       é o que decide se uma indicação é válida: sem isso, o segundo pedido
+       de alguém que já era cliente contaria como indicação nova só por ter
+       clicado o link de um amigo depois. */
+    const firstOrderTsByPhone = {};
+    (s.events || []).filter(e => e.type === 'order').forEach(e => {
+      if (orderStatusMap[orderKeyOf(e)] === 'cancelado') return;
+      const det = parseDetail(e);
+      const digits = String(det.telefone || '').replace(/\D/g, '').slice(-11);
+      if (digits.length < 10) return;
+      const t = new Date(e.ts).getTime();
+      if (!firstOrderTsByPhone[digits] || t < firstOrderTsByPhone[digits]) firstOrderTsByPhone[digits] = t;
+    });
+
+    const referralsDoc = doc.referrals || {};
+    const referralRows = (s.events || [])
+      .filter(e => e.type === 'order' && orderStatusMap[orderKeyOf(e)] !== 'cancelado')
+      .map(e => {
+        const det = parseDetail(e);
+        return {
+          det, t: new Date(e.ts).getTime(),
+          referrerDigits: String(det.indicadoPor || '').replace(/\D/g, '').slice(-11),
+          referredDigits: String(det.telefone || '').replace(/\D/g, '').slice(-11)
+        };
+      })
+      .filter(r => r.referrerDigits && r.referredDigits.length >= 10)
+      .sort((a, b) => b.t - a.t)
+      .map(r => {
+        const isFirstOrder = firstOrderTsByPhone[r.referredDigits] === r.t;
+        const key = r.referredDigits;
+        const rewarded = !!(referralsDoc[key] && referralsDoc[key].rewarded);
+        return {
+          when: dt(r.t), isFirstOrder: isFirstOrder, rewarded: rewarded,
+          referredName: r.det.nome || 'Sem nome', referredPhone: r.referredDigits,
+          referrerName: (byPhone[r.referrerDigits] && byPhone[r.referrerDigits].name) || r.referrerDigits,
+          referrerPhone: r.referrerDigits,
+          flagLabel: isFirstOrder ? 'Primeira compra' : 'Não é a 1ª compra — confira',
+          flagStyle: isFirstOrder
+            ? 'border-color:#2fb673;color:#2fb673;background:color-mix(in srgb, #2fb673 12%, transparent)'
+            : 'border-color:#dc2626;color:#dc2626;background:color-mix(in srgb, #dc2626 12%, transparent)',
+          rewardedLabel: rewarded ? 'Recompensado ✓' : 'Marcar como recompensado',
+          rewardedStyle: rewarded ? 'border-color:#2fb673;background:#2fb673;color:#fff;font-weight:600' : '',
+          onToggleRewarded: () => this.mutate(d => {
+            d.referrals = Object.assign({}, d.referrals, { [key]: { referrer: r.referrerDigits, rewarded: !rewarded, ts: r.t } });
+          })
+        };
+      });
+
+    const referrerSummaryMap = {};
+    referralRows.filter(rr => rr.isFirstOrder).forEach(rr => {
+      const g = referrerSummaryMap[rr.referrerPhone] || { digits: rr.referrerPhone, name: rr.referrerName, validCount: 0, rewardedCount: 0 };
+      g.validCount++;
+      if (rr.rewarded) g.rewardedCount++;
+      referrerSummaryMap[rr.referrerPhone] = g;
+    });
+    const referrerSummary = Object.keys(referrerSummaryMap).map(k => referrerSummaryMap[k]).sort((a, b) => b.validCount - a.validCount)
+      .map(g => ({ name: g.name, phone: g.digits, validCount: String(g.validCount), rewardedCount: String(g.rewardedCount) }));
+    const pendingReferralCount = referralRows.filter(rr => rr.isFirstOrder && !rr.rewarded).length;
     const msgText = s.msg || 'Oi {nome}, tudo bem? Acabou de chegar carga nova e já está no freezer aqui na Vai Nessa. Separo o seu fardo pra hoje?';
     const fill = (txt, name) => txt.replace(/\{nome\}/g, (name || '').split(' ')[0] || 'tudo bem');
     const sent = s.sent || {};
@@ -2018,6 +2136,17 @@ class Component extends DCLogic {
       disparoSub: contacts.length
         ? contacts.length + (contacts.length === 1 ? ' contato de quem já pediu' : ' contatos de quem já pediu')
         : 'Os contatos aparecem aqui conforme os pedidos chegam',
+      onIndicacoes: () => { this.setState({ view: 'indicacoes', topQ: '' }); VN.events().then(ev => this.setState({ events: ev || [] })); },
+      indicacoesStyle: this.navStyle(s.view === 'indicacoes'),
+      isIndicacoes: !topQ && s.view === 'indicacoes',
+      referralBadge: pendingReferralCount ? String(pendingReferralCount) : '',
+      referralBadgeStyle: pendingReferralCount
+        ? 'flex:none;font-size:11px;padding:1px 7px;border-radius:99px;background:color-mix(in srgb, var(--acc) 14%, transparent);color:var(--acc)'
+        : 'display:none',
+      referralRows: referralRows, referrerSummary: referrerSummary, noReferrers: referrerSummary.length === 0,
+      indicacoesSub: referralRows.length
+        ? referralRows.length + (referralRows.length === 1 ? ' indicação registrada' : ' indicações registradas')
+        : 'As indicações aparecem aqui quando um cliente pede pelo link de outro cliente.',
       msg: msgText, onMsg: e => this.setState({ msg: e.target.value }),
       msgPreview: fill(msgText, contactList[0] ? contactList[0].name : 'João'),
       presets: [
@@ -2187,7 +2316,8 @@ class Component extends DCLogic {
         maxDeliveryKm: this.rawGet('maxDeliveryKm', st.maxDeliveryKm || 0),
         freeDeliveryMaxKm: this.rawGet('freeDeliveryMaxKm', st.freeDeliveryMaxKm || 0),
         couponActive: !!st.couponActive, couponCode: st.couponCode || '', couponType: st.couponType === 'fixed' ? 'fixed' : 'percent',
-        couponValue: this.rawGet('couponValue', st.couponValue || 0)
+        couponValue: this.rawGet('couponValue', st.couponValue || 0),
+        referralReward: st.referralReward || ''
       },
       kmLabel: st.kmDelivery !== false ? 'Ativado' : 'Desativado',
       kmStyle: this.chipStyle(st.kmDelivery !== false),
@@ -2237,6 +2367,7 @@ class Component extends DCLogic {
         }).catch(err => this.flash((err && err.message) || 'Falha ao enviar a capa'));
       },
       onUpsellTitle: stF('upsellTitle'), onFee: stN('deliveryFee'), onFreeAbove: stN('freeAbove'),
+      onReferralReward: stF('referralReward'),
       statusLabel: s.source === 'supabase' ? 'Ao vivo' : 'Neste aparelho',
       statusStyle: 'display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;'
         + (s.source === 'supabase'
