@@ -944,6 +944,8 @@
 
         <input value="{{ ed.name }}" onChange="{{ ed.onName }}" class="inline" style="margin-top:14px;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-.015em">
 
+        <button class="btns" onClick="{{ ed.onToggleAdvanced }}" style="margin-top:14px;height:34px;font-size:12px">{{ ed.advancedLabel }}</button>
+
         <div class="grid2" style="margin-top:16px;align-items:start">
           <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
 
@@ -986,32 +988,39 @@
               <div style="margin-top:16px">
                 <span class="lbl">Sabores / variantes</span>
                 <input class="fld" value="{{ ed.variantLabel }}" onChange="{{ ed.onVariantLabel }}" placeholder="Escolha o sabor" style="margin-bottom:10px">
-                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:-4px 0 10px">Título que aparece na vitrine acima das opções — troque pra "Escolha a cor" em produtos como copos, ou deixe vazio pra usar "Escolha o sabor".</p>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                  <div style="flex:1;max-width:220px">
-                    <span class="lbl">Combo com quantidade fixa</span>
-                    <input class="fld num" inputmode="numeric" value="{{ ed.comboQty }}" onChange="{{ ed.onComboQty }}" placeholder="0 = sabor único">
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:-4px 0 10px">Título acima das opções na vitrine — deixe vazio pra usar "Escolha o sabor".</p>
+                <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                    <div style="flex:1;max-width:220px">
+                      <span class="lbl">Combo com quantidade fixa</span>
+                      <input class="fld num" inputmode="numeric" value="{{ ed.comboQty }}" onChange="{{ ed.onComboQty }}" placeholder="0 = sabor único">
+                    </div>
+                    <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:14px 0 0">Só preencha se esse produto for um combo de várias unidades (ex: "5 latas de Red Bull") onde o cliente distribui a quantidade entre os sabores, em vez de escolher um só. Com um número aqui, o preço de cada sabor acima é ignorado — o combo inteiro tem um preço só.</p>
                   </div>
-                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:14px 0 0">Só preencha se esse produto for um combo de várias unidades (ex: "5 latas de Red Bull") onde o cliente distribui a quantidade entre os sabores, em vez de escolher um só. Com um número aqui, o preço de cada sabor acima é ignorado — o combo inteiro tem um preço só.</p>
-                </div>
+                </sc-if>
                 <div style="display:flex;flex-direction:column;gap:8px">
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
                     <div style="display:flex;align-items:center;gap:8px">
                       <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
-                      <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
-                      <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" style="width:70px" placeholder="máx">
+                      <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
+                        <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
+                        <input class="fld num" inputmode="numeric" value="{{ fl.max }}" onChange="{{ fl.onMax }}" style="width:70px" placeholder="máx">
+                      </sc-if>
                       <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
                       <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
                     </div>
                   </sc-for>
                 </div>
                 <button class="btns" onClick="{{ ed.onAddFlavor }}" style="margin-top:10px;height:34px">+ Sabor</button>
-                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Se tiver pelo menos 1 sabor cadastrado, o cliente escolhe um antes de adicionar ao pedido na vitrine. Marque "Esgotado" pra tirar só aquele sabor de circulação sem apagar o produto inteiro. Deixe vazio pra produtos sem variante.</p>
-                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
-                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O "máx" é só pra combo — limita quantas unidades desse sabor específico o cliente pode colocar dentro do combo. Vazio = sem limite individual (só o total do combo continua valendo).</p>
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">O cliente escolhe um sabor antes de adicionar ao pedido. Marque "Esgotado" pra tirar só aquele sabor de circulação. Deixe vazio pra produtos sem variante.</p>
+                <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
+                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
+                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O "máx" é só pra combo — limita quantas unidades desse sabor específico o cliente pode colocar dentro do combo. Vazio = sem limite individual (só o total do combo continua valendo).</p>
+                </sc-if>
               </div>
             </div>
 
+            <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
             <div class="card">
               <h2 class="h2">Segunda variante (opcional)</h2>
               <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 12px">Use quando o produto tem duas escolhas independentes ao mesmo tempo — ex: sabor E cor. O cliente precisa escolher as duas antes de adicionar ao pedido. Essa segunda opção não tem preço próprio nem modo combo.</p>
@@ -1031,6 +1040,7 @@
               <button class="btns" onClick="{{ ed.onAddFlavor2 }}" style="margin-top:10px;height:34px">+ Opção</button>
               <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Deixe vazio (sem nenhuma opção) pra produtos que não precisam dessa segunda escolha.</p>
             </div>
+            </sc-if>
 
             <div class="card">
               <h2 class="h2">Preços</h2>
@@ -1049,21 +1059,23 @@
                 </div>
               </div>
               <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:8px 0 0">Quanto você paga pra ter essa unidade (o que você pagou no fornecedor). Usado na calculadora de lucro. O "de" é o preço riscado que aparece em Promoções da semana quando maior que o preço de venda — deixe em branco pra não mostrar.</p>
-              <div style="margin-top:16px">
-                <span class="lbl">Fardos</span>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <sc-for list="{{ ed.fardos }}" as="f" hint-placeholder-count="2">
-                    <div style="display:flex;align-items:center;gap:8px">
-                      <input class="fld num" inputmode="numeric" value="{{ f.qty }}" onChange="{{ f.onQty }}" style="width:72px;flex:none" placeholder="un">
-                      <input class="fld num" inputmode="decimal" value="{{ f.price }}" onChange="{{ f.onPrice }}" style="flex:1" placeholder="preço">
-                      <span class="num" style="flex:none;width:94px;font-size:11.5px;text-align:right;color:var(--mut)">{{ f.each }}</span>
-                      <button class="mini" onClick="{{ f.onRemove }}" title="Remover">✕</button>
-                    </div>
-                  </sc-for>
+              <sc-if value="{{ ed.advanced }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:16px">
+                  <span class="lbl">Fardos</span>
+                  <div style="display:flex;flex-direction:column;gap:8px">
+                    <sc-for list="{{ ed.fardos }}" as="f" hint-placeholder-count="2">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <input class="fld num" inputmode="numeric" value="{{ f.qty }}" onChange="{{ f.onQty }}" style="width:72px;flex:none" placeholder="un">
+                        <input class="fld num" inputmode="decimal" value="{{ f.price }}" onChange="{{ f.onPrice }}" style="flex:1" placeholder="preço">
+                        <span class="num" style="flex:none;width:94px;font-size:11.5px;text-align:right;color:var(--mut)">{{ f.each }}</span>
+                        <button class="mini" onClick="{{ f.onRemove }}" title="Remover">✕</button>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <button class="btns" onClick="{{ ed.onAddFardo }}" style="margin-top:10px;height:34px">+ Fardo</button>
+                  <p class="num" style="font-size:12px;line-height:1.6;color:var(--mut);margin:12px 0 0">{{ ed.marginNote }}</p>
                 </div>
-                <button class="btns" onClick="{{ ed.onAddFardo }}" style="margin-top:10px;height:34px">+ Fardo</button>
-                <p class="num" style="font-size:12px;line-height:1.6;color:var(--mut);margin:12px 0 0">{{ ed.marginNote }}</p>
-              </div>
+              </sc-if>
             </div>
           </div>
 
@@ -1341,7 +1353,7 @@ class Component extends DCLogic {
     locked: true, loginEmail: '', loginPass: '', loginError: '', loggingIn: false, doc: null, events: [], theme: 'claro',
     view: 'dash', days: 'hoje', openOrder: null, orderFilter: 'todos', msg: '', sent: {}, catId: null, prodId: null, expanded: {}, q: '', topQ: '', mobileSearchOpen: false, upsellQ: '', colQ: '', adjust: '', navOpen: false, newCatOpen: false, newCatName: '', collectionsOpen: false, importOpen: false, importText: '', confirmReset: false,
     source: 'local', saving: '', savedAt: 0, saveError: false, toast: '', connMsg: '',
-    cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {},
+    cfgUrl: '', cfgKey: '', confirmDel: false, confirmCat: false, confirmAdj: false, raw: {}, prodAdvanced: false,
     calcProdId: '', calcQty: 1, calcVenda: 0, calcCusto: 0, calcEmbalagem: 0, calcEntregador: 0, calcOutros: 0
   };
 
@@ -1513,7 +1525,7 @@ class Component extends DCLogic {
       : '';
   }
 
-  pickProduct(id, catId) { this.setState({ view: 'prod', prodId: id, catId: catId, confirmDel: false, raw: {}, topQ: '', upsellQ: '' }); }
+  pickProduct(id, catId) { this.setState({ view: 'prod', prodId: id, catId: catId, confirmDel: false, raw: {}, topQ: '', upsellQ: '', prodAdvanced: false }); }
 
   addProduct(catId) {
     const id = VN.uid();
@@ -1522,7 +1534,7 @@ class Component extends DCLogic {
       const at = last ? d.products.indexOf(last) + 1 : d.products.length;
       d.products.splice(at, 0, { id: id, catId: catId, name: 'Novo produto', vol: '', price: 0, fardos: [], photo: '', out: false, featured: false, tag: '', upsell: [] });
     });
-    this.setState({ view: 'prod', prodId: id, catId: catId, raw: {}, confirmDel: false });
+    this.setState({ view: 'prod', prodId: id, catId: catId, raw: {}, confirmDel: false, prodAdvanced: false });
   }
 
   createNewCat() {
@@ -1977,6 +1989,9 @@ class Component extends DCLogic {
       return {
         crumb: (pcat ? pcat.name : '') + ' › ' + p.name,
         name: p.name, vol: p.vol || '', photo: p.photo || '', tag: p.tag || '', catId: p.catId,
+        advanced: !!s.prodAdvanced,
+        onToggleAdvanced: () => this.setState({ prodAdvanced: !s.prodAdvanced }),
+        advancedLabel: s.prodAdvanced ? 'Ocultar opções avançadas' : 'Opções avançadas (combo, preço por sabor, 2ª variante, fardo)',
         variantLabel: p.variantLabel || '',
         onVariantLabel: e => { const v = e.target.value; set(t => { t.variantLabel = v; }); },
         photoBoxStyle: 'flex:none;width:220px;height:220px;border-radius:14px;background:var(--hover);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)',
