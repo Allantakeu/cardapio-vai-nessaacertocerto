@@ -987,6 +987,7 @@
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
                     <div style="display:flex;align-items:center;gap:8px">
                       <input class="fld" value="{{ fl.name }}" onChange="{{ fl.onName }}" style="flex:1" placeholder="ex: Morango">
+                      <input class="fld num" inputmode="decimal" value="{{ fl.price }}" onChange="{{ fl.onPrice }}" style="width:96px" placeholder="preço base">
                       <button class="pill" onClick="{{ fl.onToggleOut }}" style="{{ fl.outStyle }};flex:none">Esgotado</button>
                       <button class="mini" onClick="{{ fl.onRemove }}" title="Remover">✕</button>
                     </div>
@@ -994,6 +995,7 @@
                 </div>
                 <button class="btns" onClick="{{ ed.onAddFlavor }}" style="margin-top:10px;height:34px">+ Sabor</button>
                 <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:10px 0 0">Se tiver pelo menos 1 sabor cadastrado, o cliente escolhe um antes de adicionar ao pedido na vitrine. Marque "Esgotado" pra tirar só aquele sabor de circulação sem apagar o produto inteiro. Deixe vazio pra produtos sem variante.</p>
+                <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
               </div>
             </div>
 
@@ -1982,18 +1984,41 @@ class Component extends DCLogic {
         flavors: (p.flavors || []).map((fl, i) => {
           const isObj = fl && typeof fl === 'object';
           const out = isObj && !!fl.out;
+          const price = isObj && fl.price != null && fl.price !== '' ? fl.price : null;
           return {
             name: isObj ? (fl.name || '') : (fl || ''),
             out: out,
             outStyle: this.chipStyle(out),
-            onName: e => { const v = e.target.value; set(t => { const cur = t.flavors[i]; const curOut = cur && typeof cur === 'object' && cur.out; t.flavors[i] = curOut ? { name: v, out: true } : v; }); },
+            price: this.rawGet('flp' + i, price != null ? price : ''),
+            /* Sabor pode ter preço próprio (ex: tamanhos de copo com valores
+               diferentes) — só vira objeto (em vez de string simples) quando
+               tem "Esgotado" marcado ou um preço definido, pra não incomodar
+               quem só usa sabor como nome mesmo. */
+            onName: e => { const v = e.target.value; set(t => {
+              const cur = t.flavors[i];
+              const curIsObj = cur && typeof cur === 'object';
+              const curOut = curIsObj && !!cur.out;
+              const curPrice = curIsObj && cur.price != null ? cur.price : null;
+              t.flavors[i] = (curOut || curPrice != null)
+                ? Object.assign({ name: v, out: curOut }, curPrice != null ? { price: curPrice } : {})
+                : v;
+            }); },
             onToggleOut: () => set(t => {
               const cur = t.flavors[i];
-              const name = cur && typeof cur === 'object' ? (cur.name || '') : (cur || '');
-              const curOut = cur && typeof cur === 'object' && !!cur.out;
-              t.flavors[i] = { name: name, out: !curOut };
+              const curIsObj = cur && typeof cur === 'object';
+              const name = curIsObj ? (cur.name || '') : (cur || '');
+              const curOut = curIsObj && !!cur.out;
+              const curPrice = curIsObj && cur.price != null ? cur.price : null;
+              t.flavors[i] = Object.assign({ name: name, out: !curOut }, curPrice != null ? { price: curPrice } : {});
             }),
-            onRemove: () => set(t => { t.flavors.splice(i, 1); })
+            onPrice: e => this.rawSet('flp' + i, e.target.value, n => set(t => {
+              const cur = t.flavors[i];
+              const curIsObj = cur && typeof cur === 'object';
+              const name = curIsObj ? (cur.name || '') : (cur || '');
+              const curOut = curIsObj && !!cur.out;
+              t.flavors[i] = Object.assign({ name: name, out: curOut }, n ? { price: n } : {});
+            })),
+            onRemove: () => { this.setState({ raw: {} }); set(t => { t.flavors.splice(i, 1); }); }
           };
         }),
         onAddFlavor: () => set(t => { t.flavors = (t.flavors || []).concat(['']); }),

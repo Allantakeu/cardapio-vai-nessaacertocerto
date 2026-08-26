@@ -927,8 +927,8 @@ class Component extends DCLogic {
 
   fmt(v) { return 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ','); }
 
-  optsOf(it) {
-    const list = [{ label: 'Unidade', price: it.price, each: '' }];
+  optsOf(it, priceOverride) {
+    const list = [{ label: 'Unidade', price: priceOverride != null ? priceOverride : it.price, each: '' }];
     (it.fardos || []).forEach(f => list.push({
       label: 'Fardo ' + f[0] + ' un', price: f[1], each: this.fmt(f[1] / f[0]) + ' cada'
     }));
@@ -970,9 +970,10 @@ class Component extends DCLogic {
     return this.state.variant || cfg.itemStyle || this.props.itemStyle || 'Compacta';
   }
 
-  unitOf(it, sel, opt) {
+  unitOf(it, sel, opt, priceOverride) {
     const list = this.extrasFor(it);
-    const o = this.optsOf(it)[opt] || this.optsOf(it)[0];
+    const optList = this.optsOf(it, priceOverride);
+    const o = optList[opt] || optList[0];
     return o.price + list.reduce((t, a) => t + (sel[a.id] || 0) * a.price, 0);
   }
 
@@ -1417,7 +1418,15 @@ class Component extends DCLogic {
       onInc: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = (sel[a.id] || 0) + 1; return { sel: sel }; }),
       onDec: () => this.setState(st => { const sel = Object.assign({}, st.sel); sel[a.id] = Math.max(0, (sel[a.id] || 0) - 1); return { sel: sel }; })
     }));
-    const optList = open ? this.optsOf(open) : [];
+    /* Sabor/variante pode ter um preço próprio (ex: "Copo 500ml"/"770ml"/"1L"
+       com valores diferentes) — quando não definido, cai no preço base do
+       produto, então isso não muda nada pra sabor que é só sabor mesmo. */
+    const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string'
+      ? { name: f, out: false, price: null }
+      : { name: (f && f.name) || '', out: !!(f && f.out), price: (f && f.price != null && f.price !== '') ? Number(f.price) : null });
+    const selectedFlavorObj = flavorList.find(f => f.name === s.flavor);
+    const flavorPriceOverride = selectedFlavorObj && selectedFlavorObj.price != null ? selectedFlavorObj.price : null;
+    const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({
       label: o.label, each: o.each, priceLabel: fmt(o.price),
@@ -1426,10 +1435,9 @@ class Component extends DCLogic {
         : 'border:1px solid var(--line)'),
       onPick: () => this.setState({ opt: i })
     }));
-    const unit = open ? this.unitOf(open, s.sel, optIdx) : 0;
-    const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string' ? { name: f, out: false } : { name: (f && f.name) || '', out: !!(f && f.out) });
+    const unit = open ? this.unitOf(open, s.sel, optIdx, flavorPriceOverride) : 0;
     const flavorOpts = flavorList.map(f => ({
-      name: f.name + (f.out ? ' (esgotado)' : ''),
+      name: f.name + (f.price != null ? ' · ' + fmt(f.price) : '') + (f.out ? ' (esgotado)' : ''),
       style: pill + 'font-size:12.5px;' + (f.out ? offSt + ';opacity:.4;cursor:not-allowed;text-decoration:line-through' : (s.flavor === f.name ? onSt : offSt)),
       onPick: f.out ? (e => { if (e && e.stopPropagation) e.stopPropagation(); }) : () => this.setState({ flavor: f.name })
     }));
