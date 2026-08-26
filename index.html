@@ -348,7 +348,7 @@ a:hover{color:var(--color-accent-300)}
           <image-slot id="{{ item.sheetSlotId }}" shape="rounded" radius="12" style="width:100%;height:100%;box-shadow:0 0 0 1px rgba(23,23,27,.06)" placeholder="Foto" src="{{ item.photoUrl }}"></image-slot>
         </div>
       </div>
-      <sc-if value="{{ hasFlavors }}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{ isSingleFlavorMode }}" hint-placeholder-val="{{ false }}">
         <div style="padding-bottom:14px">
           <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ variantLabel }}</h6>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -356,6 +356,22 @@ a:hover{color:var(--color-accent-300)}
               <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
             </sc-for>
           </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ isCombo }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-bottom:14px">
+          <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ variantLabel }}</h6>
+          <div style="font-size:11.5px;color:var(--color-neutral-500);margin:-4px 0 8px">{{ comboHint }}</div>
+          <sc-for list="{{ comboRows }}" as="cf" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
+              <span style="flex:1">{{ cf.name }}</span>
+              <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                <button class="btn btn-ghost" onClick="{{ cf.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
+                <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ cf.qty }}</span>
+                <button class="btn btn-ghost" onClick="{{ cf.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px;{{ cf.incStyle }}">+</button>
+              </div>
+            </div>
+          </sc-for>
         </div>
       </sc-if>
       <div>
@@ -422,7 +438,7 @@ a:hover{color:var(--color-accent-300)}
         <div style="font-family:var(--font-heading);font-weight:600;font-size:28px;line-height:1.06;letter-spacing:-.035em;text-wrap:balance">{{ item.name }}</div>
         <div class="desc" style="font-size:13.5px;margin-top:9px">{{ item.desc }}</div>
         <div class="money" style="font-family:var(--font-heading);font-weight:600;font-size:34px;color:var(--color-accent);margin-top:14px;letter-spacing:-.04em">{{ item.priceLabel }}</div>
-        <sc-if value="{{ hasFlavors }}" hint-placeholder-val="{{ false }}">
+        <sc-if value="{{ isSingleFlavorMode }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:18px">
             <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ variantLabel }}</h6>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -430,6 +446,22 @@ a:hover{color:var(--color-accent-300)}
                 <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
               </sc-for>
             </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isCombo }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ variantLabel }}</h6>
+            <div style="font-size:11.5px;color:var(--color-neutral-500);margin:-6px 0 10px">{{ comboHint }}</div>
+            <sc-for list="{{ comboRows }}" as="cf" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px">
+                <span style="flex:1">{{ cf.name }}</span>
+                <div style="display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:9px;padding:2px">
+                  <button class="btn btn-ghost" onClick="{{ cf.onDec }}" style="width:25px;height:25px;padding:0;font-size:14px">−</button>
+                  <span style="min-width:17px;text-align:center;font-size:12px;font-weight:600">{{ cf.qty }}</span>
+                  <button class="btn btn-ghost" onClick="{{ cf.onInc }}" style="width:25px;height:25px;padding:0;font-size:14px;{{ cf.incStyle }}">+</button>
+                </div>
+              </div>
+            </sc-for>
           </div>
         </sc-if>
         <div style="margin-top:18px">
@@ -711,7 +743,7 @@ function captureRef() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
 
   get data() {
     const d = this.state.doc;
@@ -959,7 +991,7 @@ class Component extends DCLogic {
        propósito. Com um sabor já vindo marcado, dava pra adicionar ao
        pedido sem perceber que "Melancia" (ou o primeiro da lista) tinha
        sido escolhido. */
-    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cartOpen: false, added: '', photoZoom: false });
+    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cartOpen: false, added: '', photoZoom: false });
   }
 
   quickAdd(it) {
@@ -1457,6 +1489,12 @@ class Component extends DCLogic {
     const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string'
       ? { name: f, out: false, price: null }
       : { name: (f && f.name) || '', out: !!(f && f.out), price: (f && f.price != null && f.price !== '') ? Number(f.price) : null });
+    /* Combo com quantidade fixa (ex: "5 latas, escolha os sabores de cada")
+       — em vez de escolher UM sabor pro produto inteiro, o cliente distribui
+       uma quantidade fixa entre vários sabores diferentes. Só existe um
+       preço pro combo inteiro, então não usa preço por sabor nesse modo. */
+    const comboQty = Number(open && open.comboQty) || 0;
+    const isCombo = flavorList.length > 0 && comboQty > 0;
     const selectedFlavorObj = flavorList.find(f => f.name === s.flavor);
     /* Antes de escolher um sabor, se pelo menos um tiver preço próprio, mostra
        o MENOR preço configurado em vez do preço base do produto — senão o
@@ -1464,9 +1502,9 @@ class Component extends DCLogic {
        R$12+ (o preço base virou só um valor de cadastro, nunca vendido). */
     const flavorPricesConfigured = flavorList.filter(f => f.price != null).map(f => f.price);
     const minFlavorPrice = flavorPricesConfigured.length ? Math.min.apply(null, flavorPricesConfigured) : null;
-    const flavorPriceOverride = selectedFlavorObj && selectedFlavorObj.price != null
+    const flavorPriceOverride = isCombo ? null : (selectedFlavorObj && selectedFlavorObj.price != null
       ? selectedFlavorObj.price
-      : (!s.flavor && minFlavorPrice != null ? minFlavorPrice : null);
+      : (!s.flavor && minFlavorPrice != null ? minFlavorPrice : null));
     const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({
@@ -1486,6 +1524,28 @@ class Component extends DCLogic {
        do objeto de retorno lá embaixo) — addToCart e sheetA/sheetB
        referenciam ela diretamente, fora de qualquer objeto literal. */
     const hasFlavors = flavorOpts.length > 0;
+    const isSingleFlavorMode = hasFlavors && !isCombo;
+
+    const flavorMix = s.flavorMix || {};
+    const comboTotal = flavorList.reduce((t, f) => t + (flavorMix[f.name] || 0), 0);
+    const comboRemaining = comboQty - comboTotal;
+    const comboHint = isCombo ? ('Escolha ' + comboQty + ' no total (' + comboTotal + ' de ' + comboQty + ')') : '';
+    const comboRows = flavorList.map(f => {
+      const qty = flavorMix[f.name] || 0;
+      const incBlocked = f.out || comboRemaining <= 0;
+      return {
+        name: f.name + (f.out ? ' (esgotado)' : ''),
+        qty: qty,
+        incStyle: incBlocked ? 'opacity:.35;cursor:not-allowed' : '',
+        onInc: incBlocked
+          ? () => this.showToast(f.out ? 'Esse sabor está esgotado.' : ('Esse combo já tem os ' + comboQty + ' escolhidos — tire de um sabor pra trocar por outro.'))
+          : () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = (mix[f.name] || 0) + 1; return { flavorMix: mix }; }),
+        onDec: () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = Math.max(0, (mix[f.name] || 0) - 1); return { flavorMix: mix }; })
+      };
+    });
+    /* Um só booleano cobre as duas travas do botão "Adicionar": sabor único
+       sem nada escolhido, ou combo sem bater a quantidade exata. */
+    const flavorIncomplete = isCombo ? (comboTotal !== comboQty) : (hasFlavors && !s.flavor);
 
     const lines = s.cart.map((l, i) => ({
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
@@ -1612,9 +1672,10 @@ class Component extends DCLogic {
       promos: promos,
       opts: opts,
       flavorOpts: flavorOpts, hasFlavors: hasFlavors,
-      addBtnStyle: (hasFlavors && !s.flavor) ? 'opacity:.45;cursor:not-allowed' : '',
-      addBtnLabel: (hasFlavors && !s.flavor) ? 'Escolha uma opção' : 'Adicionar',
-      addBtnLabelLong: (hasFlavors && !s.flavor) ? 'Escolha uma opção acima' : 'Adicionar ao pedido',
+      isCombo: isCombo, isSingleFlavorMode: isSingleFlavorMode, comboRows: comboRows, comboHint: comboHint,
+      addBtnStyle: flavorIncomplete ? 'opacity:.45;cursor:not-allowed' : '',
+      addBtnLabel: flavorIncomplete ? (isCombo ? 'Falta escolher' : 'Escolha uma opção') : 'Adicionar',
+      addBtnLabelLong: flavorIncomplete ? (isCombo ? 'Falta escolher os sabores' : 'Escolha uma opção acima') : 'Adicionar ao pedido',
       variantLabel: (open && open.variantLabel) || 'Escolha o sabor',
       item: open ? { name: open.name, desc: open.vol, priceLabel: fmt(unit * s.qty), sheetSlotId: 'vn-sheet-' + open.id, bigSlotId: 'vn-big-' + open.id, zoomSlotId: 'vn-zoom-' + open.id, photoUrl: open.photo || '' } : null,
       photoZoom: s.photoZoom && !!open,
@@ -1629,10 +1690,19 @@ class Component extends DCLogic {
       inc: () => this.setState(st => ({ qty: st.qty + 1 })),
       dec: () => this.setState(st => ({ qty: Math.max(1, st.qty - 1) })),
       addToCart: () => {
-        if (hasFlavors && !s.flavor) return this.showToast('Sem sabores disponíveis no momento.');
+        if (flavorIncomplete) return this.showToast(isCombo ? ('Escolha ' + comboQty + ' sabores no total antes de adicionar.') : 'Sem sabores disponíveis no momento.');
         this.setState(st => {
           const newExtras = extras.filter(a => st.sel[a.id] > 0).map(a => (st.sel[a.id] > 1 ? st.sel[a.id] + 'x ' : '') + a.name);
-          const line = { name: open.name + (st.flavor ? ' · ' + st.flavor : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: st.flavor || '', extras: newExtras, photo: open.photo || '', pid: open.id };
+          /* Combo com sabores misturados (ex: "2x Melancia, 2x Cereja, 1x
+             Tradicional") vira UM resumo de texto no lugar do sabor único —
+             igual sabor normal, ele entra no nome da linha, então misturas
+             diferentes viram linhas diferentes no carrinho em vez de somar
+             na mesma (cada montagem de combo é única). */
+          const mix = st.flavorMix || {};
+          const flavorText = isCombo
+            ? flavorList.filter(f => (mix[f.name] || 0) > 0).map(f => (mix[f.name] > 1 ? mix[f.name] + 'x ' : '') + f.name).join(', ')
+            : (st.flavor || '');
+          const line = { name: open.name + (flavorText ? ' · ' + flavorText : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: flavorText, extras: newExtras, photo: open.photo || '', pid: open.id };
           /* Mesmo produto + sabor + fardo/unidade + adicionais + observação
              de novo vira uma linha só com a quantidade somada, em vez de
              duas linhas separadas do mesmo item no carrinho. */

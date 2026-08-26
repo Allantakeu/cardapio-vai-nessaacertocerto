@@ -983,6 +983,13 @@
                 <span class="lbl">Sabores / variantes</span>
                 <input class="fld" value="{{ ed.variantLabel }}" onChange="{{ ed.onVariantLabel }}" placeholder="Escolha o sabor" style="margin-bottom:10px">
                 <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:-4px 0 10px">Título que aparece na vitrine acima das opções — troque pra "Escolha a cor" em produtos como copos, ou deixe vazio pra usar "Escolha o sabor".</p>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                  <div style="flex:1;max-width:220px">
+                    <span class="lbl">Combo com quantidade fixa</span>
+                    <input class="fld num" inputmode="numeric" value="{{ ed.comboQty }}" onChange="{{ ed.onComboQty }}" placeholder="0 = sabor único">
+                  </div>
+                  <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:14px 0 0">Só preencha se esse produto for um combo de várias unidades (ex: "5 latas de Red Bull") onde o cliente distribui a quantidade entre os sabores, em vez de escolher um só. Com um número aqui, o preço de cada sabor acima é ignorado — o combo inteiro tem um preço só.</p>
+                </div>
                 <div style="display:flex;flex-direction:column;gap:8px">
                   <sc-for list="{{ ed.flavors }}" as="fl" hint-placeholder-count="2">
                     <div style="display:flex;align-items:center;gap:8px">
@@ -1949,6 +1956,8 @@ class Component extends DCLogic {
         price: this.rawGet('price', p.price),
         maxExtras: this.rawGet('maxExtras', p.maxExtras || 0),
         onMaxExtras: e => this.rawSet('maxExtras', e.target.value, n => set(t => { t.maxExtras = Math.max(0, Math.round(n)); })),
+        comboQty: this.rawGet('comboQty', p.comboQty || 0),
+        onComboQty: e => this.rawSet('comboQty', e.target.value, n => set(t => { t.comboQty = Math.max(0, Math.round(n)); })),
         cost: this.rawGet('cost', p.cost),
         compare: this.rawGet('compare', p.compare),
         marginNote: pct === null
