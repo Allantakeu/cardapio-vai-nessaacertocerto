@@ -944,8 +944,6 @@
 
         <input value="{{ ed.name }}" onChange="{{ ed.onName }}" class="inline" style="margin-top:14px;font-family:var(--font-heading);font-weight:600;font-size:22px;letter-spacing:-.015em">
 
-        <button class="btns" onClick="{{ ed.onToggleAdvanced }}" style="margin-top:14px;height:34px;font-size:12px">{{ ed.advancedLabel }}</button>
-
         <div class="grid2" style="margin-top:16px;align-items:start">
           <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
 
@@ -1017,6 +1015,7 @@
                   <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O preço ao lado do nome é opcional — só preencha quando esse sabor/variante custar diferente do preço da unidade (ex: tamanhos de copo). Vazio ou 0 usa o preço normal do produto.</p>
                   <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">O "máx" é só pra combo — limita quantas unidades desse sabor específico o cliente pode colocar dentro do combo. Vazio = sem limite individual (só o total do combo continua valendo).</p>
                 </sc-if>
+                <button class="btns" onClick="{{ ed.onToggleAdvanced }}" style="margin-top:14px;height:34px;font-size:12px">{{ ed.advancedLabel }}</button>
               </div>
             </div>
 
