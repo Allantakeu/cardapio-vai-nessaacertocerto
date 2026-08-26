@@ -214,6 +214,16 @@ a:hover{color:var(--color-accent-300)}
         <button class="couponRedeemBtn" onClick="{{ onRedeemCoupon }}" style="flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:9px 16px;border-radius:999px;border:0;background:#fff;color:var(--brand-2-text);box-shadow:0 1px 4px rgba(23,23,27,.12)">{{ couponRedeemLabel }}</button>
       </div>
     </sc-if>
+    <sc-if value="{{ hasReferralPitch }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--color-surface);box-shadow:var(--shadow-sm)">
+        <div style="font-family:var(--font-heading);font-weight:700;font-size:13px;color:var(--color-text)">Indique e ganhe</div>
+        <div style="font-size:11px;color:var(--color-neutral-500);margin-top:2px;line-height:1.4">{{ referralPitchText }}</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <input class="input" type="tel" inputmode="numeric" placeholder="Seu WhatsApp" value="{{ telefone }}" onChange="{{ onTelefone }}" style="flex:1;min-width:0;height:38px;font-size:13px">
+          <button onClick="{{ onShareReferral }}" style="flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:0 16px;border-radius:999px;border:0;background:var(--color-accent);color:#fff">Compartilhar</button>
+        </div>
+      </div>
+    </sc-if>
   </div>
 
   <div style="{{ searchWrapStyle }}">
@@ -623,13 +633,6 @@ a:hover{color:var(--color-accent-300)}
       <div style="font-size:13.5px;color:var(--color-neutral-500);margin-top:8px;line-height:1.5;max-width:320px">Toque abaixo para abrir a conversa com o resumo já escrito.</div>
       <pre style="margin:22px 0 0;padding:16px;width:100%;box-sizing:border-box;text-align:left;background:var(--color-surface);border-radius:14px;box-shadow:var(--shadow-sm);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;line-height:1.65;white-space:pre-wrap;color:#3a3a42">{{ waMessage }}</pre>
       <a class="btn btn-primary btn-block" href="{{ waHref }}" target="_blank" onClick="{{ onOpenWhatsApp }}" style="height:48px;font-size:15px;margin-top:20px;background:rgba(216,27,132,.08)">Abrir WhatsApp</a>
-      <sc-if value="{{ hasReferralPitch }}" hint-placeholder-val="{{ false }}">
-        <div style="margin-top:14px;padding:16px;width:100%;box-sizing:border-box;text-align:left;background:var(--color-surface);border-radius:14px;box-shadow:var(--shadow-sm)">
-          <div style="font-family:var(--font-heading);font-weight:600;font-size:14px">Indique e ganhe</div>
-          <p style="font-size:12.5px;line-height:1.5;color:var(--color-neutral-500);margin:6px 0 0">{{ referralPitchText }}</p>
-          <button class="btn btn-secondary btn-block" onClick="{{ onShareReferral }}" style="height:42px;font-size:13.5px;margin-top:12px">Compartilhar meu link</button>
-        </div>
-      </sc-if>
       <button class="btn btn-secondary btn-block" onClick="{{ reset }}" style="height:42px;font-size:13.5px;margin-top:8px">Voltar ao cardápio</button>
     </div>
   </div>
@@ -1594,10 +1597,11 @@ class Component extends DCLogic {
         if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
         this.showToast(url);
       },
-      hasReferralPitch: s.telefone.replace(/\D/g, '').length >= 10,
+      hasReferralPitch: true,
       referralPitchText: cfg.referralReward || 'Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp.',
       onShareReferral: () => {
         const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
+        if (myDigits.length < 10) return this.showToast('Digite seu WhatsApp pra gerar seu link.');
         const url = 'https://www.vainessa.online/?ref=' + myDigits;
         const data = { title: 'Vai Nessa', text: 'Peço aqui na Vai Nessa — usa meu link: ' + url, url: url };
         if (navigator.share) { navigator.share(data).catch(() => {}); return; }
