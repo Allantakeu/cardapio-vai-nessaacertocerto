@@ -374,6 +374,16 @@ a:hover{color:var(--color-accent-300)}
           </sc-for>
         </div>
       </sc-if>
+      <sc-if value="{{ hasFlavors2 }}" hint-placeholder-val="{{ false }}">
+        <div style="padding-bottom:14px">
+          <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">{{ variantLabel2 }}</h6>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-for list="{{ flavorOpts2 }}" as="fl" hint-placeholder-count="3">
+              <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
       <sc-if value="{{ showDeliveryOpts }}" hint-placeholder-val="{{ true }}">
       <div>
         <h6 class="sect" style="margin:0 0 8px;color:var(--color-neutral-400)">Como quer levar?</h6>
@@ -464,6 +474,16 @@ a:hover{color:var(--color-accent-300)}
                 </div>
               </div>
             </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ hasFlavors2 }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px">
+            <h6 class="sect" style="margin:0 0 10px;color:var(--color-neutral-400)">{{ variantLabel2 }}</h6>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ flavorOpts2 }}" as="fl" hint-placeholder-count="3">
+                <button onClick="{{ fl.onPick }}" style="{{ fl.style }}">{{ fl.name }}</button>
+              </sc-for>
+            </div>
           </div>
         </sc-if>
         <sc-if value="{{ showDeliveryOpts }}" hint-placeholder-val="{{ true }}">
@@ -747,7 +767,7 @@ function captureRef() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cart: loadCart(), confirmedTotal: null, cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavor2: null, flavorMix: {}, cart: loadCart(), confirmedTotal: null, cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false, referralCount: 0, referralCounting: false };
 
   get data() {
     const d = this.state.doc;
@@ -999,7 +1019,7 @@ class Component extends DCLogic {
        propósito. Com um sabor já vindo marcado, dava pra adicionar ao
        pedido sem perceber que "Melancia" (ou o primeiro da lista) tinha
        sido escolhido. */
-    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavorMix: {}, cartOpen: false, added: '', photoZoom: false });
+    this.setState({ open: Object.assign({}, it, { cat: cat }), qty: 1, opt: 0, sel: {}, obs: '', flavor: null, flavor2: null, flavorMix: {}, cartOpen: false, added: '', photoZoom: false });
   }
 
   quickAdd(it) {
@@ -1499,8 +1519,12 @@ class Component extends DCLogic {
        com valores diferentes) — quando não definido, cai no preço base do
        produto, então isso não muda nada pra sabor que é só sabor mesmo. */
     const flavorList = ((open && open.flavors) || []).map(f => typeof f === 'string'
-      ? { name: f, out: false, price: null }
-      : { name: (f && f.name) || '', out: !!(f && f.out), price: (f && f.price != null && f.price !== '') ? Number(f.price) : null });
+      ? { name: f, out: false, price: null, max: null }
+      : {
+        name: (f && f.name) || '', out: !!(f && f.out),
+        price: (f && f.price != null && f.price !== '') ? Number(f.price) : null,
+        max: (f && f.max != null && f.max !== '') ? Math.round(Number(f.max)) : null
+      });
     /* Combo com quantidade fixa (ex: "5 latas, escolha os sabores de cada")
        — em vez de escolher UM sabor pro produto inteiro, o cliente distribui
        uma quantidade fixa entre vários sabores diferentes. Só existe um
@@ -1538,19 +1562,35 @@ class Component extends DCLogic {
     const hasFlavors = flavorOpts.length > 0;
     const isSingleFlavorMode = hasFlavors && !isCombo;
 
+    /* Segundo grupo de variante, independente do primeiro (ex: produto tem
+       SABOR e também COR pra escolher, cada um com seu próprio título) —
+       sempre escolha única, sem preço próprio nem modo combo, pra manter
+       simples (isso é o "sabor"/"cor" clássico, não o combo de quantidade). */
+    const flavorList2 = ((open && open.flavors2) || []).map(f => typeof f === 'string'
+      ? { name: f, out: false }
+      : { name: (f && f.name) || '', out: !!(f && f.out) });
+    const flavorOpts2 = flavorList2.map(f => ({
+      name: f.name + (f.out ? ' (esgotado)' : ''),
+      style: pill + 'font-size:12.5px;' + (f.out ? offSt + ';opacity:.4;cursor:not-allowed;text-decoration:line-through' : (s.flavor2 === f.name ? onSt : offSt)),
+      onPick: f.out ? (e => { if (e && e.stopPropagation) e.stopPropagation(); }) : () => this.setState({ flavor2: f.name })
+    }));
+    const hasFlavors2 = flavorOpts2.length > 0;
+    const variantLabel2 = (open && open.variantLabel2) || 'Escolha a opção';
+
     const flavorMix = s.flavorMix || {};
     const comboTotal = flavorList.reduce((t, f) => t + (flavorMix[f.name] || 0), 0);
     const comboRemaining = comboQty - comboTotal;
     const comboHint = isCombo ? ('Escolha ' + comboQty + ' no total (' + comboTotal + ' de ' + comboQty + ')') : '';
     const comboRows = flavorList.map(f => {
       const qty = flavorMix[f.name] || 0;
-      const incBlocked = f.out || comboRemaining <= 0;
+      const perFlavorCapped = f.max != null && qty >= f.max;
+      const incBlocked = f.out || comboRemaining <= 0 || perFlavorCapped;
       return {
-        name: f.name + (f.out ? ' (esgotado)' : ''),
+        name: f.name + (f.max != null ? ' (máx ' + f.max + ')' : '') + (f.out ? ' (esgotado)' : ''),
         qty: qty,
         incStyle: incBlocked ? 'opacity:.35;cursor:not-allowed' : '',
         onInc: incBlocked
-          ? () => this.showToast(f.out ? 'Esse sabor está esgotado.' : ('Esse combo já tem os ' + comboQty + ' escolhidos — tire de um sabor pra trocar por outro.'))
+          ? () => this.showToast(f.out ? 'Esse sabor está esgotado.' : perFlavorCapped ? ('Esse sabor só pode até ' + f.max + ' nesse combo.') : ('Esse combo já tem os ' + comboQty + ' escolhidos — tire de um sabor pra trocar por outro.'))
           : () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = (mix[f.name] || 0) + 1; return { flavorMix: mix }; }),
         onDec: () => this.setState(st => { const mix = Object.assign({}, st.flavorMix); mix[f.name] = Math.max(0, (mix[f.name] || 0) - 1); return { flavorMix: mix }; })
       };
@@ -1560,7 +1600,8 @@ class Component extends DCLogic {
     /* s.flavor === '' (sabor cadastrado sem nome) é uma escolha válida — só
        null conta como "nada escolhido ainda". Comparar com !s.flavor travava
        o botão pra sempre se um sabor ficasse sem nome no painel. */
-    const flavorIncomplete = isCombo ? (comboTotal !== comboQty) : (hasFlavors && s.flavor == null);
+    const flavorIncomplete = (isCombo ? (comboTotal !== comboQty) : (hasFlavors && s.flavor == null))
+      || (hasFlavors2 && s.flavor2 == null);
 
     const lines = s.cart.map((l, i) => ({
       name: l.name, qty: l.qty, qtyLabel: l.qty + 'x', totalLabel: fmt(l.unit * l.qty),
@@ -1687,6 +1728,7 @@ class Component extends DCLogic {
       promos: promos,
       opts: opts,
       flavorOpts: flavorOpts, hasFlavors: hasFlavors,
+      flavorOpts2: flavorOpts2, hasFlavors2: hasFlavors2, variantLabel2: variantLabel2,
       isCombo: isCombo, isSingleFlavorMode: isSingleFlavorMode, comboRows: comboRows, comboHint: comboHint,
       showDeliveryOpts: !isCombo,
       addBtnStyle: flavorIncomplete ? 'opacity:.45;cursor:not-allowed' : '',
@@ -1718,7 +1760,9 @@ class Component extends DCLogic {
           const flavorText = isCombo
             ? flavorList.filter(f => (mix[f.name] || 0) > 0).map(f => (mix[f.name] > 1 ? mix[f.name] + 'x ' : '') + f.name).join(', ')
             : (st.flavor || '');
-          const line = { name: open.name + (flavorText ? ' · ' + flavorText : '') + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: flavorText, extras: newExtras, photo: open.photo || '', pid: open.id };
+          const flavor2Text = st.flavor2 || '';
+          const nameSuffix = [flavorText, flavor2Text].filter(Boolean).map(t => ' · ' + t).join('');
+          const line = { name: open.name + nameSuffix + ' · ' + (optList[optIdx] || optList[0]).label.toLowerCase(), unit: unit, qty: st.qty, obs: st.obs, flavor: flavorText, flavor2: flavor2Text, extras: newExtras, photo: open.photo || '', pid: open.id };
           /* Mesmo produto + sabor + fardo/unidade + adicionais + observação
              de novo vira uma linha só com a quantidade somada, em vez de
              duas linhas separadas do mesmo item no carrinho. */
