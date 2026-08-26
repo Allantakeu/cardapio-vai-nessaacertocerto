@@ -215,14 +215,13 @@ a:hover{color:var(--color-accent-300)}
       </div>
     </sc-if>
     <sc-if value="{{ hasReferralPitch }}" hint-placeholder-val="{{ false }}">
-      <div style="margin-top:10px;padding:12px 14px;border-radius:14px;background:var(--color-surface);box-shadow:var(--shadow-sm)">
-        <div style="font-family:var(--font-heading);font-weight:700;font-size:13px;color:var(--color-text)">Indique e ganhe</div>
-        <div style="font-size:11px;color:var(--color-neutral-500);margin-top:2px;line-height:1.4">{{ referralPitchText }}</div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <input class="input" type="tel" inputmode="numeric" placeholder="Seu WhatsApp" value="{{ telefone }}" onChange="{{ onTelefone }}" style="flex:1;min-width:0;height:38px;font-size:13px">
-          <button onClick="{{ onShareReferral }}" style="flex:none;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:0 16px;border-radius:999px;border:0;background:var(--color-accent);color:#fff">Compartilhar</button>
+      <button onClick="{{ onOpenReferral }}" style="margin-top:10px;width:100%;text-align:left;cursor:pointer;border:0;padding:12px 14px;border-radius:14px;background:var(--color-surface);box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0">
+          <div style="font-family:var(--font-heading);font-weight:700;font-size:13px;color:var(--color-text)">Indique e ganhe</div>
+          <div style="font-size:11px;color:var(--color-neutral-500);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Compartilhe seu link e ganhe uma recompensa</div>
         </div>
-      </div>
+        <span style="flex:none;font-family:var(--font-heading);font-weight:600;font-size:12px;padding:9px 16px;border-radius:999px;background:var(--color-accent);color:#fff">Ver mais</span>
+      </button>
     </sc-if>
   </div>
 
@@ -623,6 +622,24 @@ a:hover{color:var(--color-accent-300)}
   </div>
 </sc-if>
 
+<sc-if value="{{ referralOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:60;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
+    <div class="sheet-box" onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 20px">
+      <div onPointerDown="{{ sheetDrag }}" style="display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
+      <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 8px">
+        <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:-.025em">Indique e ganhe</div>
+        <button onClick="{{ closeSheet }}" aria-label="Fechar" style="margin-left:auto;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(23,23,27,.05);border:0;cursor:pointer;color:var(--color-text);font-size:15px;line-height:1">✕</button>
+      </div>
+      <p style="font-size:13.5px;line-height:1.6;color:var(--color-neutral-500);margin:0 0 18px">{{ referralPitchText }}</p>
+      <div class="field">
+        <label>Seu WhatsApp</label>
+        <input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}">
+      </div>
+      <button class="btn btn-primary btn-block" onClick="{{ onShareReferral }}" style="height:48px;font-size:15px;margin-top:18px;background:rgba(216,27,132,.08)">Compartilhar meu link</button>
+    </div>
+  </div>
+</sc-if>
+
 <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
   <div style="position:fixed;inset:0;z-index:70;background:linear-gradient(180deg, #fdeef6, #ffffff 220px);display:flex;justify-content:center;overflow-y:auto;animation:fadeIn .18s ease">
     <div style="width:100%;max-width:440px;padding:48px 22px 28px;display:flex;flex-direction:column;align-items:center;text-align:center">
@@ -674,7 +691,7 @@ function captureRef() {
 }
 
 class Component extends DCLogic {
-  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false };
+  state = { doc: null, telefone: '', cat: 'Todos', q: '', open: null, qty: 1, opt: 0, sel: {}, obs: '', flavor: null, cart: loadCart(), cartOpen: false, done: false, mode: 'entrega', nome: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', toast: '', variant: null, added: '', addedLineIndex: null, deliveryKm: null, deliveryFeeCalc: null, deliveryCalcStatus: 'idle', photoZoom: false, coupon: '', couponChecking: false, couponCheckUsed: false, couponRedeemed: false, showScrollTop: false, searchCompact: false, waTracked: false, referralOpen: false };
 
   get data() {
     const d = this.state.doc;
@@ -716,7 +733,7 @@ class Component extends DCLogic {
       window.removeEventListener('pointercancel', onUp);
       const dy = Math.max(0, ev.clientY - startY);
       if (dy > 80) {
-        this.setState({ open: null, cartOpen: false, added: '' });
+        this.setState({ open: null, cartOpen: false, added: '', referralOpen: false });
       } else {
         box.style.transition = 'transform .2s ease';
         box.style.transform = '';
@@ -795,7 +812,7 @@ class Component extends DCLogic {
         this._waTracking = false;
         this.setState({ done: false, cart: [], nome: '', telefone: '', cep: '', rua: '', numero: '', bairro: '', cepStatus: 'idle', addrEdit: false, msg: '', coupon: '', waTracked: false });
       } else {
-        this.setState({ open: null, cartOpen: false, added: '', photoZoom: false });
+        this.setState({ open: null, cartOpen: false, added: '', photoZoom: false, referralOpen: false });
       }
     };
     window.addEventListener('popstate', this._onPopState);
@@ -843,7 +860,7 @@ class Component extends DCLogic {
        causa um bug visual de "fantasma" (o Safari/iOS repinta errado durante o scroll).
        Trava o scroll do body enquanto qualquer ficha/carrinho estiver aberto. */
     const s = this.state;
-    const anyOpen = !!s.open || s.cartOpen || !!s.added || s.done;
+    const anyOpen = !!s.open || s.cartOpen || !!s.added || s.done || s.referralOpen;
     /* Empurra uma entrada no histórico assim que alguma ficha abre — é o que dá
        ao "voltar" do celular algo pra consumir em vez de sair da página direto.
        O zoom da foto ganha uma segunda camada própria (abre por cima de uma
@@ -1536,7 +1553,7 @@ class Component extends DCLogic {
           };
         });
       },
-      closeSheet: () => this.setState({ open: null, cartOpen: false, added: '', photoZoom: false }),
+      closeSheet: () => this.setState({ open: null, cartOpen: false, added: '', photoZoom: false, referralOpen: false }),
       sheetDrag: this.sheetDrag,
       stop: e => e.stopPropagation(),
       hasCart: count > 0, cartOpen: s.cartOpen,
@@ -1598,6 +1615,8 @@ class Component extends DCLogic {
         this.showToast(url);
       },
       hasReferralPitch: true,
+      referralOpen: s.referralOpen,
+      onOpenReferral: () => this.setState({ referralOpen: true }),
       referralPitchText: cfg.referralReward || 'Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp.',
       onShareReferral: () => {
         const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
