@@ -933,6 +933,17 @@ class Component extends DCLogic {
 
   fmt(v) { return 'R$ ' + (Number(v) || 0).toFixed(2).replace('.', ','); }
 
+  /* "A partir de" antes de escolher variante: se pelo menos um sabor tiver
+     preço próprio, mostra o MENOR preço configurado em vez do preço base do
+     produto — senão o cliente via um valor que nunca é realmente vendido
+     (ex: R$1,00 de cadastro num produto cujas variantes custam R$12+). */
+  minVariantPrice(it) {
+    const prices = (it.flavors || [])
+      .map(f => (f && typeof f === 'object' && f.price != null && f.price !== '') ? Number(f.price) : null)
+      .filter(v => v != null);
+    return prices.length ? Math.min.apply(null, prices) : it.price;
+  }
+
   optsOf(it, priceOverride) {
     const list = [{ label: 'Unidade', price: priceOverride != null ? priceOverride : it.price, each: '' }];
     (it.fardos || []).forEach(f => list.push({
@@ -1392,7 +1403,7 @@ class Component extends DCLogic {
           return {
             name: it.name, tag: it.tag,
             desc: [it.vol].concat((it.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
-            priceLabel: fmt(it.price) + ' un',
+            priceLabel: fmt(this.minVariantPrice(it)) + ' un',
             slotId: 'vn-' + it.id, photoUrl: it.photo || '', plusStyle: plusStyle, plusLabel: '+',
             onOpen: () => this.openItem(it, g.name),
             rowQty: (it.flavors && it.flavors.length) ? 0 : (simpleCartQty.get(it.id + '|' + it.price) || 0),
@@ -1412,7 +1423,7 @@ class Component extends DCLogic {
     const open = s.open;
     const promos = this.promoItems.map(p => ({
       name: p.name, desc: [p.vol].concat((p.fardos || []).map(f => 'fardo ' + f[0] + ' un ' + fmt(f[1]))).join(' · '),
-      priceLabel: fmt(p.price) + ' un',
+      priceLabel: fmt(this.minVariantPrice(p)) + ' un',
       hasCompare: (Number(p.compare) || 0) > p.price, compareLabel: fmt(Number(p.compare) || 0),
       slotId: 'vn-promo-' + p.id, photoUrl: p.photo || '',
       onOpen: () => this.openItem(p, (this.data.find(g => g.items.some(it => it.id === p.id)) || {}).name),
@@ -1447,7 +1458,15 @@ class Component extends DCLogic {
       ? { name: f, out: false, price: null }
       : { name: (f && f.name) || '', out: !!(f && f.out), price: (f && f.price != null && f.price !== '') ? Number(f.price) : null });
     const selectedFlavorObj = flavorList.find(f => f.name === s.flavor);
-    const flavorPriceOverride = selectedFlavorObj && selectedFlavorObj.price != null ? selectedFlavorObj.price : null;
+    /* Antes de escolher um sabor, se pelo menos um tiver preço próprio, mostra
+       o MENOR preço configurado em vez do preço base do produto — senão o
+       cliente via "R$1,00" num produto cujas variantes de verdade custam
+       R$12+ (o preço base virou só um valor de cadastro, nunca vendido). */
+    const flavorPricesConfigured = flavorList.filter(f => f.price != null).map(f => f.price);
+    const minFlavorPrice = flavorPricesConfigured.length ? Math.min.apply(null, flavorPricesConfigured) : null;
+    const flavorPriceOverride = selectedFlavorObj && selectedFlavorObj.price != null
+      ? selectedFlavorObj.price
+      : (!s.flavor && minFlavorPrice != null ? minFlavorPrice : null);
     const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({
