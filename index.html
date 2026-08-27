@@ -735,7 +735,7 @@ a:hover{color:var(--color-accent-300)}
           </div>
           <div style="display:flex;gap:14px">
             <div style="flex:none;width:24px;height:24px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-size:11.5px;font-weight:700;font-family:var(--font-heading);color:var(--color-neutral-500)">3</div>
-            <div><div style="font-family:var(--font-heading);font-weight:600;font-size:13.5px">Vocês dois ganham</div><div style="font-size:12.5px;color:var(--color-neutral-500);margin-top:2px">A gente combina sua recompensa com você pelo WhatsApp.</div></div>
+            <div><div style="font-family:var(--font-heading);font-weight:600;font-size:13.5px">Você desbloqueia prêmios</div><div style="font-size:12.5px;color:var(--color-neutral-500);margin-top:2px">Quanto mais amigos pedirem, maior a recompensa — veja a lista logo abaixo.</div></div>
           </div>
         </div>
       </div>
@@ -758,6 +758,7 @@ a:hover{color:var(--color-accent-300)}
             </div>
           </sc-for>
         </div>
+        <p style="font-size:12px;line-height:1.5;color:var(--color-neutral-500);margin:0">Assim que bater a meta, avisa a gente pelo WhatsApp com seu número pra resgatar o prêmio.</p>
       </sc-if>
     </div>
   </div>
@@ -1734,8 +1735,8 @@ class Component extends DCLogic {
         lineStyle: 'width:2px;flex:1;min-height:14px;margin:2px 0;border-radius:2px;background:'
           + (reached ? 'var(--color-accent)' : 'var(--line)'),
         textWrapStyle: 'flex:1;padding-bottom:' + (isLast ? '2px' : '22px'),
-        labelStyle: 'font-family:var(--font-heading);font-weight:600;font-size:13.5px;color:' + (reached ? 'var(--color-text)' : 'var(--color-neutral-500)'),
-        rewardStyle: 'font-size:12.5px;line-height:1.4;margin-top:2px;color:var(--color-neutral-500)'
+        labelStyle: 'font-size:11.5px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:' + (reached ? 'var(--color-accent)' : 'var(--color-neutral-400)'),
+        rewardStyle: 'font-family:var(--font-heading);font-weight:600;font-size:14px;line-height:1.4;margin-top:2px;color:' + (reached ? 'var(--color-text)' : 'var(--color-neutral-500)')
       };
     });
     const couponAlreadyUsed = couponMatch && !couponNeedsPhone && !s.couponChecking && s.couponCheckUsed;
@@ -1950,7 +1951,7 @@ class Component extends DCLogic {
         ? (s.referralCounting ? 'Verificando…' : 'Você já indicou ' + s.referralCount + (s.referralCount === 1 ? ' amigo' : ' amigos') + '.')
         : '',
       referralMilestones: referralMilestones, hasReferralMilestones: referralMilestones.length > 0,
-      referralPitchText: cfg.referralReward || 'Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp.',
+      referralPitchText: cfg.referralReward || 'Cada amigo que pedir pela primeira vez usando seu link conta pra você — confira os prêmios aqui embaixo.',
       onShareReferral: () => {
         const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
         if (myDigits.length < 10) return this.showToast('Digite seu WhatsApp pra gerar seu link.');
