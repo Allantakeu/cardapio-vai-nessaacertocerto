@@ -587,13 +587,19 @@
 
         <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
           <sc-for list="{{ referralRows }}" as="rr" hint-placeholder-count="3">
-            <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px">
-              <span style="flex:none;font-size:12px;color:var(--mut)" class="num">{{ rr.when }}</span>
-              <span style="flex:1;min-width:180px;font-size:13.5px">
-                <strong>{{ rr.referredName }}</strong> ({{ rr.referredPhone }}) — indicado por <strong>{{ rr.referrerName }}</strong> ({{ rr.referrerPhone }})
-              </span>
-              <span class="pill" style="{{ rr.flagStyle }}">{{ rr.flagLabel }}</span>
-              <button class="pill" onClick="{{ rr.onToggleRewarded }}" style="{{ rr.rewardedStyle }}">{{ rr.rewardedLabel }}</button>
+            <div class="card" style="display:flex;flex-direction:column;gap:8px;padding:14px 18px">
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <span style="flex:none;font-size:12px;color:var(--mut)" class="num">{{ rr.when }}</span>
+                <span style="flex:1;min-width:180px;font-size:13.5px">
+                  <strong>{{ rr.referredName }}</strong> ({{ rr.referredPhone }}) — indicado por <strong>{{ rr.referrerName }}</strong> ({{ rr.referrerPhone }})
+                </span>
+                <span class="num" style="flex:none;font-size:13px;color:var(--mut)">{{ rr.orderTotal }}</span>
+                <span class="pill" style="{{ rr.flagStyle }}">{{ rr.flagLabel }}</span>
+                <button class="pill" onClick="{{ rr.onToggleRewarded }}" style="{{ rr.rewardedStyle }}">{{ rr.rewardedLabel }}</button>
+              </div>
+              <sc-if value="{{ rr.hasWarning }}" hint-placeholder-val="{{ false }}">
+                <p style="font-size:12px;color:#dc2626;margin:0">{{ rr.warningLabel }}</p>
+              </sc-if>
             </div>
           </sc-for>
         </div>
@@ -1943,27 +1949,61 @@ class Component extends DCLogic {
     });
 
     const referralsDoc = doc.referrals || {};
-    const referralRows = (s.events || [])
+    /* Qualquer um com a chave anon (pública, vai no código) pode inserir um
+       evento "order" fabricado direto na API do Supabase, sem passar pelo
+       checkout de verdade — sem backend próprio não dá pra provar que um
+       evento é uma compra real. Em vez de tentar bloquear isso (impossível
+       sem exigir login/OTP do cliente, o que a loja não quer), a defesa é
+       dar sinais bem visíveis pro dono desconfiar antes de recompensar às
+       cegas — a recompensa já é 100% manual, então é aqui que a fraude é
+       barrada de verdade. */
+    const saleOrderKeys = {};
+    (s.events || []).forEach(e => {
+      if (e.type !== 'sale') return;
+      const ok = parseDetail(e).orderKey;
+      if (ok) saleOrderKeys[ok] = true;
+    });
+    const referralCandidates = (s.events || [])
       .filter(e => e.type === 'order' && orderStatusMap[orderKeyOf(e)] !== 'cancelado')
       .map(e => {
         const det = parseDetail(e);
         return {
-          det, t: new Date(e.ts).getTime(),
+          det, t: new Date(e.ts).getTime(), total: Number(e.total) || 0,
           referrerDigits: String(det.indicadoPor || '').replace(/\D/g, '').slice(-11),
           referredDigits: String(det.telefone || '').replace(/\D/g, '').slice(-11)
         };
       })
       .filter(r => r.referrerDigits && r.referredDigits.length >= 10)
-      .sort((a, b) => b.t - a.t)
-      .map(r => {
+      .sort((a, b) => b.t - a.t);
+    /* Indicação de verdade é boca a boca — não acontece em rajada. 3 ou mais
+       "primeiras compras" indicadas pelo mesmo número em menos de 2h é um
+       padrão muito mais de teste/fraude do que de gente diferente decidindo
+       comprar ao mesmo tempo por acaso. */
+    const VELOCITY_WINDOW_MS = 2 * 60 * 60 * 1000;
+    const byReferrerDigits = {};
+    referralCandidates.forEach(r => { (byReferrerDigits[r.referrerDigits] = byReferrerDigits[r.referrerDigits] || []).push(r); });
+    Object.keys(byReferrerDigits).forEach(k => {
+      const list = byReferrerDigits[k];
+      list.forEach(r => { r.fastRepeat = list.filter(x => Math.abs(x.t - r.t) <= VELOCITY_WINDOW_MS).length >= 3; });
+    });
+    const referralRows = referralCandidates.map(r => {
         const isFirstOrder = firstOrderTsByPhone[r.referredDigits] === r.t;
         const key = r.referredDigits;
         const rewarded = !!(referralsDoc[key] && referralsDoc[key].rewarded);
+        const selfReferral = r.referrerDigits === r.referredDigits;
+        const noSaleMatch = !(r.det.orderKey && saleOrderKeys[r.det.orderKey]);
+        const warnings = [];
+        if (selfReferral) warnings.push('mesmo número nos dois lados (autoindicação)');
+        if (noSaleMatch) warnings.push('pedido sem itens de venda correspondentes');
+        if (r.fastRepeat) warnings.push('várias indicações desse número em pouco tempo');
         return {
           when: dt(r.t), isFirstOrder: isFirstOrder, rewarded: rewarded,
           referredName: r.det.nome || 'Sem nome', referredPhone: r.referredDigits,
           referrerName: (byPhone[r.referrerDigits] && byPhone[r.referrerDigits].name) || r.referrerDigits,
           referrerPhone: r.referrerDigits,
+          orderTotal: fmt(r.total),
+          hasWarning: warnings.length > 0,
+          warningLabel: warnings.length ? ('⚠ Confira: ' + warnings.join(' · ')) : '',
           flagLabel: isFirstOrder ? 'Primeira compra' : 'Não é a 1ª compra — confira',
           flagStyle: isFirstOrder
             ? 'border-color:#2fb673;color:#2fb673;background:color-mix(in srgb, #2fb673 12%, transparent)'
