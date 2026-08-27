@@ -1554,21 +1554,24 @@ class Component extends DCLogic {
     const selectedFlavorObj2 = flavorList2.find(f => f.name === s.flavor2);
     const flavor2PricesConfigured = flavorList2.filter(f => f.price != null).map(f => f.price);
     const minFlavor2Price = flavor2PricesConfigured.length ? Math.min.apply(null, flavor2PricesConfigured) : null;
-    /* No modo combo o preço já é fixo (o combo inteiro), então o preço da
-       2ª variante entra como ACRÉSCIMO em cima dele (ex: combo R$180 + R$5
-       por escolher um whisky específico) em vez de substituir o preço todo
-       — substituir faria o combo de R$180 "virar" R$5 ao escolher um sabor
-       com preço próprio pequeno, o que não faz sentido. Fora do combo, os
-       dois grupos continuam substituindo o preço normalmente (o segundo,
-       escolhido por último, manda quando os dois têm preço próprio). */
+    /* O preço da 2ª variante SEMPRE entra como ACRÉSCIMO em cima do preço já
+       em vigor (o do combo fixo, o do sabor escolhido, ou o preço base do
+       produto quando nenhum dos dois tem preço próprio) — nunca como
+       substituição. Antes, fora do combo, a 2ª variante SUBSTITUÍA o preço
+       inteiro sempre que tinha preço próprio, então um produto com sabor
+       "Black Label R$130" + 2ª variante "Garrafa lacrada R$15" virava
+       R$15 em vez de R$145 (o preço do sabor sumia). Somar os dois evita
+       essa perda e continua funcionando igual para quem só usa preço em UM
+       dos dois grupos (o outro simplesmente soma 0). */
+    const flavor1Override = (selectedFlavorObj && selectedFlavorObj.price != null) ? selectedFlavorObj.price
+      : (!s.flavor && minFlavorPrice != null) ? minFlavorPrice
+      : null;
+    const flavor2Addon = (selectedFlavorObj2 && selectedFlavorObj2.price != null) ? selectedFlavorObj2.price
+      : (!s.flavor2 && minFlavor2Price != null) ? minFlavor2Price
+      : null;
     const flavorPriceOverride = isCombo
-      ? (selectedFlavorObj2 && selectedFlavorObj2.price != null ? (Number(open.price) + selectedFlavorObj2.price) : null)
-      : (
-        (selectedFlavorObj2 && selectedFlavorObj2.price != null) ? selectedFlavorObj2.price
-        : (!s.flavor2 && minFlavor2Price != null) ? minFlavor2Price
-        : (selectedFlavorObj && selectedFlavorObj.price != null) ? selectedFlavorObj.price
-        : (!s.flavor && minFlavorPrice != null) ? minFlavorPrice
-        : null);
+      ? (flavor2Addon != null ? Number(open.price) + flavor2Addon : null)
+      : (flavor2Addon != null ? (flavor1Override != null ? flavor1Override : Number(open.price) || 0) + flavor2Addon : flavor1Override);
     const optList = open ? this.optsOf(open, flavorPriceOverride) : [];
     const optIdx = Math.min(s.opt, Math.max(0, optList.length - 1));
     const opts = optList.map((o, i) => ({

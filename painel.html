@@ -1976,22 +1976,38 @@ class Component extends DCLogic {
       .filter(r => r.referrerDigits && r.referredDigits.length >= 10)
       .sort((a, b) => b.t - a.t);
     /* Indicação de verdade é boca a boca — não acontece em rajada. 3 ou mais
-       "primeiras compras" indicadas pelo mesmo número em menos de 2h é um
-       padrão muito mais de teste/fraude do que de gente diferente decidindo
-       comprar ao mesmo tempo por acaso. */
+       "primeiras compras" indicadas pelo mesmo número dentro de uma janela
+       de 2h contínua é um padrão muito mais de teste/fraude do que de gente
+       diferente decidindo comprar ao mesmo tempo por acaso. Agrupa por
+       "cadeia" (cada intervalo até o próximo pedido ≤2h) em vez de só olhar
+       a distância de cada um até um único ponto — senão uma rajada espalhada
+       (0h, 1h50, 3h40: cada ponta a mais de 2h da outra ponta, mas cada um
+       a menos de 2h do vizinho) marcava só o do meio e deixava as pontas
+       sem aviso. */
     const VELOCITY_WINDOW_MS = 2 * 60 * 60 * 1000;
     const byReferrerDigits = {};
     referralCandidates.forEach(r => { (byReferrerDigits[r.referrerDigits] = byReferrerDigits[r.referrerDigits] || []).push(r); });
     Object.keys(byReferrerDigits).forEach(k => {
-      const list = byReferrerDigits[k];
-      list.forEach(r => { r.fastRepeat = list.filter(x => Math.abs(x.t - r.t) <= VELOCITY_WINDOW_MS).length >= 3; });
+      const list = byReferrerDigits[k].slice().sort((a, b) => a.t - b.t);
+      let start = 0;
+      for (let idx = 1; idx <= list.length; idx++) {
+        if (idx === list.length || list[idx].t - list[idx - 1].t > VELOCITY_WINDOW_MS) {
+          if (idx - start >= 3) for (let j = start; j < idx; j++) list[j].fastRepeat = true;
+          start = idx;
+        }
+      }
     });
     const referralRows = referralCandidates.map(r => {
         const isFirstOrder = firstOrderTsByPhone[r.referredDigits] === r.t;
         const key = r.referredDigits;
         const rewarded = !!(referralsDoc[key] && referralsDoc[key].rewarded);
         const selfReferral = r.referrerDigits === r.referredDigits;
-        const noSaleMatch = !(r.det.orderKey && saleOrderKeys[r.det.orderKey]);
+        /* Sem orderKey (pedido de antes dessa correlação existir), não dá
+           pra saber se teve venda correspondente — trata como "sem
+           informação" (não sinaliza), não como "suspeito", pro aviso não
+           virar ruído permanente em dado antigo e o dono aprender a
+           ignorá-lo mesmo quando for de verdade. */
+        const noSaleMatch = !!r.det.orderKey && !saleOrderKeys[r.det.orderKey];
         const warnings = [];
         if (selfReferral) warnings.push('mesmo número nos dois lados (autoindicação)');
         if (noSaleMatch) warnings.push('pedido sem itens de venda correspondentes');
@@ -2115,9 +2131,27 @@ class Component extends DCLogic {
         comboGroups: (p.comboGroups || []).map((g, i) => ({
           name: g.name || '',
           max: this.rawGet('cbg' + i, g.max != null ? g.max : ''),
-          onName: e => { const v = e.target.value; set(t => { t.comboGroups[i] = Object.assign({}, t.comboGroups[i], { name: v }); }); },
-          onMax: e => this.rawSet('cbg' + i, e.target.value, n => set(t => { t.comboGroups[i] = Object.assign({}, t.comboGroups[i], { max: n ? Math.round(n) : null }); })),
-          onRemove: () => { this.setState({ raw: {} }); set(t => { t.comboGroups.splice(i, 1); }); }
+          /* Renomear ou apagar um grupo precisa arrastar junto os sabores
+             que apontam pra ele — senão o sabor fica "órfão" (referenciando
+             um nome que não existe mais nas opções), silenciosamente para
+             de valer a cota do grupo, e se um grupo NOVO reaparecer com o
+             mesmo nome antigo o sabor "reconecta" sozinho, sem o dono
+             perceber nenhuma das duas coisas. */
+          onName: e => { const v = e.target.value; set(t => {
+            const old = (t.comboGroups[i] || {}).name || '';
+            t.comboGroups[i] = Object.assign({}, t.comboGroups[i], { name: v });
+            if (old && old !== v) {
+              t.flavors = (t.flavors || []).map(fl => (fl && typeof fl === 'object' && fl.group === old) ? Object.assign({}, fl, { group: v }) : fl);
+            }
+          }); },
+          onMax: e => this.rawSet('cbg' + i, e.target.value, n => set(t => { t.comboGroups[i] = Object.assign({}, t.comboGroups[i], { max: Math.round(n) }); })),
+          onRemove: () => { this.setState({ raw: {} }); set(t => {
+            const removedName = (t.comboGroups[i] || {}).name || '';
+            t.comboGroups.splice(i, 1);
+            if (removedName) {
+              t.flavors = (t.flavors || []).map(fl => (fl && typeof fl === 'object' && fl.group === removedName) ? Object.assign({}, fl, { group: '' }) : fl);
+            }
+          }); }
         })),
         onAddComboGroup: () => set(t => { t.comboGroups = (t.comboGroups || []).concat([{ name: '', max: null }]); }),
         comboGroupOptions: (p.comboGroups || []).filter(g => g && g.name).map(g => ({ id: g.name, name: g.name })),
@@ -2198,8 +2232,8 @@ class Component extends DCLogic {
             group: cur.group,
             onName: e => { const v = e.target.value; set(t => { const fd = flavorFields(t.flavors[i]); fd.name = v; t.flavors[i] = buildFlavor(fd); }); },
             onToggleOut: () => set(t => { const fd = flavorFields(t.flavors[i]); fd.out = !fd.out; t.flavors[i] = buildFlavor(fd); }),
-            onPrice: e => this.rawSet('flp' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.price = n || null; t.flavors[i] = buildFlavor(fd); })),
-            onMax: e => this.rawSet('flm' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.max = n ? Math.round(n) : null; t.flavors[i] = buildFlavor(fd); })),
+            onPrice: e => this.rawSet('flp' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.price = n; t.flavors[i] = buildFlavor(fd); })),
+            onMax: e => this.rawSet('flm' + i, e.target.value, n => set(t => { const fd = flavorFields(t.flavors[i]); fd.max = Math.round(n); t.flavors[i] = buildFlavor(fd); })),
             onGroup: e => { const v = e.target.value; set(t => { const fd = flavorFields(t.flavors[i]); fd.group = v; t.flavors[i] = buildFlavor(fd); }); },
             onRemove: () => { this.setState({ raw: {} }); set(t => { t.flavors.splice(i, 1); }); }
           };
@@ -2230,7 +2264,7 @@ class Component extends DCLogic {
             price: this.rawGet('fl2p' + i, cur.price != null ? cur.price : ''),
             onName: e => { const v = e.target.value; set(t => { const fd = flavor2Fields(t.flavors2[i]); fd.name = v; t.flavors2[i] = buildFlavor2(fd); }); },
             onToggleOut: () => set(t => { const fd = flavor2Fields(t.flavors2[i]); fd.out = !fd.out; t.flavors2[i] = buildFlavor2(fd); }),
-            onPrice: e => this.rawSet('fl2p' + i, e.target.value, n => set(t => { const fd = flavor2Fields(t.flavors2[i]); fd.price = n || null; t.flavors2[i] = buildFlavor2(fd); })),
+            onPrice: e => this.rawSet('fl2p' + i, e.target.value, n => set(t => { const fd = flavor2Fields(t.flavors2[i]); fd.price = n; t.flavors2[i] = buildFlavor2(fd); })),
             onRemove: () => { this.setState({ raw: {} }); set(t => { t.flavors2.splice(i, 1); }); }
           };
         }),
