@@ -686,28 +686,72 @@ a:hover{color:var(--color-accent-300)}
 
 <sc-if value="{{ referralOpen }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:60;background:rgba(23,23,27,.34);display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .16s ease">
-    <div class="sheet-box" onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 20px">
+    <div class="sheet-box" onClick="{{ stop }}" style="width:100%;max-width:440px;max-height:90vh;overflow-y:auto;background:var(--color-surface);border-radius:16px 16px 0 0;box-shadow:var(--shadow-lg);animation:sheetUp .22s cubic-bezier(.2,.8,.2,1);padding:0 18px 24px">
       <div onPointerDown="{{ sheetDrag }}" style="display:flex;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none"><span style="width:38px;height:4px;border-radius:999px;background:rgba(23,23,27,.18)"></span></div>
-      <div style="display:flex;align-items:baseline;gap:8px;padding:6px 0 8px">
-        <div style="font-family:var(--font-heading);font-weight:600;font-size:21px;letter-spacing:-.025em">Indique e ganhe</div>
-        <button onClick="{{ closeSheet }}" aria-label="Fechar" style="margin-left:auto;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(23,23,27,.05);border:0;cursor:pointer;color:var(--color-text);font-size:15px;line-height:1">✕</button>
+
+      <div style="position:relative;margin-top:6px;padding:24px 20px;border-radius:18px;overflow:hidden;background:linear-gradient(135deg, var(--color-accent), var(--brand-2) 130%);box-shadow:0 10px 26px -10px rgba(216,27,132,.45)">
+        <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.10)"></div>
+        <div style="position:absolute;bottom:-40px;right:30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.08)"></div>
+        <button onClick="{{ closeSheet }}" aria-label="Fechar" style="position:absolute;top:12px;right:12px;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.18);border:0;cursor:pointer;color:#fff;font-size:14px;line-height:1">✕</button>
+        <div style="position:relative;width:48px;height:48px;border-radius:13px;background:rgba(255,255,255,.20);display:grid;place-items:center;font-size:24px">🎁</div>
+        <div style="position:relative;font-family:var(--font-heading);font-weight:700;font-size:23px;letter-spacing:-.03em;line-height:1.1;color:#fff;margin-top:14px">Indique e ganhe</div>
+        <p style="position:relative;font-size:13px;line-height:1.55;margin:8px 0 0;color:rgba(255,255,255,.92);max-width:270px">{{ referralPitchText }}</p>
       </div>
-      <p style="font-size:13.5px;line-height:1.6;color:var(--color-neutral-500);margin:0 0 18px">{{ referralPitchText }}</p>
-      <div class="field">
+
+      <div style="margin-top:20px" class="field">
         <label>Seu WhatsApp</label>
         <input class="input money" type="tel" inputmode="numeric" placeholder="(11) 90000-0000" value="{{ telefone }}" onChange="{{ onTelefone }}">
       </div>
+
+      <div style="margin-top:12px;border-radius:14px;border:1.5px dashed var(--color-accent-200);background:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--color-neutral-400)">Seu link exclusivo</div>
+          <div class="money" style="font-size:13.5px;font-weight:600;color:var(--color-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">{{ referralLinkDisplay }}</div>
+        </div>
+        <button onClick="{{ onCopyReferralLink }}" aria-label="Copiar link" style="flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--color-surface);border:1px solid var(--line);cursor:pointer;color:var(--color-text)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+
       <sc-if value="{{ referralCountLabel }}" hint-placeholder-val="{{ false }}">
-        <div style="font-size:12px;color:var(--color-neutral-500);margin-top:6px">{{ referralCountLabel }}</div>
+        <div style="font-size:12px;color:var(--color-neutral-500);margin-top:10px;text-align:center">{{ referralCountLabel }}</div>
       </sc-if>
-      <button class="btn btn-primary btn-block" onClick="{{ onShareReferral }}" style="height:48px;font-size:15px;margin-top:18px;background:rgba(216,27,132,.08)">Compartilhar meu link</button>
+
+      <button class="btn btn-primary btn-block" onClick="{{ onShareReferral }}" style="height:48px;font-size:15px;margin-top:14px;background:var(--color-accent);color:#fff;border:0;font-family:var(--font-heading);font-weight:600">Compartilhar meu link</button>
+
+      <div style="margin-top:28px">
+        <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:14px">Como funciona</div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:none;width:32px;height:32px;border-radius:9px;background:var(--color-accent-200);display:grid;place-items:center;font-size:15px">🔗</div>
+            <div style="padding-top:5px"><span style="font-family:var(--font-heading);font-weight:600;font-size:13.5px">Compartilhe seu link</span><div style="font-size:12.5px;color:var(--color-neutral-500);margin-top:2px">Manda pra quem quiser — WhatsApp, Instagram, onde for.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:none;width:32px;height:32px;border-radius:9px;background:var(--color-accent-200);display:grid;place-items:center;font-size:15px">🛒</div>
+            <div style="padding-top:5px"><span style="font-family:var(--font-heading);font-weight:600;font-size:13.5px">Seu amigo pede pela primeira vez</span><div style="font-size:12.5px;color:var(--color-neutral-500);margin-top:2px">Usando o link, o pedido já chega marcado pra você.</div></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="flex:none;width:32px;height:32px;border-radius:9px;background:var(--color-accent-200);display:grid;place-items:center;font-size:15px">🎉</div>
+            <div style="padding-top:5px"><span style="font-family:var(--font-heading);font-weight:600;font-size:13.5px">Vocês dois ganham</span><div style="font-size:12.5px;color:var(--color-neutral-500);margin-top:2px">A gente combina sua recompensa com você pelo WhatsApp.</div></div>
+          </div>
+        </div>
+      </div>
+
       <sc-if value="{{ hasReferralMilestones }}" hint-placeholder-val="{{ false }}">
-        <div style="margin-top:20px">
-          <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:2px">Prêmios por quantidade</div>
+        <div style="margin-top:28px">
+          <div class="eyebrow" style="color:var(--color-neutral-500);margin-bottom:14px">Prêmios por indicação</div>
           <sc-for list="{{ referralMilestones }}" as="m" hint-placeholder-count="4">
-            <div style="{{ m.style }}">
-              <span style="{{ m.dotStyle }}">{{ m.dotIcon }}</span>
-              <span style="flex:1;font-size:12.5px"><strong>{{ m.label }}</strong> — {{ m.reward }}</span>
+            <div style="{{ m.rowStyle }}">
+              <div style="display:flex;flex-direction:column;align-items:center">
+                <div style="{{ m.circleStyle }}">{{ m.dotIcon }}</div>
+                <sc-if value="{{ !m.isLast }}" hint-placeholder-val="{{ true }}">
+                  <div style="{{ m.lineStyle }}"></div>
+                </sc-if>
+              </div>
+              <div style="{{ m.textWrapStyle }}">
+                <div style="{{ m.labelStyle }}">{{ m.label }}</div>
+                <div style="{{ m.rewardStyle }}">{{ m.reward }}</div>
+              </div>
             </div>
           </sc-for>
         </div>
@@ -1663,18 +1707,34 @@ class Component extends DCLogic {
     const couponNeedsPhone = couponMatch && couponPhoneDigits.length < 10;
     if (couponMatch && !couponNeedsPhone) this.scheduleCouponCheck(s.telefone, couponCode);
     if (s.referralOpen) this.scheduleReferralCount(s.telefone);
-    const referralMilestones = [1, 5, 10, 25]
+    /* Trilha de prêmios estilo "linha do tempo" (o mesmo padrão visual que
+       Uber/Nubank/Dropbox usam pra indicação) — cada marco é um círculo
+       (número ou ✓ quando já bateu) ligado por uma linha vertical ao
+       próximo, com o texto do prêmio ao lado. */
+    const referralMilestonesRaw = [1, 5, 10, 25]
       .map(n => ({ n: n, reward: (cfg['referralMilestone' + n] || '').trim() }))
-      .filter(m => m.reward)
-      .map(m => ({
+      .filter(m => m.reward);
+    const referralMilestones = referralMilestonesRaw.map((m, i) => {
+      const reached = s.referralCount >= m.n;
+      const isLast = i === referralMilestonesRaw.length - 1;
+      return {
         label: m.n + (m.n === 1 ? ' indicação' : ' indicações'),
         reward: m.reward,
-        dotIcon: s.referralCount >= m.n ? '✓' : String(m.n),
-        style: 'display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)'
-          + (s.referralCount >= m.n ? ';opacity:1' : ';opacity:.55'),
-        dotStyle: 'flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;'
-          + (s.referralCount >= m.n ? 'background:#2fb673;color:#fff' : 'background:rgba(23,23,27,.08);color:var(--color-neutral-500)')
-      }));
+        dotIcon: reached ? '✓' : String(m.n),
+        isLast: isLast,
+        reached: reached,
+        rowStyle: 'display:flex;gap:14px',
+        circleStyle: 'flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:700;font-family:var(--font-heading);box-sizing:border-box;'
+          + (reached
+            ? 'background:var(--color-accent);color:#fff'
+            : 'background:#fff;color:var(--color-neutral-400);border:1.5px solid var(--line)'),
+        lineStyle: 'width:2px;flex:1;min-height:14px;margin:2px 0;border-radius:2px;background:'
+          + (reached ? 'var(--color-accent)' : 'var(--line)'),
+        textWrapStyle: 'flex:1;padding-bottom:' + (isLast ? '2px' : '22px'),
+        labelStyle: 'font-family:var(--font-heading);font-weight:600;font-size:13.5px;color:' + (reached ? 'var(--color-text)' : 'var(--color-neutral-500)'),
+        rewardStyle: 'font-size:12.5px;line-height:1.4;margin-top:2px;color:var(--color-neutral-500)'
+      };
+    });
     const couponAlreadyUsed = couponMatch && !couponNeedsPhone && !s.couponChecking && s.couponCheckUsed;
     const couponOk = couponMatch && !couponNeedsPhone && !couponAlreadyUsed && !s.couponChecking;
     const couponType = cfg.couponType === 'fixed' ? 'fixed' : 'percent';
@@ -1894,6 +1954,19 @@ class Component extends DCLogic {
         const url = 'https://www.vainessa.online/?ref=' + myDigits;
         const data = { title: 'Vai Nessa', text: 'Peço aqui na Vai Nessa — usa meu link: ' + url, url: url };
         if (navigator.share) { navigator.share(data).catch(() => {}); return; }
+        if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
+        this.showToast(url);
+      },
+      /* Mostra o link de verdade só depois de um WhatsApp válido — antes
+         disso é só um placeholder guiando a preencher o campo acima. */
+      hasReferralLink: s.telefone.replace(/\D/g, '').length >= 10,
+      referralLinkDisplay: s.telefone.replace(/\D/g, '').length >= 10
+        ? 'vainessa.online/?ref=' + s.telefone.replace(/\D/g, '').slice(-11)
+        : 'Digite seu WhatsApp acima',
+      onCopyReferralLink: () => {
+        const myDigits = s.telefone.replace(/\D/g, '').slice(-11);
+        if (myDigits.length < 10) return this.showToast('Digite seu WhatsApp pra gerar seu link.');
+        const url = 'https://www.vainessa.online/?ref=' + myDigits;
         if (navigator.clipboard) { navigator.clipboard.writeText(url).then(() => this.showToast('Link copiado!')); return; }
         this.showToast(url);
       },
