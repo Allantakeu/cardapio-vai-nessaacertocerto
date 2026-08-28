@@ -786,8 +786,13 @@
               <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:6px 0 12px">Depois de finalizar o pedido, o cliente vê essa mensagem com um botão pra compartilhar o link dele. A recompensa é combinada por você — o sistema só avisa quem indicou quem, na aba Indicações.</p>
               <div>
                 <span class="lbl">Mensagem exibida pro cliente</span>
-                <textarea class="fld" value="{{ st.referralReward }}" onChange="{{ onReferralReward }}" rows="3" style="resize:vertical;line-height:1.5" placeholder="Chame um amigo pra pedir pela primeira vez usando seu link — depois é só combinar sua recompensa com a gente pelo WhatsApp."></textarea>
+                <textarea class="fld" value="{{ st.referralReward }}" onChange="{{ onReferralReward }}" rows="3" style="resize:vertical;line-height:1.5" placeholder="Cada amigo que pedir pela primeira vez usando seu link conta pra você — confira os prêmios aqui embaixo."></textarea>
               </div>
+              <div style="margin-top:14px;max-width:180px">
+                <span class="lbl">Pedido mínimo pra contar</span>
+                <input class="fld num" inputmode="decimal" value="{{ st.referralMinOrder }}" onChange="{{ onReferralMinOrder }}" placeholder="20,00">
+              </div>
+              <p style="font-size:11.5px;line-height:1.5;color:var(--mut);margin:6px 0 0">Pedido do amigo abaixo desse valor não conta como indicação válida (nem no contador dele, nem na aba Indicações). Deixe vazio pra usar R$ 20 padrão.</p>
               <p style="font-size:12px;line-height:1.6;color:var(--mut);margin:16px 0 8px">Prêmio por quantidade de indicações — o cliente vê o progresso dele em tempo real na ficha de indicação. Deixe em branco pra não mostrar aquele degrau.</p>
               <div class="grid2">
                 <div>
@@ -1949,6 +1954,11 @@ class Component extends DCLogic {
     });
 
     const referralsDoc = doc.referrals || {};
+    /* Pedido pequeno demais não vale como indicação de verdade (evita
+       alguém "ativar" o link de um amigo com um pedido de R$1 só pra
+       contar) — configurável em Vitrine, padrão R$20 quando vazio. */
+    const referralMinOrder = doc.settings.referralMinOrder != null && doc.settings.referralMinOrder !== ''
+      ? Number(doc.settings.referralMinOrder) : 20;
     /* Qualquer um com a chave anon (pública, vai no código) pode inserir um
        evento "order" fabricado direto na API do Supabase, sem passar pelo
        checkout de verdade — sem backend próprio não dá pra provar que um
@@ -2008,12 +2018,14 @@ class Component extends DCLogic {
            virar ruído permanente em dado antigo e o dono aprender a
            ignorá-lo mesmo quando for de verdade. */
         const noSaleMatch = !!r.det.orderKey && !saleOrderKeys[r.det.orderKey];
+        const belowMinOrder = r.total < referralMinOrder;
         const warnings = [];
         if (selfReferral) warnings.push('mesmo número nos dois lados (autoindicação)');
         if (noSaleMatch) warnings.push('pedido sem itens de venda correspondentes');
         if (r.fastRepeat) warnings.push('várias indicações desse número em pouco tempo');
+        if (belowMinOrder) warnings.push('pedido de ' + fmt(r.total) + ' abaixo do mínimo de ' + fmt(referralMinOrder) + ' — não conta');
         return {
-          when: dt(r.t), isFirstOrder: isFirstOrder, rewarded: rewarded,
+          when: dt(r.t), isFirstOrder: isFirstOrder, rewarded: rewarded, belowMinOrder: belowMinOrder,
           referredName: r.det.nome || 'Sem nome', referredPhone: r.referredDigits,
           referrerName: (byPhone[r.referrerDigits] && byPhone[r.referrerDigits].name) || r.referrerDigits,
           referrerPhone: r.referrerDigits,
@@ -2033,7 +2045,7 @@ class Component extends DCLogic {
       });
 
     const referrerSummaryMap = {};
-    referralRows.filter(rr => rr.isFirstOrder).forEach(rr => {
+    referralRows.filter(rr => rr.isFirstOrder && !rr.belowMinOrder).forEach(rr => {
       const g = referrerSummaryMap[rr.referrerPhone] || { digits: rr.referrerPhone, name: rr.referrerName, validCount: 0, rewardedCount: 0 };
       g.validCount++;
       if (rr.rewarded) g.rewardedCount++;
@@ -2041,7 +2053,7 @@ class Component extends DCLogic {
     });
     const referrerSummary = Object.keys(referrerSummaryMap).map(k => referrerSummaryMap[k]).sort((a, b) => b.validCount - a.validCount)
       .map(g => ({ name: g.name, phone: g.digits, validCount: String(g.validCount), rewardedCount: String(g.rewardedCount) }));
-    const pendingReferralCount = referralRows.filter(rr => rr.isFirstOrder && !rr.rewarded).length;
+    const pendingReferralCount = referralRows.filter(rr => rr.isFirstOrder && !rr.belowMinOrder && !rr.rewarded).length;
     const msgText = s.msg || 'Oi {nome}, tudo bem? Acabou de chegar carga nova e já está no freezer aqui na Vai Nessa. Separo o seu fardo pra hoje?';
     const fill = (txt, name) => txt.replace(/\{nome\}/g, (name || '').split(' ')[0] || 'tudo bem');
     const sent = s.sent || {};
@@ -2612,6 +2624,7 @@ class Component extends DCLogic {
         couponActive: !!st.couponActive, couponCode: st.couponCode || '', couponType: st.couponType === 'fixed' ? 'fixed' : 'percent',
         couponValue: this.rawGet('couponValue', st.couponValue || 0),
         referralReward: st.referralReward || '',
+        referralMinOrder: this.rawGet('referralMinOrder', st.referralMinOrder != null ? st.referralMinOrder : ''),
         referralMilestone1: st.referralMilestone1 || '', referralMilestone5: st.referralMilestone5 || '',
         referralMilestone10: st.referralMilestone10 || '', referralMilestone25: st.referralMilestone25 || ''
       },
@@ -2664,6 +2677,7 @@ class Component extends DCLogic {
       },
       onUpsellTitle: stF('upsellTitle'), onFee: stN('deliveryFee'), onFreeAbove: stN('freeAbove'),
       onReferralReward: stF('referralReward'),
+      onReferralMinOrder: stN('referralMinOrder'),
       onReferralMilestone1: stF('referralMilestone1'), onReferralMilestone5: stF('referralMilestone5'),
       onReferralMilestone10: stF('referralMilestone10'), onReferralMilestone25: stF('referralMilestone25'),
       statusLabel: s.source === 'supabase' ? 'Ao vivo' : 'Neste aparelho',
